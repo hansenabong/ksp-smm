@@ -1,59 +1,174 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# KSP-SMM — Sistem Manajemen Koperasi Simpan Pinjam
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Overview
 
-## About Laravel
+KSP-SMM is a web-based financial management system for a savings & loan cooperative (Koperasi Simpan Pinjam). It handles member management, multi-account cash operations, savings products, loan lifecycle, and double-entry accounting with automated journal posting.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Layer      | Technology                                           |
+|------------|------------------------------------------------------|
+| Backend    | PHP 8.2+, Laravel 12                                 |
+| Database   | PostgreSQL 15+                                       |
+| Frontend   | Blade, Tailwind CSS 3, Alpine.js 3                   |
+| Bundler    | Vite 7                                               |
+| Auth/RBAC  | Laravel Breeze + Spatie Permission 7                  |
+| Testing    | Pest 4                                               |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Directory Structure
 
-## Learning Laravel
+```
+ksp/
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── Admin/           # 24 controllers (cash, savings, loans, reports, accounting)
+│   │   ├── Auth/            # 8 authentication controllers (Breeze)
+│   │   └── Api/V1/          # 1 API controller (loan applications)
+│   ├── Models/              # 14 Eloquent models
+│   ├── Services/            # 5 business-logic services
+│   │   ├── Accounting/      #   PostingService, AutoPostingService
+│   │   ├── Cash/            #   CashTransactionService
+│   │   ├── Loans/           #   LoanService
+│   │   └── Savings/         #   SavingsService
+│   └── View/                # Blade view composers
+├── resources/views/         # Blade templates (admin, auth, layouts, components)
+├── routes/
+│   ├── web.php              # Main routes (admin prefix, role middleware)
+│   └── auth.php             # Authentication routes
+├── database/migrations/     # 32 migration files
+└── config/                  # 11 config files
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Data Models
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Core Entities
 
-## Laravel Sponsors
+| Model               | Purpose                                          |
+|----------------------|--------------------------------------------------|
+| `User`               | System users with Spatie roles                   |
+| `Member`             | Cooperative members (member_no, name, phone)     |
+| `CashAccount`        | Cash accounts (name, type, ledger mapping)       |
+| `SavingProduct`      | Savings product definitions (withdrawable flag)  |
+| `LoanProduct`        | Loan products (interest rate, admin fee, tenor)  |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Transaction Entities
 
-### Premium Partners
+| Model                | Purpose                                          |
+|----------------------|--------------------------------------------------|
+| `CashTransaction`    | Cash income/expense/transfer with void tracking  |
+| `SavingTransaction`  | Member savings deposits/withdrawals              |
+| `LoanApplication`    | Loan applications with approval workflow         |
+| `LoanApplicationFile`| Document attachments for loan applications       |
+| `Loan`               | Approved loans with payment schedule             |
+| `LoanPayment`        | Installment payments with void tracking          |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Accounting Entities
 
-## Contributing
+| Model          | Purpose                                              |
+|----------------|------------------------------------------------------|
+| `Account`      | Chart of accounts (hierarchical, parent/child)       |
+| `JournalEntry` | Accounting journal entries (source-tracked)           |
+| `JournalLine`  | Individual debit/credit lines per journal entry       |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Service Architecture
 
-## Code of Conduct
+### PostingService
+- Creates balanced double-entry journal entries
+- Validates debit = credit before persisting
+- Validates non-empty lines and valid dc (D/C) values
+- Voids journal entries by source type/ID
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### AutoPostingService
+- Automatically generates GL journal entries for:
+  - Cash transactions (INCOME/EXPENSE/TRANSFER)
+  - Savings deposits/withdrawals
+  - Loan disbursements
+  - Loan installment payments
+- Skips system categories (handled by respective modules)
+- Guards against duplicate posting (excludes voided entries)
+- Maps cash accounts to ledger accounts via `ledger_account_id`
 
-## Security Vulnerabilities
+### CashTransactionService
+- Creates income/expense/transfer transactions
+- Generates sequential transaction codes (`CK-YYYYMM-XXXXXX`)
+- Balance check before expense/transfer (prevents negative balance)
+- `getBalance()` — per-account balance from non-voided transactions
+- `getAllBalances()` — single-query CTE for dashboard balances
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### LoanService
+- Approves and disburses loans from applications
+- Calculates flat-rate components (principal, interest, admin, insurance)
+- Monthly principal = `intdiv(principal, tenor)`, last month absorbs remainder
+- Overpayment guard — payment cannot exceed outstanding balance
+- Payment voiding cascades: voids payment -> cash tx -> journal entries
+- Recomputes loan totals from non-voided payments
 
-## License
+### SavingsService
+- Processes deposits and withdrawals
+- Balance check before withdrawal
+- Creates corresponding cash transactions (system category)
+- Voiding cascades: voids saving tx -> cash tx -> journal entries
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Authorization
+
+Five roles managed via Spatie Permission:
+
+| Role          | Access Level                                      |
+|---------------|---------------------------------------------------|
+| `SUPER_ADMIN` | Full access                                      |
+| `ADMIN`       | Administrative operations                         |
+| `BENDAHARA`   | Finance/treasury operations                       |
+| `MANAGER`     | Approval and reporting                            |
+| `PETUGAS`     | Day-to-day transaction entry                      |
+
+Master data modifications require: `SUPER_ADMIN`, `ADMIN`, `BENDAHARA`, or `MANAGER`.
+Void operations require: `SUPER_ADMIN`, `BENDAHARA`, or `MANAGER`.
+
+## Key Workflows
+
+### Cash Transaction Flow
+1. User creates income/expense/transfer via controller
+2. Controller validates input -> calls `CashTransactionService`
+3. Service creates `CashTransaction` with temp UUID code
+4. Updates code to sequential format using record ID
+5. `AutoPostingService` creates journal entry (skips system categories)
+
+### Loan Lifecycle
+1. **Application** — member submits via `LoanApplication`
+2. **Approval** — officer approves -> `LoanService::approveAndDisburse()`
+   - Creates cash expense (disbursement)
+   - Creates `Loan` record with calculated schedule
+   - Posts GL journal (DR Piutang, CR Kas)
+3. **Payments** — `LoanService::payInstallment()`
+   - Creates cash income
+   - Updates loan totals
+   - Posts GL journal (DR Kas, CR Piutang/Revenue)
+   - Auto-closes loan when outstanding = 0
+4. **Void** — reverses payment + cash tx + journal entries
+
+### Void Audit Trail
+All voidable entities track: `is_voided`, `void_reason`, `voided_by`, `voided_at`.
+Void operations cascade through linked records (transaction -> cash -> journal).
+
+## Reporting
+
+- Cash reports with export (income, expense, transfer)
+- Savings reports with export (deposits, withdrawals)
+- Loan reports with export (active, payments, applications)
+- Trial balance (double-entry verification with date range)
+- Void audit trails for cash, savings, and loan payments
+
+## Development
+
+```bash
+# Full setup
+composer run setup          # composer install, npm install, migrate, build
+
+# Development server
+composer run dev            # concurrent: artisan serve + queue + npm dev
+
+# Testing
+composer run test           # Pest test suite
+```
+
+**Environment:** PostgreSQL on `localhost:5432`, database `ksp_smm`, app URL `http://localhost:8000`
