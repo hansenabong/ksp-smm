@@ -27,7 +27,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100">
                 <div class="text-sm font-semibold text-gray-700">Informasi Kas / Bank</div>
-                <div class="text-xs text-gray-400 mt-0.5">Setiap kas/bank harus dipetakan ke akun buku besar agar jurnal otomatis berjalan.</div>
+                <div class="text-xs text-gray-400 mt-0.5">Akun buku besar akan dibuat otomatis di bawah grup Kas (111x) atau Rekening Bank (112x).</div>
             </div>
 
             <form method="POST" action="{{ route('admin.master.cash_accounts.store') }}" class="px-5 py-5 space-y-4">
@@ -54,27 +54,10 @@
                             <option value="{{ $t }}" @selected(old('type') == $t)>{{ $t }}</option>
                         @endforeach
                     </select>
-                    @error('type') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-                        Akun Buku Besar (Ledger) <span class="text-red-500">*</span>
-                    </label>
-                    <select name="ledger_account_id"
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                            required>
-                        <option value="">— Pilih Akun Ledger —</option>
-                        @foreach($accounts as $acc)
-                            <option value="{{ $acc->id }}" @selected(old('ledger_account_id') == $acc->id)>
-                                {{ $acc->code }} – {{ $acc->name }}
-                            </option>
-                        @endforeach
-                    </select>
                     <p class="text-xs text-gray-400 mt-1">
-                        Pilih akun yang mewakili kas/bank ini di Buku Besar (misal: 1-101 Kas Tunai, 1-102 Bank BRI).
+                        CASH → akun ledger otomatis di 111x &bull; BANK → akun ledger otomatis di 112x
                     </p>
-                    @error('ledger_account_id') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                    @error('type') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="flex items-center gap-2">

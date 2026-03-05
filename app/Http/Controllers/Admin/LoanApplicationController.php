@@ -145,6 +145,11 @@ class LoanApplicationController extends Controller
             'insurance_monthly' => ['nullable', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:255'],
 
+            // Notaris (all optional)
+            'notaris_name'        => ['nullable', 'string', 'max:150'],
+            'notaris_deed_number' => ['nullable', 'string', 'max:60'],
+            'notaris_deed_date'   => ['nullable', 'date'],
+            'notaris_city'        => ['nullable', 'string', 'max:100'],
         ]);
         $formData = $request->input('form_data', []);
         $product = LoanProduct::where('is_active', true)->findOrFail($data['loan_product_id']);
@@ -193,6 +198,12 @@ class LoanApplicationController extends Controller
 
             'status' => 'PENDING',
             'created_by' => auth()->id(),
+
+            // Notaris
+            'notaris_name'        => $data['notaris_name'] ?? null,
+            'notaris_deed_number' => $data['notaris_deed_number'] ?? null,
+            'notaris_deed_date'   => $data['notaris_deed_date'] ?? null,
+            'notaris_city'        => $data['notaris_city'] ?? null,
         ]);
         // upload helper
         $saveOne = function ($file, string $category) use ($app) {

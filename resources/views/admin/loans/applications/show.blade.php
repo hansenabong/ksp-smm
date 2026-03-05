@@ -74,7 +74,7 @@
                 <div class="p-6">
                     {{-- Member name --}}
                     <div class="mb-5">
-                        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Pemohon</div>
+                        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Anggota</div>
                         <div class="text-xl font-bold text-gray-800">{{ $application->member?->name ?? '-' }}</div>
                         <div class="text-sm text-gray-500">No. Anggota: {{ $application->member?->member_no ?? $application->member_id }}</div>
                     </div>
@@ -140,7 +140,35 @@
                 </div>
             </div>
 
-            {{-- ===== FORM DATA SECTIONS ===== --}}
+            {{-- ===== NOTARIS ===== --}}
+            @if($application->notaris_name || $application->notaris_deed_number || $application->notaris_deed_date || $application->notaris_city)
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-3.5 bg-indigo-50 border-b border-indigo-100">
+                    <h3 class="text-sm font-semibold text-indigo-800">Informasi Notaris</h3>
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div>
+                        <div class="text-xs text-gray-400 mb-0.5">Nama Notaris</div>
+                        <div class="font-semibold text-gray-800">{{ $application->notaris_name ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400 mb-0.5">No. Akta</div>
+                        <div class="font-semibold text-gray-800">{{ $application->notaris_deed_number ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400 mb-0.5">Tanggal Akta</div>
+                        <div class="font-semibold text-gray-800">{{ $application->notaris_deed_date?->format('d F Y') ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400 mb-0.5">Kota / Kabupaten</div>
+                        <div class="font-semibold text-gray-800">{{ $application->notaris_city ?? '-' }}</div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            {{-- ===== FORM DATA SECTIONS (sensitive — policy-gated) ===== --}}
+            @can('viewSensitiveData', $application)
             @php $fd = $application->form_data ?? []; @endphp
             @if(!empty(array_filter($fd)))
 
@@ -148,7 +176,7 @@
             @if(!empty($fd['nama_lengkap'] ?? $fd['no_ktp'] ?? $fd['tgl_lahir'] ?? null))
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="px-6 py-3.5 bg-blue-50 border-b border-blue-100">
-                    <h3 class="text-sm font-semibold text-blue-800">Data Pribadi Pemohon</h3>
+                    <h3 class="text-sm font-semibold text-blue-800">Data Pribadi</h3>
                 </div>
                 <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
                     <div class="md:col-span-2">
@@ -458,7 +486,20 @@
             @endif
 
             @endif {{-- end array_filter --}}
+            @else
+            {{-- BENDAHARA or restricted role: show notice --}}
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm flex items-start gap-3">
+                <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <div class="font-semibold">Data Pribadi Tidak Tersedia</div>
+                    <div class="text-amber-700 mt-0.5">Peran Anda tidak memiliki akses untuk melihat data pribadi, KTP, agunan, dan informasi sensitif pemohon.</div>
+                </div>
+            </div>
+            @endcan
 
+            @can('viewSensitiveData', $application)
             {{-- ===== DOKUMEN ===== --}}
             @if($application->files->isNotEmpty())
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -509,8 +550,10 @@
                 </div>
             </div>
             @endif
+            @endcan
 
-            {{-- ===== APPROVE / REJECT ===== --}}
+            {{-- ===== APPROVE / REJECT (manager+ only) ===== --}}
+            @can('approve', $application)
             @if ($application->status === 'PENDING')
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
@@ -580,6 +623,7 @@
 
             </div>
             @endif
+            @endcan
 
     </div>
 </x-admin-layout>

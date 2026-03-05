@@ -26,16 +26,30 @@ class LoanPaymentController extends Controller
         // Build installment schedule
         $schedule = $this->buildSchedule($loan);
 
-        return view('admin.loans.payments.create', compact('loan', 'cashAccounts', 'schedule'));
+        // Penalty pre-calculation for the next installment
+        $product              = $loan->loanProduct;
+        $installmentNo        = $loan->payments->count() + 1;
+        $expectedDueDate      = $loan->disbursed_date->copy()->addMonths($installmentNo);
+        $penaltyDailyRateBp   = $product?->penalty_daily_rate_bp ?? 30;
+        $earlyRepaymentRateBp = $product?->early_repayment_rate_bp ?? 500;
+
+        return view('admin.loans.payments.create', compact(
+            'loan', 'cashAccounts', 'schedule',
+            'expectedDueDate', 'penaltyDailyRateBp', 'earlyRepaymentRateBp'
+        ));
     }
 
     public function store(Request $request, Loan $loan, LoanService $service)
     {
         $validated = $request->validate([
-            'trx_date'        => ['required', 'date'],
-            'cash_account_id' => ['required', 'exists:cash_accounts,id'],
-            'amount'          => ['required', 'integer', 'min:1'],
-            'note'            => ['nullable', 'string', 'max:255'],
+            'trx_date'               => ['required', 'date'],
+            'cash_account_id'        => ['required', 'exists:cash_accounts,id'],
+            'amount'                 => ['required', 'integer', 'min:1'],
+            'note'                   => ['nullable', 'string', 'max:255'],
+            'penalty_days'           => ['nullable', 'integer', 'min:0'],
+            'penalty_amount'         => ['nullable', 'integer', 'min:0'],
+            'is_early_repayment'     => ['nullable', 'boolean'],
+            'early_repayment_penalty' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $payment = $service->payInstallment($loan->id, $validated, auth()->id());

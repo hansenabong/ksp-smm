@@ -28,4 +28,22 @@ class Account extends Model
     {
         return $this->hasMany(Account::class, 'parent_id');
     }
+
+    /** Only leaf accounts (no children) — suitable for transaction posting */
+    public function scopeLeaf($q)
+    {
+        return $q->whereDoesntHave('children');
+    }
+
+    /** Filter by account type */
+    public function scopeByType($q, string $type)
+    {
+        return $q->where('type', $type);
+    }
+
+    /** Only active accounts */
+    public function scopeActive($q)
+    {
+        return $q->where('is_active', true);
+    }
 }

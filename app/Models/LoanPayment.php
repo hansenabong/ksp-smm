@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class LoanPayment extends Model
 {
     protected $casts = [
-        'is_voided' => 'boolean',
-        'voided_at' => 'datetime',
+        'is_voided'           => 'boolean',
+        'voided_at'           => 'datetime',
+        'is_early_repayment'  => 'boolean',
+        'trx_date'            => 'date',
     ];
     protected $fillable = [
         'loan_id',
@@ -17,7 +19,11 @@ class LoanPayment extends Model
         'cash_account_id',
         'cash_transaction_id',
         'note',
-        'created_by'
+        'created_by',
+        'penalty_days',
+        'penalty_amount',
+        'is_early_repayment',
+        'early_repayment_penalty',
     ];
 
     public function loan()

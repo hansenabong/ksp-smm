@@ -199,8 +199,55 @@
             </div>{{-- end left --}}
 
             {{-- ===== RIGHT: PAYMENT FORM ===== --}}
+            @php
+                $dueDateStr      = $expectedDueDate->toDateString();
+                $dailyRateBp     = $penaltyDailyRateBp;
+                $earlyRateBp     = $earlyRepaymentRateBp;
+                $installmentAmt  = (int) $loan->monthly_installment;
+                $outstandingAmt  = (int) $loan->outstanding;
+            @endphp
             <div class="xl:col-span-1">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-4"
+                     x-data="{
+                        trxDate:            '{{ now()->toDateString() }}',
+                        dueDate:            '{{ $dueDateStr }}',
+                        amount:             {{ $installmentAmt }},
+                        penaltyDays:        0,
+                        penaltyAmount:      0,
+                        isEarlyRepayment:   false,
+                        earlyPenalty:       0,
+                        outstanding:        {{ $outstandingAmt }},
+                        installmentAmt:     {{ $installmentAmt }},
+                        dailyRateBp:        {{ $dailyRateBp }},
+                        earlyRateBp:        {{ $earlyRateBp }},
+
+                        get total() {
+                            return this.amount + this.penaltyAmount + (this.isEarlyRepayment ? this.earlyPenalty : 0);
+                        },
+
+                        recalcPenalty() {
+                            if (!this.trxDate || !this.dueDate) { this.penaltyDays = 0; this.penaltyAmount = 0; return; }
+                            const trx = new Date(this.trxDate);
+                            const due = new Date(this.dueDate);
+                            const diffDays = Math.max(0, Math.floor((trx - due) / 86400000));
+                            this.penaltyDays = diffDays;
+                            this.penaltyAmount = Math.round(this.installmentAmt * diffDays * (this.dailyRateBp / 10000));
+                        },
+
+                        recalcEarlyPenalty() {
+                            if (this.isEarlyRepayment) {
+                                this.amount = this.outstanding;
+                                this.earlyPenalty = Math.round(this.outstanding * (this.earlyRateBp / 10000));
+                            } else {
+                                this.amount = this.installmentAmt;
+                                this.earlyPenalty = 0;
+                            }
+                        },
+
+                        init() { this.recalcPenalty(); }
+                     }"
+                     @change.window="recalcPenalty()">
+
                     <div class="px-5 py-4 border-b border-gray-100">
                         <div class="text-sm font-semibold text-gray-700">Form Pembayaran Angsuran</div>
                         <div class="text-xs text-gray-400 mt-0.5">Pinjaman #{{ $loan->id }} &middot; {{ $loan->member?->name }}</div>
@@ -211,13 +258,19 @@
                             <div class="bg-gray-50 rounded-lg px-3 py-2.5">
                                 <div class="text-xs text-gray-500">Angsuran/bln</div>
                                 <div class="text-sm font-bold text-gray-800 mt-0.5">
-                                    Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}
+                                    Rp {{ number_format($installmentAmt, 0, ',', '.') }}
                                 </div>
                             </div>
                             <div class="bg-red-50 rounded-lg px-3 py-2.5">
                                 <div class="text-xs text-red-500">Sisa Tagihan</div>
                                 <div class="text-sm font-bold text-red-600 mt-0.5">
-                                    Rp {{ number_format($loan->outstanding, 0, ',', '.') }}
+                                    Rp {{ number_format($outstandingAmt, 0, ',', '.') }}
+                                </div>
+                            </div>
+                            <div class="col-span-2 bg-blue-50 rounded-lg px-3 py-2">
+                                <div class="text-xs text-blue-500">Jatuh Tempo Angsuran Ini</div>
+                                <div class="text-sm font-bold text-blue-700 mt-0.5">
+                                    {{ $expectedDueDate->translatedFormat('d F Y') }}
                                 </div>
                             </div>
                         </div>
@@ -226,15 +279,21 @@
                             @csrf
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tanggal Bayar</label>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                    Tanggal Bayar <span class="text-red-500">*</span>
+                                </label>
                                 <input type="date" name="trx_date"
+                                       x-model="trxDate"
+                                       @change="recalcPenalty()"
                                        value="{{ old('trx_date', now()->toDateString()) }}"
                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
                                 @error('trx_date') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Kas Tujuan</label>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                    Kas Tujuan <span class="text-red-500">*</span>
+                                </label>
                                 <select name="cash_account_id"
                                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
                                     <option value="">Pilih Kas</option>
@@ -247,18 +306,111 @@
                                 @error('cash_account_id') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Jumlah Bayar (Rp)</label>
-                                <input type="number" name="amount"
-                                       value="{{ old('amount', $loan->monthly_installment) }}"
-                                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                                       min="1">
-                                <div class="text-xs text-gray-400 mt-1">Default = angsuran/bln, dapat diubah</div>
-                                @error('amount') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                            {{-- Early Repayment --}}
+                            <div class="flex items-center gap-2 py-1">
+                                <input type="checkbox" id="is_early_repayment" name="is_early_repayment" value="1"
+                                       x-model="isEarlyRepayment"
+                                       @change="recalcEarlyPenalty()"
+                                       class="rounded border-gray-300 text-indigo-600">
+                                <label for="is_early_repayment" class="text-sm text-gray-700 cursor-pointer">
+                                    Pelunasan Dipercepat (early repayment)
+                                </label>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Catatan (opsional)</label>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                    Jumlah Bayar (Rp) <span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" name="amount"
+                                       x-model="amount"
+                                       :readonly="isEarlyRepayment"
+                                       :class="isEarlyRepayment ? 'bg-gray-50 text-gray-500' : ''"
+                                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                       min="1">
+                                <div class="text-xs text-gray-400 mt-1" x-show="!isEarlyRepayment">Default = angsuran/bln, dapat diubah</div>
+                                <div class="text-xs text-orange-500 mt-1" x-show="isEarlyRepayment">Otomatis diisi dengan sisa tagihan</div>
+                                @error('amount') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                            </div>
+
+                            {{-- Penalty Section --}}
+                            <div class="border border-orange-100 bg-orange-50/50 rounded-lg p-3 space-y-3"
+                                 x-show="penaltyDays > 0 || isEarlyRepayment">
+
+                                <div class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Denda</div>
+
+                                <div x-show="penaltyDays > 0" class="space-y-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">
+                                            Hari Keterlambatan
+                                            <span class="text-gray-400">({{ $dailyRateBp / 100 }}%/hari)</span>
+                                        </label>
+                                        <input type="number" name="penalty_days"
+                                               x-model="penaltyDays"
+                                               @input="penaltyAmount = Math.round(amount * penaltyDays * (dailyRateBp / 10000))"
+                                               min="0"
+                                               class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Denda Keterlambatan (Rp)</label>
+                                        <input type="number" name="penalty_amount"
+                                               x-model="penaltyAmount"
+                                               min="0"
+                                               class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                                        <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="penalty_days" x-show="penaltyDays <= 0" x-bind:value="0">
+                                <input type="hidden" name="penalty_amount" x-show="penaltyDays <= 0" x-bind:value="0">
+
+                                <div x-show="isEarlyRepayment" class="space-y-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">
+                                            Denda Pelunasan Dipercepat (Rp)
+                                            <span class="text-gray-400">({{ $earlyRepaymentRateBp / 100 }}% dari sisa)</span>
+                                        </label>
+                                        <input type="number" name="early_repayment_penalty"
+                                               x-model="earlyPenalty"
+                                               min="0"
+                                               class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                                        <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="early_repayment_penalty" x-show="!isEarlyRepayment" x-bind:value="0">
+                                <input type="hidden" name="is_early_repayment" x-bind:value="isEarlyRepayment ? 1 : 0">
+                            </div>
+                            {{-- When no penalty, still send hidden fields --}}
+                            <div x-show="penaltyDays <= 0 && !isEarlyRepayment">
+                                <input type="hidden" name="penalty_days" value="0">
+                                <input type="hidden" name="penalty_amount" value="0">
+                                <input type="hidden" name="early_repayment_penalty" value="0">
+                                <input type="hidden" name="is_early_repayment" value="0">
+                            </div>
+
+                            {{-- Total summary --}}
+                            <div class="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm"
+                                 x-show="penaltyDays > 0 || isEarlyRepayment">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Angsuran</span>
+                                    <span class="font-medium" x-text="'Rp ' + amount.toLocaleString('id-ID')"></span>
+                                </div>
+                                <div class="flex justify-between" x-show="penaltyDays > 0">
+                                    <span class="text-gray-500">Denda terlambat</span>
+                                    <span class="font-medium text-orange-600" x-text="'Rp ' + penaltyAmount.toLocaleString('id-ID')"></span>
+                                </div>
+                                <div class="flex justify-between" x-show="isEarlyRepayment">
+                                    <span class="text-gray-500">Denda pelunasan</span>
+                                    <span class="font-medium text-orange-600" x-text="'Rp ' + earlyPenalty.toLocaleString('id-ID')"></span>
+                                </div>
+                                <div class="flex justify-between font-semibold border-t border-gray-200 pt-1.5">
+                                    <span class="text-gray-700">Total Diterima</span>
+                                    <span class="text-indigo-700" x-text="'Rp ' + total.toLocaleString('id-ID')"></span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                    Catatan <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                                </label>
                                 <input type="text" name="note" value="{{ old('note') }}"
                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                                        maxlength="255" placeholder="Keterangan tambahan">

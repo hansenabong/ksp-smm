@@ -66,7 +66,7 @@
 
                 <div class="p-6">
                     <div class="mb-4">
-                        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Pemohon</div>
+                        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Anggota</div>
                         <div class="text-lg font-bold text-gray-800">{{ $loan->member?->name ?? '-' }}</div>
                         <div class="text-sm text-gray-500">No. Anggota: {{ $loan->member?->member_no ?? $loan->member_id }}</div>
                     </div>
@@ -151,12 +151,6 @@
                     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-1">
                         <div class="px-6 py-3.5 border-b border-gray-100 flex items-center justify-between">
                             <h3 class="text-sm font-semibold text-gray-700">Riwayat Pembayaran</h3>
-                            @if($loan->status === 'ACTIVE')
-                            <a href="{{ route('admin.loans.payments.create', $loan) }}"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition">
-                                + Bayar Angsuran
-                            </a>
-                            @endif
                         </div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full text-sm">
@@ -275,11 +269,21 @@
                     </div>
                 </div>
 
-                {{-- ===== TAB: DATA PEMOHON ===== --}}
+                {{-- ===== TAB: DATA PEMOHON (policy-gated) ===== --}}
                 <div x-show="tab === 'pemohon'" x-cloak>
                     @if(!$hasForm)
                         <div class="mt-1 bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center text-gray-400 text-sm">
                             Data formulir tidak tersedia untuk pinjaman ini.
+                        </div>
+                    @elseif($loan->application && !auth()->user()->can('viewSensitiveData', $loan->application))
+                        <div class="mt-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-5 text-sm flex items-start gap-3">
+                            <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <div class="font-semibold">Data Pribadi Tidak Tersedia</div>
+                                <div class="text-amber-700 mt-0.5">Peran Anda tidak memiliki akses untuk melihat data pribadi, KTP, agunan, dan informasi sensitif pemohon.</div>
+                            </div>
                         </div>
                     @else
                     <div class="space-y-4 mt-1">
@@ -288,7 +292,7 @@
                         @if(!empty($fd['nama_lengkap'] ?? $fd['no_ktp'] ?? $fd['tgl_lahir'] ?? null))
                         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                             <div class="px-6 py-3.5 bg-blue-50 border-b border-blue-100">
-                                <h3 class="text-sm font-semibold text-blue-800">Data Pribadi Pemohon</h3>
+                                <h3 class="text-sm font-semibold text-blue-800">Data Pribadi </h3>
                             </div>
                             <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
                                 <div class="md:col-span-2">
@@ -601,9 +605,19 @@
                     @endif
                 </div>
 
-                {{-- ===== TAB: DOKUMEN ===== --}}
+                {{-- ===== TAB: DOKUMEN (policy-gated) ===== --}}
                 <div x-show="tab === 'dokumen'" x-cloak>
-                    @if(!$hasDocs)
+                    @if($loan->application && !auth()->user()->can('viewSensitiveData', $loan->application))
+                        <div class="mt-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-5 text-sm flex items-start gap-3">
+                            <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <div class="font-semibold">Dokumen Tidak Tersedia</div>
+                                <div class="text-amber-700 mt-0.5">Peran Anda tidak memiliki akses untuk melihat dokumen KTP, KK, dan agunan.</div>
+                            </div>
+                        </div>
+                    @elseif(!$hasDocs)
                         <div class="mt-1 bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center text-gray-400 text-sm">
                             Tidak ada dokumen yang diunggah.
                         </div>

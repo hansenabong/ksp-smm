@@ -29,7 +29,8 @@ class CashReportController extends Controller
             ->with(['fromCashAccount', 'toCashAccount', 'creator'])
             ->orderBy('trx_date')
             ->orderBy('id')
-            ->get();
+            ->paginate(50)
+            ->withQueryString();
 
         // ringkasan per kas: income, expense, transfer_in, transfer_out
         $summary = [];

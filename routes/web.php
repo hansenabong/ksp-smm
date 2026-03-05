@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\SavingVoidController;
 use App\Http\Controllers\Admin\LoanPaymentVoidController;
 use App\Http\Controllers\Admin\CashVoidController;
 use App\Http\Controllers\Admin\Master\CashAccountController;
+use App\Http\Controllers\Admin\Master\CashCategoryController;
 use App\Http\Controllers\Admin\Master\MemberController;
 use App\Http\Controllers\Admin\Master\SavingProductController;
 use App\Http\Controllers\Admin\Master\LoanProductController;
@@ -23,6 +24,13 @@ use App\Http\Controllers\Admin\Reports\CashReportController;
 use App\Http\Controllers\Admin\Reports\SavingsReportController;
 use App\Http\Controllers\Admin\Reports\LoansReportController;
 use App\Http\Controllers\Admin\AccountingTrialBalanceController;
+use App\Http\Controllers\Admin\Accounting\GeneralLedgerController;
+use App\Http\Controllers\Admin\Accounting\JournalEntryController;
+use App\Http\Controllers\Admin\Accounting\IncomeStatementController;
+use App\Http\Controllers\Admin\Accounting\BalanceSheetController;
+use App\Http\Controllers\Admin\AdminHomeController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\Accounting\ShuController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -43,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')
         ->middleware('role:SUPER_ADMIN|ADMIN|BENDAHARA|MANAGER|PETUGAS')
         ->group(function () {
-            Route::view('/home', 'admin.home')->name('admin.home');
+            Route::get('/home', [AdminHomeController::class, 'index'])->name('admin.home');
             Route::get('/cash/income', [CashIncomeController::class, 'index'])->name('admin.cash.income.index');
             Route::get('/cash/income/create', [CashIncomeController::class, 'create'])->name('admin.cash.income.create');
             Route::post('/cash/income', [CashIncomeController::class, 'store'])->name('admin.cash.income.store');
@@ -78,11 +86,46 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/cash/transactions/{tx}/void', [CashVoidController::class, 'create'])->name('admin.cash.void.create');
             Route::post('/cash/transactions/{tx}/void', [CashVoidController::class, 'store'])->name('admin.cash.void.store');
             Route::get('/accounting/trial-balance', [AccountingTrialBalanceController::class, 'index'])->name('admin.accounting.trial_balance.index');
+            Route::get('/accounting/general-ledger', [GeneralLedgerController::class, 'index'])->name('admin.accounting.general_ledger.index');
+            Route::get('/accounting/journal-entries', [JournalEntryController::class, 'index'])->name('admin.accounting.journal_entries.index');
+            Route::get('/accounting/journal-entries/{entry}', [JournalEntryController::class, 'show'])->name('admin.accounting.journal_entries.show');
+            Route::get('/accounting/income-statement', [IncomeStatementController::class, 'index'])->name('admin.accounting.income_statement.index');
+            Route::get('/accounting/balance-sheet', [BalanceSheetController::class, 'index'])->name('admin.accounting.balance_sheet.index');
+
+            // SHU — SUPER_ADMIN, ADMIN, MANAGER can write; BENDAHARA read-only (index/show)
+            Route::prefix('shu')->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA')->group(function () {
+                Route::get('/', [ShuController::class, 'index'])->name('admin.shu.index');
+                Route::get('/create', [ShuController::class, 'create'])->name('admin.shu.create');
+                Route::post('/', [ShuController::class, 'store'])->name('admin.shu.store');
+                Route::get('/{shuPeriod}', [ShuController::class, 'show'])->name('admin.shu.show');
+                Route::patch('/{shuPeriod}/recalculate', [ShuController::class, 'recalculate'])->name('admin.shu.recalculate');
+                Route::post('/{shuPeriod}/finalize', [ShuController::class, 'finalize'])->name('admin.shu.finalize');
+                Route::delete('/{shuPeriod}', [ShuController::class, 'destroy'])->name('admin.shu.destroy');
+            });
             Route::get('/loans/applications/{application}/files/{file}/download', [LoanApplicationController::class, 'downloadFile'])->name('admin.loans.applications.files.download');
             Route::get('/loans/applications/{application}/agreement', [LoanApplicationController::class, 'agreement'])->name('admin.loans.applications.agreement');
+            // User management — SUPER_ADMIN and ADMIN only
+            Route::prefix('users')
+                ->middleware('role:SUPER_ADMIN|ADMIN')
+                ->group(function () {
+                    Route::get('/', [UserController::class, 'index'])->name('admin.users.index');
+                    Route::get('/create', [UserController::class, 'create'])->name('admin.users.create');
+                    Route::post('/', [UserController::class, 'store'])->name('admin.users.store');
+                    Route::get('/{user}/edit', [UserController::class, 'edit'])->name('admin.users.edit');
+                    Route::put('/{user}', [UserController::class, 'update'])->name('admin.users.update');
+                    Route::delete('/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
+                });
+
             Route::prefix('master')
                 ->middleware('role:SUPER_ADMIN|ADMIN|BENDAHARA|MANAGER')
                 ->group(function () {
+                    Route::get('/cash-categories', [CashCategoryController::class, 'index'])->name('admin.master.cash_categories.index');
+                    Route::get('/cash-categories/create', [CashCategoryController::class, 'create'])->name('admin.master.cash_categories.create');
+                    Route::post('/cash-categories', [CashCategoryController::class, 'store'])->name('admin.master.cash_categories.store');
+                    Route::get('/cash-categories/{cashCategory}/edit', [CashCategoryController::class, 'edit'])->name('admin.master.cash_categories.edit');
+                    Route::put('/cash-categories/{cashCategory}', [CashCategoryController::class, 'update'])->name('admin.master.cash_categories.update');
+                    Route::patch('/cash-categories/{cashCategory}/toggle', [CashCategoryController::class, 'toggle'])->name('admin.master.cash_categories.toggle');
+
                     Route::get('/cash-accounts', [CashAccountController::class, 'index'])->name('admin.master.cash_accounts.index');
                     Route::get('/cash-accounts/create', [CashAccountController::class, 'create'])->name('admin.master.cash_accounts.create');
                     Route::post('/cash-accounts', [CashAccountController::class, 'store'])->name('admin.master.cash_accounts.store');

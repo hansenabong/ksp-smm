@@ -1,74 +1,105 @@
 <x-admin-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Pemasukan Kas</h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Pemasukan Kas</h2>
+            <a href="{{ route('admin.cash.income.index') }}"
+               class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
+                &larr; Kembali
+            </a>
+        </div>
     </x-slot>
 
-            <div class="bg-white p-6 rounded shadow">
-                <form method="POST" action="{{ route('admin.cash.income.store') }}" class="space-y-4">
-                    @csrf
-
-                    <div>
-                        <label class="text-sm">Tanggal</label>
-                        <input type="date" name="trx_date" value="{{ old('trx_date', now()->toDateString()) }}"
-                            class="w-full border rounded px-3 py-2">
-                        @error('trx_date')
-                            <div class="text-red-600 text-sm">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label class="text-sm">Untuk Kas</label>
-                        <select name="to_cash_account_id" class="w-full border rounded px-3 py-2">
-                            <option value="">Pilih Kas</option>
-                            @foreach ($cashAccounts as $acc)
-                                <option value="{{ $acc->id }}" @selected(old('to_cash_account_id') == $acc->id)>
-                                    {{ $acc->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('to_cash_account_id')
-                            <div class="text-red-600 text-sm">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label class="text-sm">Kategori</label>
-                        <select name="category" class="w-full border rounded px-3 py-2">
-                            <option value="">Pilih Kategori</option>
-                            @foreach ($categories as $cat)
-                                <option value="{{ $cat }}" @selected(old('category') == $cat)>
-                                    {{ $cat }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('category')
-                            <div class="text-red-600 text-sm">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label class="text-sm">Jumlah (Rp)</label>
-                        <input type="number" name="amount" value="{{ old('amount') }}"
-                            class="w-full border rounded px-3 py-2" min="1">
-                        @error('amount')
-                            <div class="text-red-600 text-sm">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label class="text-sm">Uraian (optional)</label>
-                        <input type="text" name="description" value="{{ old('description') }}"
-                            class="w-full border rounded px-3 py-2" maxlength="255">
-                        @error('description')
-                            <div class="text-red-600 text-sm">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button class="px-4 py-2 bg-indigo-600 text-white rounded">Simpan</button>
-                        <a href="{{ route('admin.cash.income.index') }}"
-                            class="px-4 py-2 bg-gray-200 rounded">Batal</a>
-                    </div>
-                </form>
+    <div class="max-w-xl">
+        @if($errors->any())
+            <div class="mb-4 flex items-start gap-2 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <ul class="list-disc ml-3 space-y-0.5">
+                    @foreach($errors->all() as $err)<li>{{ $err }}</li>@endforeach
+                </ul>
             </div>
+        @endif
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <div class="text-sm font-semibold text-gray-700">Pemasukan Kas</div>
+                <div class="text-xs text-gray-400 mt-0.5"><span class="text-red-500">*</span> Wajib diisi</div>
+            </div>
+
+            <form method="POST" action="{{ route('admin.cash.income.store') }}" class="px-5 py-5 space-y-4">
+                @csrf
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Tanggal <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="trx_date" value="{{ old('trx_date', now()->toDateString()) }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
+                    @error('trx_date') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Kas Tujuan <span class="text-red-500">*</span>
+                    </label>
+                    <select name="to_cash_account_id"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
+                        <option value="">— Pilih Kas —</option>
+                        @foreach ($cashAccounts as $acc)
+                            <option value="{{ $acc->id }}" @selected(old('to_cash_account_id') == $acc->id)>
+                                {{ $acc->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('to_cash_account_id') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Kategori <span class="text-red-500">*</span>
+                    </label>
+                    <select name="cash_category_id"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
+                        <option value="">— Pilih Kategori —</option>
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}" @selected(old('cash_category_id') == $cat->id)>{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('cash_category_id') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Jumlah (Rp) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" name="amount" value="{{ old('amount') }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                           min="1" required>
+                    @error('amount') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Uraian <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                    </label>
+                    <input type="text" name="description" value="{{ old('description') }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                           maxlength="255" placeholder="Keterangan tambahan">
+                    @error('description') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div class="pt-2 border-t border-gray-100 flex gap-2">
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
+                        Simpan
+                    </button>
+                    <a href="{{ route('admin.cash.income.index') }}"
+                       class="inline-flex items-center px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
+                        Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </x-admin-layout>

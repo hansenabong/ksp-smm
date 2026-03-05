@@ -93,24 +93,11 @@ class AutoPostingService
             return; // diposting dari modul Savings/Loans
         }
 
-        // Pastikan akun offset tersedia (kalau belum ada, kita create by code)
-        $accModal   = $this->ensureAccountByCode('3101', 'Modal/Saldo Awal', 'EQUITY',  'CREDIT', '3000');
-        $accRevJasa = $this->ensureAccountByCode('4104', 'Pendapatan Jasa/Umum', 'REVENUE', 'CREDIT', '4000');
-        $accRevDnd  = $this->ensureAccountByCode('4105', 'Pendapatan Denda', 'REVENUE', 'CREDIT', '4000');
-
-        $accExpOps  = $this->ensureAccountByCode('5101', 'Beban Operasional', 'EXPENSE', 'DEBIT', '5000');
-        $accExpAdm  = $this->ensureAccountByCode('5102', 'Beban Admin/Bank',  'EXPENSE', 'DEBIT', '5000');
-
         $lines = [];
 
         if ($tx->type === 'INCOME') {
             $cashId = $this->cashLedgerIdFromCashAccount($tx->toCashAccount);
-
-            $offset = match ($tx->category) {
-                'Modal/Saldo Awal' => $accModal,
-                'Denda'            => $accRevDnd,
-                default            => $accRevJasa, // Pendapatan Jasa, Manual, Lainnya
-            };
+            $offset = $this->resolveOffsetAccount($tx, 'INCOME');
 
             $lines = [
                 ['account_id' => $cashId, 'dc' => 'D', 'amount' => (int)$tx->amount],
@@ -120,10 +107,7 @@ class AutoPostingService
 
         if ($tx->type === 'EXPENSE') {
             $cashId = $this->cashLedgerIdFromCashAccount($tx->fromCashAccount);
-            $offset = match ($tx->category) {
-                'Biaya Admin/Bank' => $accExpAdm,
-                default            => $accExpOps, // Operasional, Manual, Lainnya
-            };
+            $offset = $this->resolveOffsetAccount($tx, 'EXPENSE');
 
             $lines = [
                 ['account_id' => $offset, 'dc' => 'D', 'amount' => (int)$tx->amount], // Beban naik (Debit)
@@ -149,6 +133,41 @@ class AutoPostingService
             'description' => "Kas {$tx->type} ({$tx->category}) - {$tx->code}",
             'created_by' => $tx->created_by,
         ], $lines);
+    }
+
+    /**
+     * Resolve the counterpart (offset) account for a cash INCOME or EXPENSE.
+     * Priority: 1) cash_category.account_id (DB-configured)
+     *           2) hardcoded fallback by category name (backward compat)
+     */
+    private function resolveOffsetAccount(CashTransaction $tx, string $type): int
+    {
+        // 1. Dynamic: use account mapped to the cash category
+        if ($tx->cash_category_id) {
+            $tx->loadMissing('cashCategory');
+            $categoryAccountId = (int)($tx->cashCategory?->account_id ?? 0);
+            if ($categoryAccountId > 0) {
+                return $categoryAccountId;
+            }
+        }
+
+        // 2. Fallback: hardcoded defaults (for old transactions without cash_category_id)
+        if ($type === 'INCOME') {
+            $accModal   = $this->ensureAccountByCode('3111', 'Simpanan Pokok Anggota (Modal)', 'EQUITY',  'C', '3100');
+            $accRevJasa = $this->ensureAccountByCode('4212', 'Pendapatan Non-Operasional',      'REVENUE', 'C', '4200');
+            return match ($tx->category) {
+                'Modal/Saldo Awal', 'Modal / Saldo Awal' => $accModal,
+                default                                  => $accRevJasa,
+            };
+        }
+
+        // EXPENSE fallback
+        $accExpOps = $this->ensureAccountByCode('5213', 'Beban Lain-lain',         'EXPENSE', 'D', '5200');
+        $accExpAdm = $this->ensureAccountByCode('5211', 'Beban Administrasi Bank', 'EXPENSE', 'D', '5200');
+        return match ($tx->category) {
+            'Biaya Admin/Bank', 'Biaya Admin / Bank' => $accExpAdm,
+            default                                  => $accExpOps,
+        };
     }
 
     /**
@@ -225,7 +244,14 @@ class AutoPostingService
 
     /**
      * Pembayaran angsuran -> Journal
-     * DR Kas, CR Piutang (pokok), CR Pendapatan (bunga/admin/asuransi)
+     *
+     * DR Kas                    (installment + penalty_amount + early_repayment_penalty)
+     * CR Piutang Pinjaman       (principal portion)
+     * CR Pendapatan Bunga       (interest portion)
+     * CR Pendapatan Admin       (admin portion)
+     * CR Pendapatan Asuransi    (insurance portion, if any)
+     * CR Denda Keterlambatan    (penalty_amount, if > 0)
+     * CR Denda Pelunasan Cepat  (early_repayment_penalty, if > 0)
      */
     public function postLoanPayment(LoanPayment $p): void
     {
@@ -233,20 +259,34 @@ class AutoPostingService
         if ($this->alreadyPosted('loan_payments', $p->id)) return;
 
         $loan = $p->loan;
+        $loan->loadMissing('loanProduct');
 
         $cashLedger = $this->cashLedgerIdFromCashAccount($p->cashAccount);
 
         $recvLedger = $this->requireAccountId(
             (int)($loan->loanProduct?->receivable_account_id ?? 0),
-            'Loan Product belum punya mapping akun Piutang (receivable_account_id).'
+            'Loan Product belum punya mapping akun Piutang (receivable_account_id). Set di Master Data - Jenis Pinjaman.'
         );
 
-        $accBunga = $this->ensureAccountByCode('4101', 'Pendapatan Bunga Pinjaman', 'REVENUE', 'CREDIT', '4000');
-        $accAdmin = $this->ensureAccountByCode('4102', 'Pendapatan Admin Pinjaman', 'REVENUE', 'CREDIT', '4000');
-        $accAsur  = $this->ensureAccountByCode('4103', 'Pendapatan Asuransi',       'REVENUE', 'CREDIT', '4000');
+        // Income accounts: use product-specific if set, otherwise fall back to COA defaults
+        $accBunga = (int)($loan->loanProduct?->interest_income_account_id ?? 0)
+            ?: $this->ensureAccountByCode('4111', 'Pendapatan Bunga Pinjaman',        'REVENUE', 'C', '4100');
+        $accAdmin = (int)($loan->loanProduct?->admin_income_account_id ?? 0)
+            ?: $this->ensureAccountByCode('4112', 'Pendapatan Biaya Admin Pinjaman',  'REVENUE', 'C', '4100');
+        $accAsur  = (int)($loan->loanProduct?->insurance_income_account_id ?? 0)
+            ?: $this->ensureAccountByCode('4113', 'Pendapatan Biaya Provisi / Asuransi','REVENUE','C','4100');
 
-        $amount = (int)$p->amount;
+        // Penalty income accounts (always by code — not per-product)
+        $accDendaTerlambat = $this->ensureAccountByCode('4114', 'Pendapatan Denda Keterlambatan',    'REVENUE', 'C', '4100');
+        $accDendaCepat     = $this->ensureAccountByCode('4115', 'Pendapatan Denda Pelunasan Cepat',  'REVENUE', 'C', '4100');
 
+        // Amounts
+        $amount        = (int)$p->amount;
+        $penaltyAmt    = (int)($p->penalty_amount ?? 0);
+        $earlyPenalty  = (int)($p->early_repayment_penalty ?? 0);
+        $totalCash     = $amount + $penaltyAmt + $earlyPenalty;
+
+        // Decompose installment: principal = amount - (interest + admin + insurance)
         $interest = (int) round(((int)$loan->principal) * ((float)$loan->interest_monthly_percent / 100.0));
         $admin    = (int) ($loan->admin_monthly ?? 0);
         $ins      = (int) ($loan->insurance_monthly ?? 0);
@@ -259,14 +299,17 @@ class AutoPostingService
             ]);
         }
 
+        // Build journal lines
         $lines = [
-            ['account_id' => $cashLedger, 'dc' => 'D', 'amount' => $amount],
+            ['account_id' => $cashLedger, 'dc' => 'D', 'amount' => $totalCash],
         ];
 
-        if ($principalPart > 0) $lines[] = ['account_id' => $recvLedger, 'dc' => 'C', 'amount' => $principalPart];
-        if ($interest > 0)      $lines[] = ['account_id' => $accBunga,   'dc' => 'C', 'amount' => $interest];
-        if ($admin > 0)         $lines[] = ['account_id' => $accAdmin,   'dc' => 'C', 'amount' => $admin];
-        if ($ins > 0)           $lines[] = ['account_id' => $accAsur,    'dc' => 'C', 'amount' => $ins];
+        if ($principalPart > 0) $lines[] = ['account_id' => $recvLedger,        'dc' => 'C', 'amount' => $principalPart];
+        if ($interest > 0)      $lines[] = ['account_id' => $accBunga,           'dc' => 'C', 'amount' => $interest];
+        if ($admin > 0)         $lines[] = ['account_id' => $accAdmin,           'dc' => 'C', 'amount' => $admin];
+        if ($ins > 0)           $lines[] = ['account_id' => $accAsur,            'dc' => 'C', 'amount' => $ins];
+        if ($penaltyAmt > 0)    $lines[] = ['account_id' => $accDendaTerlambat,  'dc' => 'C', 'amount' => $penaltyAmt];
+        if ($earlyPenalty > 0)  $lines[] = ['account_id' => $accDendaCepat,      'dc' => 'C', 'amount' => $earlyPenalty];
 
         $this->posting->createEntry([
             'trx_date'    => $p->trx_date,

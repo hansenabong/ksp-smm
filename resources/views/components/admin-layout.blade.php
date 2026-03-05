@@ -1,9 +1,10 @@
 @php
     $u = auth()->user();
 
-    $canMaster = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
-    $canAudit  = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
-    $canAcc    = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
+    $canMaster  = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
+    $canAudit   = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
+    $canAcc     = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
+    $canUsers   = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN']);
 
     $link = fn($active) => 'flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ' .
         ($active
@@ -81,6 +82,8 @@
 
                             @if ($canMaster)
                                 <div class="{{ $section }}">Master Data</div>
+                                <a class="{{ $link(request()->routeIs('admin.master.cash_categories.*')) }}"
+                                   href="{{ route('admin.master.cash_categories.index') }}">Kategori Kas</a>
                                 <a class="{{ $link(request()->routeIs('admin.master.cash_accounts.*')) }}"
                                    href="{{ route('admin.master.cash_accounts.index') }}">Kas</a>
                                 <a class="{{ $link(request()->routeIs('admin.master.members.*')) }}"
@@ -103,8 +106,24 @@
 
                             @if ($canAcc)
                                 <div class="{{ $section }}">Akuntansi</div>
+                                <a class="{{ $link(request()->routeIs('admin.accounting.income_statement.*')) }}"
+                                   href="{{ route('admin.accounting.income_statement.index') }}">Laba Rugi</a>
+                                <a class="{{ $link(request()->routeIs('admin.accounting.balance_sheet.*')) }}"
+                                   href="{{ route('admin.accounting.balance_sheet.index') }}">Neraca</a>
                                 <a class="{{ $link(request()->routeIs('admin.accounting.trial_balance.*')) }}"
                                    href="{{ route('admin.accounting.trial_balance.index') }}">Trial Balance</a>
+                                <a class="{{ $link(request()->routeIs('admin.accounting.general_ledger.*')) }}"
+                                   href="{{ route('admin.accounting.general_ledger.index') }}">Buku Besar</a>
+                                <a class="{{ $link(request()->routeIs('admin.accounting.journal_entries.*')) }}"
+                                   href="{{ route('admin.accounting.journal_entries.index') }}">Jurnal</a>
+                                <a class="{{ $link(request()->routeIs('admin.shu.*')) }}"
+                                   href="{{ route('admin.shu.index') }}">SHU</a>
+                            @endif
+
+                            @if ($canUsers)
+                                <div class="{{ $section }}">Pengguna</div>
+                                <a class="{{ $link(request()->routeIs('admin.users.*')) }}"
+                                   href="{{ route('admin.users.index') }}">Manajemen User</a>
                             @endif
 
                         </nav>

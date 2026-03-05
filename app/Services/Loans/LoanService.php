@@ -127,13 +127,15 @@ class LoanService
     public function payInstallment(int $loanId, array $data, int $userId): LoanPayment
     {
         return DB::transaction(function () use ($loanId, $data, $userId) {
-            $loan = Loan::lockForUpdate()->findOrFail($loanId);
+            $loan = Loan::with('loanProduct')->lockForUpdate()->findOrFail($loanId);
 
             if ($loan->status !== 'ACTIVE') {
                 throw ValidationException::withMessages(['status' => 'Pinjaman sudah tidak aktif.']);
             }
 
-            $amount = (int) $data['amount'];
+            $amount           = (int) $data['amount'];
+            $isEarlyRepayment = !empty($data['is_early_repayment']);
+
             if ($amount > $loan->outstanding) {
                 throw ValidationException::withMessages([
                     'amount' => 'Pembayaran melebihi sisa pinjaman. Outstanding: Rp '
@@ -141,27 +143,59 @@ class LoanService
                 ]);
             }
 
-            // posting kas pemasukan (uang masuk)
+            // --- Penalty calculation ---
+            $penaltyDays            = (int) ($data['penalty_days'] ?? 0);
+            $penaltyAmount          = (int) ($data['penalty_amount'] ?? 0);
+            $earlyRepaymentPenalty  = (int) ($data['early_repayment_penalty'] ?? 0);
+
+            // Auto-compute penalty if not overridden by form
+            $product = $loan->loanProduct;
+            if ($product) {
+                // Determine installment number = non-voided payments so far + 1
+                $installmentNo  = LoanPayment::notVoided()->where('loan_id', $loan->id)->count() + 1;
+                $expectedDue    = \Carbon\Carbon::parse($loan->disbursed_date)->addMonths($installmentNo);
+                $trxDate        = \Carbon\Carbon::parse($data['trx_date']);
+
+                // Late penalty (only if data doesn't explicitly pass penalty_days=0 with intent)
+                if (!isset($data['penalty_days']) && $trxDate->gt($expectedDue)) {
+                    $penaltyDays   = (int) $trxDate->diffInDays($expectedDue);
+                    $penaltyAmount = (int) round($loan->monthly_installment * $penaltyDays * $product->penalty_daily_rate);
+                }
+
+                // Early repayment penalty
+                if ($isEarlyRepayment && !isset($data['early_repayment_penalty'])) {
+                    $earlyRepaymentPenalty = (int) round($loan->outstanding * $product->early_repayment_rate);
+                }
+            }
+
+            // Total cash received from member
+            $totalCash = $amount + $penaltyAmount + $earlyRepaymentPenalty;
+
+            // posting kas pemasukan (total cash received)
             $cashTx = $this->cash->createIncome([
-                'trx_date' => $data['trx_date'],
-                'to_cash_account_id' => $data['cash_account_id'],
-                'amount' => $data['amount'],
-                'category' => 'Angsuran Pinjaman',
-                'description' => $data['note'] ?? 'Pembayaran angsuran',
+                'trx_date'            => $data['trx_date'],
+                'to_cash_account_id'  => $data['cash_account_id'],
+                'amount'              => $totalCash,
+                'category'            => $isEarlyRepayment ? 'Pelunasan Pinjaman' : 'Angsuran Pinjaman',
+                'description'         => $data['note'] ?? ($isEarlyRepayment ? 'Pelunasan dipercepat' : 'Pembayaran angsuran'),
             ], $userId);
 
             $payment = LoanPayment::create([
-                'loan_id' => $loan->id,
-                'trx_date' => $data['trx_date'],
-                'amount' => $data['amount'],
-                'cash_account_id' => $data['cash_account_id'],
-                'cash_transaction_id' => $cashTx->id,
-                'note' => $data['note'] ?? null,
-                'created_by' => $userId,
+                'loan_id'                => $loan->id,
+                'trx_date'               => $data['trx_date'],
+                'amount'                 => $amount,
+                'cash_account_id'        => $data['cash_account_id'],
+                'cash_transaction_id'    => $cashTx->id,
+                'note'                   => $data['note'] ?? null,
+                'created_by'             => $userId,
+                'penalty_days'           => $penaltyDays,
+                'penalty_amount'         => $penaltyAmount,
+                'is_early_repayment'     => $isEarlyRepayment,
+                'early_repayment_penalty' => $earlyRepaymentPenalty,
             ]);
 
-            // update totals
-            $loan->total_paid += (int) $data['amount'];
+            // update totals (outstanding reduced by installment amount only)
+            $loan->total_paid += $amount;
             $loan->outstanding = max(0, $loan->total_payable - $loan->total_paid);
 
             if ($loan->outstanding === 0) {

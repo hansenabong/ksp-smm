@@ -710,6 +710,45 @@
                     <div class="text-xs text-gray-400">Format: JPG, PNG, PDF. Maks 5 MB per file.</div>
                 </div>
 
+                {{-- ===== NOTARIS (optional) ===== --}}
+                <details class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <summary class="px-5 py-4 cursor-pointer flex items-center justify-between text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                        <span>Notaris <span class="text-xs text-gray-400 font-normal">(opsional)</span></span>
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </summary>
+                    <div class="px-5 pb-5 pt-2 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Nama Notaris</label>
+                            <input type="text" name="notaris_name" value="{{ old('notaris_name') }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                   placeholder="cth: H. Budi Santoso, SH">
+                            @error('notaris_name') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">No. Akta</label>
+                            <input type="text" name="notaris_deed_number" value="{{ old('notaris_deed_number') }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                   placeholder="cth: 001/2026">
+                            @error('notaris_deed_number') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tanggal Akta</label>
+                            <input type="date" name="notaris_deed_date" value="{{ old('notaris_deed_date') }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            @error('notaris_deed_date') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Kota / Kabupaten</label>
+                            <input type="text" name="notaris_city" value="{{ old('notaris_city') }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                   placeholder="cth: Surabaya">
+                            @error('notaris_city') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                </details>
+
                 {{-- ===== ACTIONS ===== --}}
                 <div class="flex gap-3">
                     <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded">Simpan Pengajuan</button>
