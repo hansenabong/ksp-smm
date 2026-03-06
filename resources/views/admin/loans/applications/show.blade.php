@@ -7,14 +7,52 @@
             </div>
             <div class="flex items-center gap-2">
                 @if($application->status === 'APPROVED')
+                    @php
+                        $fdShow = $application->form_data ?? [];
+                        $showPkA = !empty($fdShow['no_hak'] ?? $fdShow['lokasi_agunan'] ?? $fdShow['kota_agunan'] ?? null);
+                        $showPkB = !empty($fdShow['jenis_kendaraan'] ?? null);
+                    @endphp
                     <a href="{{ route('admin.loans.applications.agreement', $application) }}"
                        target="_blank"
-                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
+                       class="inline-flex items-center gap-1.5 px-4 py-2 {{ $showPkA ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak PK A — Perjanjian Pembiayaan dengan Jaminan Sertipikat">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
-                        Cetak Perjanjian
+                        PK A (Sertipikat)
+                    </a>
+                    <a href="{{ route('admin.loans.applications.agreement.vehicle', $application) }}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 {{ $showPkB ? 'bg-teal-600 hover:bg-teal-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak PK B — Perjanjian Pembiayaan dengan Jaminan BPKB Kendaraan">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        PK B (Kendaraan)
+                    </a>
+                    @if(auth()->user()->hasRole('SUPER_ADMIN'))
+                        <a href="{{ route('admin.loans.applications.edit_personal', $application) }}"
+                           class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            Edit Data Pribadi
+                        </a>
+                    @endif
+                @endif
+                @if($application->status === 'PENDING' &&
+                    (auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN','MANAGER']) ||
+                     (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by === auth()->id())))
+                    <a href="{{ route('admin.loans.applications.edit', $application) }}"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Edit Pengajuan
                     </a>
                 @endif
                 <a href="{{ route('admin.loans.applications.index') }}"
@@ -122,6 +160,12 @@
                             @if($application->approved_at)
                                 <span class="text-gray-400 text-xs">({{ \Carbon\Carbon::parse($application->approved_at)->format('d/m/Y') }})</span>
                             @endif
+                        </div>
+                        @endif
+                        @if(!empty(($application->form_data ?? [])['tujuan_pembiayaan'] ?? null))
+                        <div>
+                            <span class="text-gray-400">Tujuan Pembiayaan:</span>
+                            <span class="ml-1 text-gray-700">{{ $application->form_data['tujuan_pembiayaan'] }}</span>
                         </div>
                         @endif
                         @if($application->notes)
@@ -366,29 +410,27 @@
                     <h3 class="text-sm font-semibold text-amber-800">Data Agunan / Jaminan</h3>
                 </div>
                 <div class="p-6 space-y-5">
-                    @if(!empty($fd['lokasi_agunan'] ?? null))
+                    @if(!empty($fd['lokasi_agunan'] ?? $fd['no_hak'] ?? null))
                     <div>
                         <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Tanah &amp; Bangunan</div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+                            @if(!empty($fd['lokasi_agunan'] ?? null))
                             <div class="md:col-span-3">
-                                <div class="text-xs text-gray-400 mb-0.5">Lokasi</div>
-                                <div class="font-semibold text-gray-800">{{ $fd['lokasi_agunan'] ?? '-' }}</div>
+                                <div class="text-xs text-gray-400 mb-0.5">Lokasi (Umum)</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['lokasi_agunan'] }}</div>
+                            </div>
+                            @endif
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">Status Hak</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['status_agunan'] ?? '-' }}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-gray-400 mb-0.5">Status</div>
-                                <div class="font-semibold text-gray-800">{{ $fd['status_agunan'] ?? '-' }}</div>
+                                <div class="text-xs text-gray-400 mb-0.5">No. Hak (SHM/SHGB)</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['no_hak'] ?? '-' }}</div>
                             </div>
                             <div>
                                 <div class="text-xs text-gray-400 mb-0.5">Atas Nama</div>
                                 <div class="font-semibold text-gray-800">{{ $fd['atas_nama_agunan'] ?? '-' }}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-400 mb-0.5">Nilai NJOP</div>
-                                <div class="font-semibold text-gray-800">Rp {{ isset($fd['nilai_agunan']) ? number_format($fd['nilai_agunan'], 0, ',', '.') : '-' }}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-400 mb-0.5">No. Hak</div>
-                                <div class="font-semibold text-gray-800">{{ $fd['no_hak'] ?? '-' }}</div>
                             </div>
                             <div>
                                 <div class="text-xs text-gray-400 mb-0.5">Luas Tanah</div>
@@ -399,10 +441,73 @@
                                 <div class="font-semibold text-gray-800">{{ $fd['luas_bangunan'] ?? '-' }} m²</div>
                             </div>
                             <div>
+                                <div class="text-xs text-gray-400 mb-0.5">Nilai NJOP</div>
+                                <div class="font-semibold text-gray-800">Rp {{ isset($fd['nilai_agunan']) ? number_format($fd['nilai_agunan'], 0, ',', '.') : '-' }}</div>
+                            </div>
+                            <div>
                                 <div class="text-xs text-gray-400 mb-0.5">No. IMB</div>
                                 <div class="font-semibold text-gray-800">{{ $fd['no_imb'] ?? '-' }}</div>
                             </div>
                         </div>
+
+                        @php
+                            $hasPropertyAddr = !empty($fd['kelurahan_agunan'] ?? $fd['jalan_agunan'] ?? $fd['kota_agunan'] ?? null);
+                        @endphp
+                        @if($hasPropertyAddr)
+                        <div class="mt-4 pt-3 border-t border-gray-100">
+                            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Alamat Objek (Pasal 3 PK)</div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                                @if(!empty($fd['komplek_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Komplek</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['komplek_agunan'] }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['jalan_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Jalan</div>
+                                    <div class="font-semibold text-gray-800">Jl. {{ $fd['jalan_agunan'] }}{{ !empty($fd['blok_agunan']) ? ' Blok '.$fd['blok_agunan'] : '' }}{{ !empty($fd['no_agunan']) ? ' No. '.$fd['no_agunan'] : '' }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['rt_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">RT / RW</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['rt_agunan'] ?? '-' }} / {{ $fd['rw_agunan'] ?? '-' }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['kelurahan_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Kelurahan</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['kelurahan_agunan'] }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['kecamatan_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Kecamatan</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['kecamatan_agunan'] }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['kota_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Kab. / Kota</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['kota_agunan'] }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['penerbit_sertifikat'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Diterbitkan Oleh</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['penerbit_sertifikat'] }}</div>
+                                </div>
+                                @endif
+                                @if(!empty($fd['tgl_sertifikat'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Tanggal Sertifikat</div>
+                                    <div class="font-semibold text-gray-800">{{ \Carbon\Carbon::parse($fd['tgl_sertifikat'])->format('d/m/Y') }}</div>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
                     </div>
                     @endif
                     @if(!empty($fd['jenis_kendaraan'] ?? null))
@@ -437,6 +542,36 @@
                                 <div class="text-xs text-gray-400 mb-0.5">No. Rangka</div>
                                 <div class="font-semibold text-gray-800">{{ $fd['no_rangka'] ?? '-' }}</div>
                             </div>
+                            @if(!empty($fd['merk_kendaraan'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">Merk / Type</div>
+                                <div class="font-semibold text-gray-800">{{ trim(($fd['merk_kendaraan'] ?? '') . ' ' . ($fd['type_kendaraan'] ?? '')) ?: '-' }}</div>
+                            </div>
+                            @endif
+                            @if(!empty($fd['model_kendaraan'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">Model</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['model_kendaraan'] }}</div>
+                            </div>
+                            @endif
+                            @if(!empty($fd['bahan_bakar_kendaraan'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">Bahan Bakar</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['bahan_bakar_kendaraan'] }}</div>
+                            </div>
+                            @endif
+                            @if(!empty($fd['no_polisi'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">No. Polisi</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['no_polisi'] }}</div>
+                            </div>
+                            @endif
+                            @if(!empty($fd['no_faktur_kendaraan'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">No. Faktur</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['no_faktur_kendaraan'] }}</div>
+                            </div>
+                            @endif
                         </div>
                     </div>
                     @endif

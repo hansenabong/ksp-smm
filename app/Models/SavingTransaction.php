@@ -11,6 +11,7 @@ class SavingTransaction extends Model
         'voided_at' => 'datetime',
     ];
     protected $fillable = [
+        'reference_code',
         'trx_date',
         'type',
         'amount',

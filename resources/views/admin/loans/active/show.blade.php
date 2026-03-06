@@ -5,22 +5,98 @@
                 <div class="text-xs text-gray-400 mb-0.5">Pinjaman / Aktif</div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Detail Pinjaman #{{ $loan->id }}</h2>
             </div>
-            <div class="flex gap-2">
+            <div class="flex items-center gap-2">
+                {{-- Primary actions (ACTIVE only) --}}
                 @if($loan->status === 'ACTIVE')
                 <a href="{{ route('admin.loans.payments.create', $loan) }}"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
+                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                    </svg>
                     Bayar Angsuran
                 </a>
-                @endif
-                @if($loan->loan_application_id)
-                <a href="{{ route('admin.loans.applications.agreement', $loan->loan_application_id) }}"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
+                <a href="{{ route('admin.loans.active.settlement', $loan) }}"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
                     </svg>
-                    Cetak Perjanjian
+                    Pelunasan
                 </a>
+                <div class="w-px h-6 bg-gray-300"></div>
                 @endif
+
+                {{-- Documents dropdown --}}
+                @php
+                    $pkFd    = $loan->application?->form_data ?? [];
+                    $loanPkA = $loan->loan_application_id && !empty($pkFd['no_hak'] ?? $pkFd['lokasi_agunan'] ?? $pkFd['kota_agunan'] ?? null);
+                    $loanPkB = $loan->loan_application_id && !empty($pkFd['jenis_kendaraan'] ?? null);
+                @endphp
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Cetak Dokumen
+                        <svg class="w-3.5 h-3.5 text-gray-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" @click.outside="open = false" x-transition
+                        class="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                        <div class="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Keuangan</div>
+                        <a href="{{ route('admin.loans.active.kwitansi.plafon', $loan) }}"
+                            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Kwitansi Plafon
+                        </a>
+                        <a href="{{ route('admin.loans.active.kwitansi.pencairan', $loan) }}"
+                            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Kwitansi Pencairan
+                        </a>
+                        <a href="{{ route('admin.loans.active.permohonan.dana', $loan) }}"
+                            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                            Permohonan Dana
+                        </a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Laporan</div>
+                        <a href="{{ route('admin.loans.active.schedule', $loan) }}"
+                            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Jadwal Angsuran
+                        </a>
+                        @if($loan->status === 'ACTIVE')
+                        <a href="{{ route('admin.loans.active.subledger.pdf', $loan) }}" target="_blank"
+                            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 4v16M6 4v16"/></svg>
+                            SubLedger
+                        </a>
+                        @endif
+                        @if($loan->loan_application_id)
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Perjanjian Kredit</div>
+                        <a href="{{ route('admin.loans.applications.agreement', $loan->loan_application_id) }}"
+                            target="_blank"
+                            title="Cetak PK A — Perjanjian Pembiayaan dengan Jaminan Sertipikat"
+                            class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 {{ $loanPkA ? 'text-gray-700' : 'text-gray-400' }}">
+                            <svg class="w-4 h-4 {{ $loanPkA ? 'text-indigo-400' : 'text-gray-300' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            PK A — Sertipikat
+                            @if(!$loanPkA)<span class="ml-auto text-xs text-gray-400">kosong</span>@endif
+                        </a>
+                        <a href="{{ route('admin.loans.applications.agreement.vehicle', $loan->loan_application_id) }}"
+                            target="_blank"
+                            title="Cetak PK B — Perjanjian Pembiayaan dengan Jaminan BPKB Kendaraan"
+                            class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 {{ $loanPkB ? 'text-gray-700' : 'text-gray-400' }}">
+                            <svg class="w-4 h-4 {{ $loanPkB ? 'text-teal-400' : 'text-gray-300' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            PK B — Kendaraan
+                            @if(!$loanPkB)<span class="ml-auto text-xs text-gray-400">kosong</span>@endif
+                        </a>
+                        @endif
+                    </div>
+                </div>
+
                 <a href="{{ route('admin.loans.active.index') }}"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
                     &larr; Kembali

@@ -104,10 +104,24 @@ class AccountingSeeder extends Seeder
 
         foreach (CashAccount::orderBy('id')->get() as $ca) {
             $isCash = ($ca->type !== 'BANK');
-            $parent = $isCash ? $grpKas : $grpBank;
-            $prefix = $isCash ? '111' : '112';
             $key    = $isCash ? 'CASH' : 'BANK';
-            $code   = $prefix . $cashIdx[$key]++;
+            $prefix = $isCash ? '111' : '112';
+            $parent = $isCash ? $grpKas : $grpBank;
+
+            if ($ca->ledger_account_id !== null) {
+                // Already linked — advance counter past this account's existing code
+                $existingCode = Account::find($ca->ledger_account_id)?->code ?? '';
+                $seq = (int) ltrim(substr($existingCode, strlen($prefix)), '0');
+                if ($seq >= $cashIdx[$key]) {
+                    $cashIdx[$key] = $seq + 1;
+                }
+                continue;
+            }
+
+            // Skip any code that already exists to avoid conflicts
+            do {
+                $code = $prefix . $cashIdx[$key]++;
+            } while (Account::where('code', $code)->exists());
 
             $acc = $this->upsert($code, $ca->name, 'ASSET', 'D', $parent->id);
             $ca->ledger_account_id = $acc->id;
@@ -120,7 +134,18 @@ class AccountingSeeder extends Seeder
         $spIdx = 1;
 
         foreach (SavingProduct::orderBy('id')->get() as $sp) {
-            $code = '211' . $spIdx++;
+            if ($sp->ledger_account_id !== null) {
+                $existingCode = Account::find($sp->ledger_account_id)?->code ?? '';
+                $seq = (int) ltrim(substr($existingCode, 3), '0');
+                if ($seq >= $spIdx) {
+                    $spIdx = $seq + 1;
+                }
+                continue;
+            }
+            do {
+                $code = '211' . $spIdx++;
+            } while (Account::where('code', $code)->exists());
+
             $acc  = $this->upsert($code, $sp->name, 'LIABILITY', 'C', $grpSimpan->id);
             $sp->ledger_account_id = $acc->id;
             $sp->save();
@@ -136,7 +161,23 @@ class AccountingSeeder extends Seeder
         $lpIdx    = 1;
 
         foreach (LoanProduct::orderBy('id')->get() as $lp) {
-            $code = '113' . $lpIdx++;
+            if ($lp->receivable_account_id !== null) {
+                $existingCode = Account::find($lp->receivable_account_id)?->code ?? '';
+                $seq = (int) ltrim(substr($existingCode, 3), '0');
+                if ($seq >= $lpIdx) {
+                    $lpIdx = $seq + 1;
+                }
+                // Still update income accounts in case they were null
+                $lp->interest_income_account_id  = $lp->interest_income_account_id  ?? $accBunga;
+                $lp->admin_income_account_id     = $lp->admin_income_account_id     ?? $accAdmin;
+                $lp->insurance_income_account_id = $lp->insurance_income_account_id ?? $accAsur;
+                $lp->save();
+                continue;
+            }
+            do {
+                $code = '113' . $lpIdx++;
+            } while (Account::where('code', $code)->exists());
+
             $recv = $this->upsert($code, 'Piutang ' . $lp->name, 'ASSET', 'D', $grpPiutang->id);
             $lp->receivable_account_id       = $recv->id;
             $lp->interest_income_account_id  = $accBunga;

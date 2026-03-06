@@ -18,14 +18,16 @@ class CashTransactionService
         return DB::transaction(function () use ($data, $userId) {
             // 1) create dulu pakai code placeholder yang pasti unik (uuid)
             $tx = CashTransaction::create([
-                'code' => 'TMP-' . Str::uuid()->toString(),
-                'trx_date' => $data['trx_date'],
-                'type' => 'INCOME',
+                'code'               => 'TMP-' . Str::uuid()->toString(),
+                'reference_code'     => $data['reference_code'] ?? null,
+                'trx_date'           => $data['trx_date'],
+                'type'               => 'INCOME',
                 'to_cash_account_id' => $data['to_cash_account_id'],
-                'category' => $data['category'] ?? null,
-                'description' => $data['description'] ?? null,
-                'amount' => $data['amount'],
-                'created_by' => $userId,
+                'cash_category_id'   => $data['cash_category_id'] ?? null,
+                'category'           => $data['category'] ?? null,
+                'description'        => $data['description'] ?? null,
+                'amount'             => $data['amount'],
+                'created_by'         => $userId,
             ]);
 
             // 2) update code final pakai ID (unik, no race condition)
@@ -62,14 +64,16 @@ class CashTransactionService
             }
 
             $tx = CashTransaction::create([
-                'code' => 'TMP-' . Str::uuid()->toString(),
-                'trx_date' => $data['trx_date'],
-                'type' => 'EXPENSE',
+                'code'                 => 'TMP-' . Str::uuid()->toString(),
+                'reference_code'       => $data['reference_code'] ?? null,
+                'trx_date'             => $data['trx_date'],
+                'type'                 => 'EXPENSE',
                 'from_cash_account_id' => $data['from_cash_account_id'],
-                'category' => $data['category'] ?? null,
-                'description' => $data['description'] ?? null,
-                'amount' => $data['amount'],
-                'created_by' => $userId,
+                'cash_category_id'     => $data['cash_category_id'] ?? null,
+                'category'             => $data['category'] ?? null,
+                'description'          => $data['description'] ?? null,
+                'amount'               => $data['amount'],
+                'created_by'           => $userId,
             ]);
 
             $tx->update([
@@ -162,15 +166,17 @@ class CashTransactionService
             }
 
             $tx = CashTransaction::create([
-                'code' => 'TMP-' . Str::uuid()->toString(),
-                'trx_date' => $data['trx_date'],
-                'type' => 'TRANSFER',
+                'code'                 => 'TMP-' . Str::uuid()->toString(),
+                'reference_code'       => $data['reference_code'] ?? null,
+                'trx_date'             => $data['trx_date'],
+                'type'                 => 'TRANSFER',
                 'from_cash_account_id' => $data['from_cash_account_id'],
-                'to_cash_account_id' => $data['to_cash_account_id'],
-                'category' => $data['category'] ?? 'Transfer',
-                'description' => $data['description'] ?? null,
-                'amount' => $data['amount'],
-                'created_by' => $userId,
+                'to_cash_account_id'   => $data['to_cash_account_id'],
+                'cash_category_id'     => $data['cash_category_id'] ?? null,
+                'category'             => $data['category'] ?? 'Transfer',
+                'description'          => $data['description'] ?? null,
+                'amount'               => $data['amount'],
+                'created_by'           => $userId,
             ]);
 
             $tx->update([

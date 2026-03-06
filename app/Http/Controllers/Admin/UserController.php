@@ -11,17 +11,31 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    /** Roles visible to SUPER_ADMIN */
+    /** All roles — SUPER_ADMIN can assign any */
     private const ALL_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA', 'PETUGAS'];
 
-    /** Roles an ADMIN is allowed to assign (cannot create/promote to SUPER_ADMIN or ADMIN) */
-    private const ADMIN_ASSIGNABLE = ['MANAGER', 'BENDAHARA', 'PETUGAS'];
+    /** ADMIN may only create/assign PETUGAS users */
+    private const ADMIN_ASSIGNABLE = ['PETUGAS'];
 
     private function allowedRoles(): array
     {
         return auth()->user()->hasRole('SUPER_ADMIN')
             ? self::ALL_ROLES
             : self::ADMIN_ASSIGNABLE;
+    }
+
+    /**
+     * Guard: ADMIN cannot edit/delete users with roles outside their allowed set.
+     * Returns true if the acting user is allowed to manage the target user.
+     */
+    private function canManage(User $target): bool
+    {
+        if (auth()->user()->hasRole('SUPER_ADMIN')) {
+            return true;
+        }
+        // ADMIN may only manage users whose current role is in ADMIN_ASSIGNABLE
+        $targetRoles = $target->roles->pluck('name')->toArray();
+        return empty(array_diff($targetRoles, self::ADMIN_ASSIGNABLE));
     }
 
     public function index(Request $request)
@@ -80,6 +94,10 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        if (! $this->canManage($user)) {
+            abort(403, 'Anda tidak berwenang mengelola pengguna ini.');
+        }
+
         return view('admin.users.edit', [
             'user'  => $user->load('roles'),
             'roles' => $this->allowedRoles(),
@@ -88,6 +106,10 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        if (! $this->canManage($user)) {
+            abort(403, 'Anda tidak berwenang mengelola pengguna ini.');
+        }
+
         $allowed = $this->allowedRoles();
 
         $rules = [
@@ -121,6 +143,10 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return redirect()->back()->with('error', 'Tidak dapat menghapus akun sendiri.');
+        }
+
+        if (! $this->canManage($user)) {
+            abort(403, 'Anda tidak berwenang menghapus pengguna ini.');
         }
 
         $user->delete();

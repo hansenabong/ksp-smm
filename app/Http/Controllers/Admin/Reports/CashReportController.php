@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Reports;
 use App\Http\Controllers\Controller;
 use App\Models\CashAccount;
 use App\Models\CashTransaction;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -52,6 +53,47 @@ class CashReportController extends Controller
 
         return view('admin.reports.cash.index', compact('dateFrom', 'dateTo', 'accounts', 'summary', 'transactions'));
     }
+    public function print(Request $request)
+    {
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo   = $request->input('date_to', now()->toDateString());
+
+        $transactions = CashTransaction::query()
+            ->where(function ($q) {
+                $q->whereNull('is_voided')->orWhere('is_voided', false);
+            })
+            ->whereDate('trx_date', '>=', $dateFrom)
+            ->whereDate('trx_date', '<=', $dateTo)
+            ->with(['fromCashAccount', 'toCashAccount', 'creator'])
+            ->orderBy('trx_date')
+            ->orderBy('id')
+            ->get();
+
+        $accounts = CashAccount::orderBy('name')->get();
+
+        $summary = [];
+        foreach ($accounts as $acc) {
+            $income      = $transactions->where('type', 'INCOME')->where('to_cash_account_id', $acc->id)->sum('amount');
+            $expense     = $transactions->where('type', 'EXPENSE')->where('from_cash_account_id', $acc->id)->sum('amount');
+            $transferIn  = $transactions->where('type', 'TRANSFER')->where('to_cash_account_id', $acc->id)->sum('amount');
+            $transferOut = $transactions->where('type', 'TRANSFER')->where('from_cash_account_id', $acc->id)->sum('amount');
+            $summary[$acc->id] = [
+                'name'         => $acc->name,
+                'income'       => (int)$income,
+                'expense'      => (int)$expense,
+                'transfer_in'  => (int)$transferIn,
+                'transfer_out' => (int)$transferOut,
+                'net'          => (int)$income - (int)$expense + (int)$transferIn - (int)$transferOut,
+            ];
+        }
+
+        $pdf = Pdf::loadView('admin.reports.cash.print', compact('dateFrom', 'dateTo', 'transactions', 'summary'))
+            ->setPaper('a4', 'landscape');
+
+        $filename = "laporan-kas-{$dateFrom}_{$dateTo}.pdf";
+        return $pdf->download($filename);
+    }
+
     public function export(Request $request): StreamedResponse
     {
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
@@ -78,6 +120,7 @@ class CashReportController extends Controller
             fputcsv($out, [
                 'trx_date',
                 'code',
+                'reference_code',
                 'type',
                 'from_cash',
                 'to_cash',
@@ -94,6 +137,7 @@ class CashReportController extends Controller
                 fputcsv($out, [
                     $tx->trx_date,
                     $tx->code,
+                    $tx->reference_code ?? '',
                     $tx->type,
                     $from,
                     $to,

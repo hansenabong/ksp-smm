@@ -29,6 +29,7 @@ class SavingsService
 
             // 2) catat di buku simpanan anggota
             $st = SavingTransaction::create([
+                'reference_code' => $data['reference_code'] ?? null,
                 'trx_date' => $data['trx_date'],
                 'type' => 'DEPOSIT',
                 'amount' => $data['amount'],
@@ -70,6 +71,7 @@ class SavingsService
 
             // catat di buku simpanan
             $st = SavingTransaction::create([
+                'reference_code' => $data['reference_code'] ?? null,
                 'trx_date' => $data['trx_date'],
                 'type' => 'WITHDRAW',
                 'amount' => $data['amount'],

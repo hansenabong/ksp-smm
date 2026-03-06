@@ -53,10 +53,11 @@ class SavingDepositController extends Controller
             'cash_account_id' => ['required','exists:cash_accounts,id'],
             'amount' => ['required','integer','min:1'],
             'description' => ['nullable','string','max:255'],
+            'reference_code' => ['nullable','string','max:100'],
         ]);
 
-        $service->deposit($validated, auth()->id());
+        $tx = $service->deposit($validated, auth()->id());
 
-        return redirect()->route('admin.savings.deposit.index')->with('success','Setoran simpanan berhasil disimpan.');
+        return redirect()->route('admin.savings.transactions.show', $tx)->with('success','Setoran simpanan berhasil disimpan.');
     }
 }

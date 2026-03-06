@@ -89,6 +89,17 @@
                     @error('description') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        No. Referensi <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                    </label>
+                    <input type="text" name="reference_code" value="{{ old('reference_code') }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                           maxlength="100" placeholder="Contoh: 24487D">
+                    <p class="text-xs text-gray-400 mt-1">Nomor referensi eksternal / voucher fisik</p>
+                    @error('reference_code') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
                 <div class="pt-2 border-t border-gray-100 flex gap-2">
                     <button type="submit"
                             class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">

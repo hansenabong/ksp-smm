@@ -70,12 +70,13 @@ class SavingWithdrawController extends Controller
             'cash_account_id' => ['required', 'exists:cash_accounts,id'], // kas sumber
             'amount' => ['required', 'integer', 'min:1'],
             'description' => ['nullable', 'string', 'max:255'],
+            'reference_code' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $service->withdraw($validated, auth()->id());
+        $tx = $service->withdraw($validated, auth()->id());
 
         return redirect()
-            ->route('admin.savings.withdraw.index')
+            ->route('admin.savings.transactions.show', $tx)
             ->with('success', 'Penarikan simpanan berhasil disimpan.');
     }
 }

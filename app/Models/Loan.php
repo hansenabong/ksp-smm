@@ -7,8 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Loan extends Model
 {
     protected $casts = [
-        'disbursed_date' => 'date',
+        'disbursed_date'      => 'date',
         'interest_monthly_percent' => 'float',
+        'disbursement_fees'   => 'array',
     ];
 
     protected $fillable = [
@@ -16,7 +17,8 @@ class Loan extends Model
         'principal','tenor_months','interest_monthly_percent',
         'principal_monthly','interest_monthly','admin_monthly','insurance_monthly',
         'monthly_installment','total_payable','total_paid','outstanding',
-        'status','disbursed_cash_account_id','disbursed_cash_transaction_id','created_by'
+        'status','disbursed_cash_account_id','disbursed_cash_transaction_id','created_by',
+        'disbursement_fees',
     ];
 
     public function member() { return $this->belongsTo(Member::class); }

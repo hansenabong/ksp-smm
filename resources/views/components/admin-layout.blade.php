@@ -1,10 +1,33 @@
 @php
     $u = auth()->user();
 
-    $canMaster  = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
-    $canAudit   = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
-    $canAcc     = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']);
-    $canUsers   = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN']);
+    // ── Role matrix (Finance/Accounting standard) ──────────────────────────────
+    // SUPER_ADMIN : everything + accounting structure
+    // ADMIN       : master data + user mgmt (PETUGAS only) + reporting view
+    // MANAGER     : approve loans + monitoring (reports, accounting view)
+    // BENDAHARA   : all transaction entry + approve/void + reports
+    // PETUGAS     : entry transactions (kas, simpanan, loan payments, applications)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Kas / Simpanan entry — Bendahara & Petugas
+    $canCashTx    = $u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'PETUGAS']);
+    $canSavings   = $u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'PETUGAS']);
+    // Void — Bendahara supervisor sign-off only
+    $canSavVoid   = $u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA']);
+    // Loan applications — Manager (approves) + Petugas (enters)
+    $canLoanApp   = $u?->hasAnyRole(['SUPER_ADMIN', 'MANAGER', 'PETUGAS']);
+    // Loan payments entry — Bendahara + Petugas
+    $canPayments  = $u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'PETUGAS']);
+    // Payment void — Bendahara only
+    $canPayVoid   = $u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA']);
+    // Reports / Audit / Accounting — everyone except Petugas
+    $canReports   = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA']);
+    $canAudit     = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA']);
+    $canAcc       = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA']);
+    // Master data config — Admin + Super Admin
+    $canMaster    = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN']);
+    // User management — Admin + Super Admin (route enforces PETUGAS-only for ADMIN)
+    $canUsers     = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN']);
 
     $link = fn($active) => 'flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ' .
         ($active
@@ -48,30 +71,39 @@
                             <a class="{{ $link(request()->routeIs('admin.home')) }}"
                                href="{{ route('admin.home') }}">Admin Home</a>
 
+                            {{-- KAS --}}
                             <div class="{{ $section }}">Kas</div>
                             <a class="{{ $link(request()->routeIs('admin.cash.balances.*')) }}"
-                               href="{{ route('admin.cash.balances.index') }}">Saldo (Real-time)</a>
+                               href="{{ route('admin.cash.balances.index') }}">Saldo Kas</a>
+                            @if($canCashTx)
                             <a class="{{ $link(request()->routeIs('admin.cash.income.*')) }}"
                                href="{{ route('admin.cash.income.index') }}">Pemasukan</a>
                             <a class="{{ $link(request()->routeIs('admin.cash.expense.*')) }}"
                                href="{{ route('admin.cash.expense.index') }}">Pengeluaran</a>
                             <a class="{{ $link(request()->routeIs('admin.cash.transfer.*')) }}"
                                href="{{ route('admin.cash.transfer.index') }}">Transfer</a>
+                            @endif
 
+                            {{-- SIMPANAN --}}
+                            @if($canSavings)
                             <div class="{{ $section }}">Simpanan</div>
                             <a class="{{ $link(request()->routeIs('admin.savings.deposit.*')) }}"
                                href="{{ route('admin.savings.deposit.index') }}">Setoran</a>
                             <a class="{{ $link(request()->routeIs('admin.savings.withdraw.*')) }}"
                                href="{{ route('admin.savings.withdraw.index') }}">Penarikan</a>
+                            @endif
 
+                            {{-- PINJAMAN --}}
                             <div class="{{ $section }}">Pinjaman</div>
+                            @if($canLoanApp)
                             <a class="{{ $link(request()->routeIs('admin.loans.applications.*')) }}"
                                href="{{ route('admin.loans.applications.index') }}">Pengajuan</a>
-                            <a class="{{ $link(request()->routeIs('admin.loans.active.*')) }}"
+                            @endif
+                            <a class="{{ $link(request()->routeIs('admin.loans.active.*') || (request()->routeIs('admin.loans.payments.*') && !request()->routeIs('admin.loans.payments.void.*'))) }}"
                                href="{{ route('admin.loans.active.index') }}">Pinjaman Aktif</a>
-                            <a class="{{ $link(request()->routeIs('admin.reports.loans')) }}"
-                               href="{{ route('admin.reports.loans') }}">Laporan Pinjaman</a>
 
+                            {{-- LAPORAN --}}
+                            @if($canReports)
                             <div class="{{ $section }}">Laporan</div>
                             <a class="{{ $link(request()->routeIs('admin.reports.cash')) }}"
                                href="{{ route('admin.reports.cash') }}">Kas</a>
@@ -79,6 +111,7 @@
                                href="{{ route('admin.reports.savings') }}">Simpanan</a>
                             <a class="{{ $link(request()->routeIs('admin.reports.loans')) }}"
                                href="{{ route('admin.reports.loans') }}">Pinjaman</a>
+                            @endif
 
                             @if ($canMaster)
                                 <div class="{{ $section }}">Master Data</div>

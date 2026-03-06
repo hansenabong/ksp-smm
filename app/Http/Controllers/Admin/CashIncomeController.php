@@ -7,6 +7,7 @@ use App\Models\CashAccount;
 use App\Models\CashCategory;
 use App\Models\CashTransaction;
 use App\Services\Cash\CashTransactionService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class CashIncomeController extends Controller
@@ -39,6 +40,47 @@ class CashIncomeController extends Controller
         return view('admin.cash.income.index', compact('transactions', 'cashAccounts', 'categories'));
     }
 
+    public function printAll(Request $request)
+    {
+        $q = CashTransaction::query()
+            ->notVoided()
+            ->where('type', 'INCOME')
+            ->with(['toCashAccount', 'cashCategory', 'creator']);
+
+        if ($request->filled('date_from')) {
+            $q->whereDate('trx_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $q->whereDate('trx_date', '<=', $request->date_to);
+        }
+        if ($request->filled('to_cash_account_id')) {
+            $q->where('to_cash_account_id', $request->to_cash_account_id);
+        }
+        if ($request->filled('cash_category_id')) {
+            $q->where('cash_category_id', $request->cash_category_id);
+        }
+
+        $transactions = $q->orderBy('trx_date')->orderBy('id')->get();
+
+        // Resolve filter labels for the PDF header
+        $filterAccount  = $request->filled('to_cash_account_id')
+            ? CashAccount::find($request->to_cash_account_id)?->name
+            : null;
+        $filterCategory = $request->filled('cash_category_id')
+            ? CashCategory::find($request->cash_category_id)?->name
+            : null;
+
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+
+        $pdf = Pdf::loadView('admin.cash.income.print-all', compact(
+            'transactions', 'dateFrom', 'dateTo', 'filterAccount', 'filterCategory'
+        ))->setPaper('a4', 'portrait');
+
+        $suffix = ($dateFrom && $dateTo) ? "{$dateFrom}_{$dateTo}" : now()->format('Y-m-d');
+        return $pdf->download("pemasukan-kas-{$suffix}.pdf");
+    }
+
     public function create()
     {
         $cashAccounts = CashAccount::where('is_active', true)->orderBy('name')->get();
@@ -56,16 +98,16 @@ class CashIncomeController extends Controller
             'cash_category_id'   => ['required', 'exists:cash_categories,id'],
             'amount'             => ['required', 'integer', 'min:1'],
             'description'        => ['nullable', 'string', 'max:255'],
+            'reference_code'     => ['nullable', 'string', 'max:100'],
         ]);
 
-        // Resolve category name for the legacy `category` column
         $cashCategory = CashCategory::findOrFail($validated['cash_category_id']);
         $validated['category'] = $cashCategory->name;
 
-        $service->createIncome($validated, auth()->id());
+        $tx = $service->createIncome($validated, auth()->id());
 
         return redirect()
-            ->route('admin.cash.income.index')
+            ->route('admin.cash.transactions.show', $tx)
             ->with('success', 'Pemasukan berhasil disimpan.');
     }
 }

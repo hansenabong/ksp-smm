@@ -80,10 +80,20 @@
                                         {{ $app->creator?->name ?? '-' }}
                                     </td>
                                     <td class="px-5 py-3.5 text-right">
-                                        <a href="{{ route('admin.loans.applications.show', $app) }}"
-                                           class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition">
-                                            Detail &rarr;
-                                        </a>
+                                        <div class="flex items-center justify-end gap-2">
+                                            @if($app->status === 'PENDING' &&
+                                                (auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN','MANAGER']) ||
+                                                 (auth()->user()->hasRole('PETUGAS') && (int)$app->created_by === auth()->id())))
+                                                <a href="{{ route('admin.loans.applications.edit', $app) }}"
+                                                   class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-lg transition">
+                                                    Edit
+                                                </a>
+                                            @endif
+                                            <a href="{{ route('admin.loans.applications.show', $app) }}"
+                                               class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition">
+                                                Detail &rarr;
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
