@@ -11,11 +11,19 @@ use Illuminate\Validation\Rule;
 
 class CashAccountController extends Controller
 {
-    private array $types = ['CASH', 'BANK'];
+    private array $types = ['CASH', 'BANK', 'CHECK', 'GIRO'];
+
+    /** Human-readable labels per type (for UI hints) */
+    public array $typeLabels = [
+        'CASH'  => 'Kas Tunai',
+        'BANK'  => 'Rekening Bank',
+        'CHECK' => 'Cek',
+        'GIRO'  => 'Bilyet / Giro',
+    ];
 
     /** Parent codes and ledger prefixes per type */
-    private array $parentCodes = ['CASH' => '1110', 'BANK' => '1120'];
-    private array $codePrefixes = ['CASH' => '111',  'BANK' => '112'];
+    private array $parentCodes = ['CASH' => '1110', 'BANK' => '1120', 'CHECK' => '1140', 'GIRO' => '1150'];
+    private array $codePrefixes = ['CASH' => '111',  'BANK' => '112',  'CHECK' => '114',  'GIRO' => '115'];
 
     /**
      * Auto-generate the next available ledger code under 1110 (CASH) or 1120 (BANK)
@@ -73,13 +81,15 @@ class CashAccountController extends Controller
         return view('admin.master.cash_accounts.index', [
             'cashAccounts' => $cashAccounts,
             'types'        => $this->types,
+            'typeLabels'   => $this->typeLabels,
         ]);
     }
 
     public function create()
     {
         return view('admin.master.cash_accounts.create', [
-            'types' => $this->types,
+            'types'      => $this->types,
+            'typeLabels' => $this->typeLabels,
         ]);
     }
 
@@ -115,6 +125,7 @@ class CashAccountController extends Controller
         return view('admin.master.cash_accounts.edit', [
             'cashAccount' => $cashAccount->load('ledgerAccount'),
             'types'       => $this->types,
+            'typeLabels'  => $this->typeLabels,
         ]);
     }
 

@@ -27,7 +27,29 @@
                 <div class="text-xs text-gray-400 mt-0.5"><span class="text-red-500">*</span> Wajib diisi</div>
             </div>
 
-            <form method="POST" action="{{ route('admin.cash.transfer.store') }}" class="px-5 py-5 space-y-4">
+            <form method="POST" action="{{ route('admin.cash.transfer.store') }}" class="px-5 py-5 space-y-4"
+                  x-data="{
+                      accountTypeMap: @js($accountTypeMap),
+                      fromId: '{{ old('from_cash_account_id', '') }}',
+                      toId:   '{{ old('to_cash_account_id', '') }}',
+                      get fromType() { return this.accountTypeMap[this.fromId] ?? '' },
+                      get toType()   { return this.accountTypeMap[this.toId]   ?? '' },
+                      get isCheckOrGiro() {
+                          return ['CHECK','GIRO'].includes(this.fromType) || ['CHECK','GIRO'].includes(this.toType)
+                      },
+                      get refLabel() {
+                          const t = ['CHECK','GIRO'].includes(this.fromType) ? this.fromType : this.toType;
+                          if (t === 'CHECK') return 'No. Cek';
+                          if (t === 'GIRO')  return 'No. Bilyet Giro';
+                          return 'No. Referensi';
+                      },
+                      get refPlaceholder() {
+                          const t = ['CHECK','GIRO'].includes(this.fromType) ? this.fromType : this.toType;
+                          if (t === 'CHECK') return 'Contoh: CEK-001234';
+                          if (t === 'GIRO')  return 'Contoh: BG-001234';
+                          return 'Contoh: 24487D';
+                      }
+                  }">
                 @csrf
 
                 <div>
@@ -44,6 +66,7 @@
                         Dari Kas <span class="text-red-500">*</span>
                     </label>
                     <select name="from_cash_account_id"
+                            x-model="fromId"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
                         <option value="">— Pilih Kas Sumber —</option>
                         @foreach($cashAccounts as $acc)
@@ -60,6 +83,7 @@
                         Ke Kas <span class="text-red-500">*</span>
                     </label>
                     <select name="to_cash_account_id"
+                            x-model="toId"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
                         <option value="">— Pilih Kas Tujuan —</option>
                         @foreach($cashAccounts as $acc)
@@ -103,6 +127,23 @@
                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                            maxlength="255" placeholder="Keterangan tambahan">
                     @error('description') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                {{-- No. Cek / Bilyet — hanya tampil saat tipe CHECK atau GIRO --}}
+                <div x-show="isCheckOrGiro" x-transition>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        <span x-text="refLabel">No. Cek / Bilyet</span> <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="reference_code" value="{{ old('reference_code') }}"
+                           :required="isCheckOrGiro"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 border-purple-200 transition"
+                           maxlength="100"
+                           :placeholder="refPlaceholder">
+                    <p class="text-xs text-gray-400 mt-1">
+                        <span x-show="fromType === 'CHECK' || toType === 'CHECK'">Nomor seri cek yang digunakan.</span>
+                        <span x-show="fromType === 'GIRO' || toType === 'GIRO'">Nomor bilyet giro yang digunakan.</span>
+                    </p>
+                    @error('reference_code') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="pt-2 border-t border-gray-100 flex gap-2">

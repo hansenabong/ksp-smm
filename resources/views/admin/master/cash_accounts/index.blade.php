@@ -81,9 +81,17 @@
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-5 py-3.5 font-medium text-gray-800">{{ $acc->name }}</td>
                                 <td class="px-5 py-3.5">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                                        {{ $acc->type === 'BANK' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700' }}">
-                                        {{ $acc->type }}
+                                    @php
+                                        $typeBadge = match($acc->type) {
+                                            'BANK'  => 'bg-blue-50 text-blue-700',
+                                            'CHECK' => 'bg-purple-50 text-purple-700',
+                                            'GIRO'  => 'bg-teal-50 text-teal-700',
+                                            default => 'bg-amber-50 text-amber-700',
+                                        };
+                                        $typeLabel = $typeLabels[$acc->type] ?? $acc->type;
+                                    @endphp
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $typeBadge }}">
+                                        {{ $typeLabel }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-3.5">

@@ -1,73 +1,138 @@
 <x-admin-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">VOID Transaksi Kas</h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">VOID Transaksi Kas</h2>
+            @php($returnUrl = request('return') ?? route('admin.cash.income.index'))
+            <a href="{{ $returnUrl }}"
+               class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition">
+                ← Kembali
+            </a>
+        </div>
     </x-slot>
 
-    <div class="space-y-4">
+    <div class="max-w-xl">
+        <div class="space-y-4">
 
-            @if (session('success'))
-                <div class="p-3 bg-green-100 text-green-800 rounded">{{ session('success') }}</div>
-            @endif
-
-            @if ($errors->any())
-                <div class="p-3 bg-red-100 text-red-800 rounded">
-                    <div class="font-semibold mb-1">Ada error:</div>
-                    <ul class="list-disc ml-5 text-sm">
-                        @foreach ($errors->all() as $err)
+            @if($errors->any())
+                <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+                    <div class="text-sm font-semibold text-red-700 mb-1">Terjadi kesalahan:</div>
+                    <ul class="list-disc ml-4 text-sm text-red-600 space-y-0.5">
+                        @foreach($errors->all() as $err)
                             <li>{{ $err }}</li>
                         @endforeach
                     </ul>
                 </div>
             @endif
 
-            <div class="bg-white p-6 rounded shadow text-sm space-y-2">
-                <div><span class="text-gray-500">ID:</span> <b>#{{ $tx->id }}</b></div>
-                <div><span class="text-gray-500">Kode:</span> <b>{{ $tx->code }}</b></div>
-                <div><span class="text-gray-500">Tanggal:</span> <b>{{ $tx->trx_date }}</b></div>
-                <div><span class="text-gray-500">Type:</span> <b>{{ $tx->type }}</b></div>
-
-                @if ($tx->type === 'INCOME')
-                    <div><span class="text-gray-500">Kas:</span> <b>{{ $tx->toCashAccount?->name }}</b></div>
-                @elseif($tx->type === 'EXPENSE')
-                    <div><span class="text-gray-500">Kas:</span> <b>{{ $tx->fromCashAccount?->name }}</b></div>
-                @else
-                    <div><span class="text-gray-500">Dari:</span> <b>{{ $tx->fromCashAccount?->name }}</b></div>
-                    <div><span class="text-gray-500">Ke:</span> <b>{{ $tx->toCashAccount?->name }}</b></div>
-                @endif
-
-                <div><span class="text-gray-500">Kategori:</span> <b>{{ $tx->category }}</b></div>
-                <div><span class="text-gray-500">Uraian:</span> <b>{{ $tx->description }}</b></div>
-                <div><span class="text-gray-500">Jumlah:</span> <b>Rp {{ number_format($tx->amount, 0, ',', '.') }}</b>
+            {{-- Transaction detail --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">Detail Transaksi</span>
+                    @if($tx->is_voided)
+                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">VOID</span>
+                    @endif
+                </div>
+                <div class="px-5 py-4 space-y-2.5 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Kode</span>
+                        <span class="font-semibold text-gray-800">{{ $tx->code }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Tanggal</span>
+                        <span class="text-gray-800">{{ $tx->trx_date }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Tipe</span>
+                        @php
+                            $badge = match($tx->type) {
+                                'INCOME'   => 'bg-green-100 text-green-700',
+                                'EXPENSE'  => 'bg-red-100 text-red-700',
+                                'TRANSFER' => 'bg-blue-100 text-blue-700',
+                                default    => 'bg-gray-100 text-gray-600',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $badge }}">{{ $tx->type }}</span>
+                    </div>
+                    @if($tx->type === 'INCOME')
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Kas Tujuan</span>
+                            <span class="text-gray-800">{{ $tx->toCashAccount?->name }}</span>
+                        </div>
+                    @elseif($tx->type === 'EXPENSE')
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Kas Sumber</span>
+                            <span class="text-gray-800">{{ $tx->fromCashAccount?->name }}</span>
+                        </div>
+                    @else
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Dari</span>
+                            <span class="text-gray-800">{{ $tx->fromCashAccount?->name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Ke</span>
+                            <span class="text-gray-800">{{ $tx->toCashAccount?->name }}</span>
+                        </div>
+                    @endif
+                    @if($tx->description)
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Uraian</span>
+                            <span class="text-gray-800">{{ $tx->description }}</span>
+                        </div>
+                    @endif
+                    <div class="flex justify-between border-t border-gray-100 pt-2.5 mt-2">
+                        <span class="text-gray-500 font-medium">Jumlah</span>
+                        <span class="font-bold text-gray-800 text-base">Rp {{ number_format($tx->amount, 0, ',', '.') }}</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded shadow">
-                <form method="POST" action="{{ route('admin.cash.void.store', $tx) }}" class="space-y-3">
-                    @csrf
-                    <div>
-                        <label class="text-sm">Alasan VOID</label>
-                        <input type="text" name="void_reason" class="w-full border rounded px-3 py-2" maxlength="255"
-                            required>
-                        @error('void_reason')
-                            <div class="text-red-600 text-sm">{{ $message }}</div>
-                        @enderror
+            @if(!$tx->is_voided)
+                {{-- VOID form --}}
+                <div class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-red-100 bg-red-50">
+                        <span class="text-sm font-semibold text-red-700">Konfirmasi VOID</span>
+                        <p class="text-xs text-red-500 mt-0.5">Tindakan ini tidak dapat dibatalkan. Jurnal terkait akan ikut di-VOID.</p>
                     </div>
-
-                    @php($returnUrl = request('return') ?? route('admin.cash.income.index'))
-
-                    <input type="hidden" name="return" value="{{ $returnUrl }}">
-
-                    <div class="flex gap-2">
-                        @if ($tx->is_voided)
-                            <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800">VOID</span>
-                            <a href="{{ $returnUrl }}" class="px-4 py-2 bg-gray-200 rounded">Kembali</a>
-                        @else
-                            <button class="px-4 py-2 bg-red-600 text-white rounded">VOID</button>
-                            <a href="{{ $returnUrl }}" class="px-4 py-2 bg-gray-200 rounded">Batal</a>
-                        @endif
+                    <div class="px-5 py-4">
+                        <form method="POST" action="{{ route('admin.cash.void.store', $tx) }}"
+                              onsubmit="return confirm('Yakin ingin me-VOID transaksi ini?')">
+                            @csrf
+                            <input type="hidden" name="return" value="{{ $returnUrl }}">
+                            <div class="mb-4">
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                    Alasan VOID <span class="text-red-500">*</span>
+                                </label>
+                                <textarea name="void_reason" rows="3" maxlength="255" required
+                                          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+                                          placeholder="Jelaskan alasan pembatalan transaksi...">{{ old('void_reason') }}</textarea>
+                                @error('void_reason')
+                                    <div class="text-red-600 text-xs mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="flex gap-3">
+                                <button type="submit"
+                                        class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition">
+                                    VOID Transaksi
+                                </button>
+                                <a href="{{ $returnUrl }}"
+                                   class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
+                                    Batal
+                                </a>
+                            </div>
+                        </form>
                     </div>
-                </form>
-            </div>
+                </div>
+            @else
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-4">
+                    <div class="text-sm text-gray-500 mb-3">Transaksi ini sudah di-VOID.</div>
+                    <div class="text-xs text-gray-400">Alasan: {{ $tx->void_reason }}</div>
+                    <a href="{{ $returnUrl }}"
+                       class="mt-3 inline-flex px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
+                        Kembali
+                    </a>
+                </div>
+            @endif
 
+        </div>
     </div>
 </x-admin-layout>

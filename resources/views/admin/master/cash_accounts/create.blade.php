@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Kas / Bank</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Kas / Rekening</h2>
             <a href="{{ route('admin.master.cash_accounts.index') }}"
                class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
                 &larr; Kembali
@@ -26,20 +26,30 @@
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100">
-                <div class="text-sm font-semibold text-gray-700">Informasi Kas / Bank</div>
-                <div class="text-xs text-gray-400 mt-0.5">Akun buku besar akan dibuat otomatis di bawah grup Kas (111x) atau Rekening Bank (112x).</div>
+                <div class="text-sm font-semibold text-gray-700">Informasi Kas / Rekening</div>
+                <div class="text-xs text-gray-400 mt-0.5">Akun buku besar dibuat otomatis sesuai tipe. <span class="text-red-500">*</span> Wajib diisi</div>
             </div>
 
-            <form method="POST" action="{{ route('admin.master.cash_accounts.store') }}" class="px-5 py-5 space-y-4">
+            @php
+                $typeDescs = [
+                    'CASH'  => ['label' => 'Kas Tunai',     'hint' => 'Uang tunai · ledger 111x', 'icon' => '💵'],
+                    'BANK'  => ['label' => 'Rekening Bank', 'hint' => 'Simpanan bank · ledger 112x', 'icon' => '🏦'],
+                    'CHECK' => ['label' => 'Cek',           'hint' => 'Cek diterima · ledger 114x · No. Cek wajib saat transaksi', 'icon' => '📄'],
+                    'GIRO'  => ['label' => 'Bilyet / Giro', 'hint' => 'Bilyet Giro · ledger 115x · No. Bilyet wajib saat transaksi', 'icon' => '📋'],
+                ];
+            @endphp
+
+            <form method="POST" action="{{ route('admin.master.cash_accounts.store') }}" class="px-5 py-5 space-y-4"
+                  x-data="{ type: '{{ old('type', 'CASH') }}' }">
                 @csrf
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-                        Nama Kas / Bank <span class="text-red-500">*</span>
+                        Nama Rekening <span class="text-red-500">*</span>
                     </label>
                     <input name="name" value="{{ old('name') }}"
                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                           placeholder="cth: Kas Kantor, Bank BRI Cabang X" required>
+                           placeholder="cth: Kas Kantor, Bank BRI, Cek Masuk" required>
                     @error('name') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
@@ -47,16 +57,25 @@
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Tipe <span class="text-red-500">*</span>
                     </label>
-                    <select name="type"
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                            required>
-                        @foreach($types as $t)
-                            <option value="{{ $t }}" @selected(old('type') == $t)>{{ $t }}</option>
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach($typeDescs as $val => $info)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="type" value="{{ $val }}"
+                                   x-model="type"
+                                   class="sr-only">
+                            <div class="flex items-start gap-2.5 p-3 border-2 rounded-xl transition"
+                                 :class="type === '{{ $val }}'
+                                     ? '{{ $val === 'CASH' ? 'border-amber-400 bg-amber-50' : ($val === 'BANK' ? 'border-blue-400 bg-blue-50' : ($val === 'CHECK' ? 'border-purple-400 bg-purple-50' : 'border-teal-400 bg-teal-50')) }}'
+                                     : 'border-gray-200 bg-white hover:border-gray-300'">
+                                <span class="text-lg leading-none mt-0.5">{{ $info['icon'] }}</span>
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-800">{{ $info['label'] }}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">{{ $info['hint'] }}</div>
+                                </div>
+                            </div>
+                        </label>
                         @endforeach
-                    </select>
-                    <p class="text-xs text-gray-400 mt-1">
-                        CASH → akun ledger otomatis di 111x &bull; BANK → akun ledger otomatis di 112x
-                    </p>
+                    </div>
                     @error('type') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 

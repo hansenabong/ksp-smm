@@ -781,14 +781,9 @@
                                 <div class="flex items-center gap-2 ml-4 shrink-0">
                                     <a href="{{ route('admin.loans.applications.files.download', [$application, $file]) }}"
                                        class="text-xs text-indigo-600 hover:underline">Unduh</a>
-                                    <form method="POST"
-                                          action="{{ route('admin.loans.applications.files.delete', [$application, $file]) }}"
-                                          onsubmit="return confirm('Hapus file \'{{ $file->original_name }}\'?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="text-xs text-red-500 hover:text-red-700 hover:underline">Hapus</button>
-                                    </form>
+                                    <button type="button"
+                                            onclick="if(confirm('Hapus file \'{{ addslashes($file->original_name) }}\'?')) document.getElementById('del-file-{{ $file->id }}').submit();"
+                                            class="text-xs text-red-500 hover:text-red-700 hover:underline">Hapus</button>
                                 </div>
                             </div>
                         @endforeach
@@ -883,4 +878,15 @@
         </div>
 
     </form>
+
+    {{-- Standalone delete forms (outside main form to avoid nesting) --}}
+    @foreach($application->files as $file)
+    <form id="del-file-{{ $file->id }}" method="POST"
+          action="{{ route('admin.loans.applications.files.delete', [$application, $file]) }}"
+          style="display:none">
+        @csrf
+        @method('DELETE')
+    </form>
+    @endforeach
+
 </x-admin-layout>

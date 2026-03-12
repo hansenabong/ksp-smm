@@ -20,7 +20,7 @@
 
     @php $fd = $application->form_data ?? []; @endphp
 
-    <form method="POST" action="{{ route('admin.loans.applications.update', $application) }}" class="space-y-6"
+    <form id="loan-edit-form" method="POST" action="{{ route('admin.loans.applications.update', $application) }}" class="space-y-6"
           enctype="multipart/form-data">
         @csrf
         @method('PUT')
@@ -728,14 +728,9 @@
                                 <div class="flex items-center gap-2 ml-4 shrink-0">
                                     <a href="{{ route('admin.loans.applications.files.download', [$application, $file]) }}"
                                        class="text-xs text-indigo-600 hover:underline">Unduh</a>
-                                    <form method="POST"
-                                          action="{{ route('admin.loans.applications.files.delete', [$application, $file]) }}"
-                                          onsubmit="return confirm('Hapus file \'{{ $file->original_name }}\'?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="text-xs text-red-500 hover:text-red-700 hover:underline">Hapus</button>
-                                    </form>
+                                    <button type="button"
+                                            class="text-xs text-red-500 hover:text-red-700 hover:underline"
+                                            onclick="deleteFile('{{ route('admin.loans.applications.files.delete', [$application, $file]) }}', '{{ addslashes($file->original_name) }}')">Hapus</button>
                                 </div>
                             </div>
                         @endforeach
@@ -749,26 +744,26 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="text-sm">KTP</label>
-                        <input type="file" name="doc_ktp" accept=".jpg,.jpeg,.png,.pdf"
+                        <input type="file" name="doc_ktp" accept=".jpg,.jpeg,.png,.pdf" form="loan-edit-form"
                             class="w-full border rounded px-3 py-2 text-sm">
                         @error('doc_ktp') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div>
                         <label class="text-sm">Kartu Keluarga</label>
-                        <input type="file" name="doc_kk" accept=".jpg,.jpeg,.png,.pdf"
+                        <input type="file" name="doc_kk" accept=".jpg,.jpeg,.png,.pdf" form="loan-edit-form"
                             class="w-full border rounded px-3 py-2 text-sm">
                         @error('doc_kk') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div>
                         <label class="text-sm">Agunan</label>
-                        <input type="file" name="doc_agunan" accept=".jpg,.jpeg,.png,.pdf"
+                        <input type="file" name="doc_agunan" accept=".jpg,.jpeg,.png,.pdf" form="loan-edit-form"
                             class="w-full border rounded px-3 py-2 text-sm">
                         @error('doc_agunan') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                     </div>
                 </div>
                 <div class="mt-3">
                     <label class="text-sm">Dokumen Lainnya (bisa lebih dari satu)</label>
-                    <input type="file" name="doc_others[]" accept=".jpg,.jpeg,.png,.pdf" multiple
+                    <input type="file" name="doc_others[]" accept=".jpg,.jpeg,.png,.pdf" multiple form="loan-edit-form"
                         class="w-full border rounded px-3 py-2 text-sm">
                     @error('doc_others.*') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
@@ -830,6 +825,21 @@
     </form>
 
     <script>
+        function deleteFile(url, name) {
+            if (!confirm('Hapus file \'' + name + '\'?')) return;
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.action = url;
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden'; csrf.name = '_token';
+            csrf.value = document.querySelector('meta[name="csrf-token"]').content;
+            var method = document.createElement('input');
+            method.type = 'hidden'; method.name = '_method'; method.value = 'DELETE';
+            f.appendChild(csrf); f.appendChild(method);
+            document.body.appendChild(f);
+            f.submit();
+        }
+
         (function() {
             const sel = document.getElementById('loan_product_id');
             const hint = document.getElementById('loan_product_hint');

@@ -9,6 +9,7 @@ use App\Models\LoanApplicationFile;
 use App\Models\Member;
 use App\Models\LoanProduct;
 use App\Services\Loans\LoanService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -642,15 +643,12 @@ class LoanApplicationController extends Controller
             ->with('success', 'Data pribadi pengajuan berhasil diperbarui.');
     }
 
-    public function approve(Request $request, LoanApplication $application, LoanService $service)
+    public function approve(Request $request, LoanApplication $application, LoanService $service, AuditLogService $audit)
     {
-        // hanya role tertentu (optional hardening)
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER']), 403);
-
         $validated = $request->validate([
-            'trx_date' => ['required', 'date'],
+            'trx_date'             => ['required', 'date'],
             'from_cash_account_id' => ['required', 'exists:cash_accounts,id'],
-            'approval_note' => ['nullable', 'string', 'max:255'],
+            'approval_note'        => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
@@ -659,18 +657,26 @@ class LoanApplicationController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
+        $audit->record('approve', 'LoanApplication', $application->id,
+            "Pengajuan pinjaman #{$application->id} [{$application->member?->member_no}] disetujui & dicairkan",
+            ['amount' => (int) $application->amount, 'note' => $validated['approval_note'] ?? null]
+        );
+
         return redirect()->route('admin.loans.applications.index')->with('success', 'Pengajuan disetujui & pinjaman dicairkan.');
     }
 
-    public function reject(Request $request, LoanApplication $application, LoanService $service)
+    public function reject(Request $request, LoanApplication $application, LoanService $service, AuditLogService $audit)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER']), 403);
-
         $validated = $request->validate([
             'approval_note' => ['required', 'string', 'max:255'],
         ]);
 
         $service->reject($application->id, $validated['approval_note'], auth()->id());
+
+        $audit->record('reject', 'LoanApplication', $application->id,
+            "Pengajuan pinjaman #{$application->id} [{$application->member?->member_no}] ditolak",
+            ['amount' => (int) $application->amount, 'note' => $validated['approval_note']]
+        );
 
         return redirect()->route('admin.loans.applications.index')->with('success', 'Pengajuan ditolak.');
     }

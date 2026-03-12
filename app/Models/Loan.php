@@ -28,4 +28,6 @@ class Loan extends Model
     public function disbursedCashTransaction() { return $this->belongsTo(CashTransaction::class, 'disbursed_cash_transaction_id'); }
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
     public function loanProduct(){ return $this->belongsTo(LoanProduct::class, 'loan_product_id'); }
-    }
+    public function collectionRecord() { return $this->hasOne(\App\Models\CollectionRecord::class); }
+    public function collectionLetters() { return $this->hasMany(\App\Models\CollectionLetter::class); }
+}

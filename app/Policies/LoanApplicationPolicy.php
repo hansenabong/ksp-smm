@@ -13,7 +13,7 @@ class LoanApplicationPolicy
      */
     public function viewSensitiveData(User $user, LoanApplication $application): bool
     {
-        if ($user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER'])) {
+        if ($user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ADMIN_DATA', 'ADMIN_COLLECTION'])) {
             return true;
         }
 
@@ -21,7 +21,7 @@ class LoanApplicationPolicy
             return $application->created_by === $user->id;
         }
 
-        return false; // BENDAHARA
+        return false; // BENDAHARA, KASIR
     }
 
     /**

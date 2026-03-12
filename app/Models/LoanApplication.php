@@ -25,4 +25,5 @@ class LoanApplication extends Model
     public function approver() { return $this->belongsTo(User::class, 'approved_by'); }
     public function approvedCashAccount() { return $this->belongsTo(CashAccount::class, 'approved_cash_account_id'); }
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
+    public function collaterals() { return $this->hasMany(\App\Models\LoanCollateral::class); }
 }

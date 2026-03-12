@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\Master\MemberController;
 use App\Http\Controllers\Admin\Master\SavingProductController;
 use App\Http\Controllers\Admin\Master\LoanProductController;
 use App\Http\Controllers\Admin\Audit\VoidAuditController;
+use App\Http\Controllers\Admin\Audit\AuditLogController;
 use App\Http\Controllers\Admin\Reports\CashReportController;
 use App\Http\Controllers\Admin\Reports\SavingsReportController;
 use App\Http\Controllers\Admin\Reports\LoansReportController;
@@ -31,15 +32,27 @@ use App\Http\Controllers\Admin\Accounting\JournalEntryController;
 use App\Http\Controllers\Admin\Accounting\IncomeStatementController;
 use App\Http\Controllers\Admin\Accounting\BalanceSheetController;
 use App\Http\Controllers\Admin\Accounting\ShuController;
+use App\Http\Controllers\Admin\Accounting\AccountController;
+use App\Http\Controllers\Admin\MemberSavingsController;
 use App\Http\Controllers\Admin\AdminHomeController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\Collection\CollectionController;
+use App\Http\Controllers\Admin\Collection\CollectionLetterController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\LoanCollateralController;
+use App\Http\Controllers\Admin\BulkSavingController;
+use App\Http\Controllers\Portal\MemberPortalController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         $user = auth()->user();
-        if ($user && $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER', 'PETUGAS'])) {
+        if ($user && $user->hasRole('MEMBER')) {
+            return redirect()->route('portal.dashboard');
+        }
+        if ($user && $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER', 'PETUGAS',
+                                         'KASIR', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'PENGAWAS'])) {
             return redirect()->route('admin.home');
         }
         return view('dashboard');
@@ -53,10 +66,13 @@ Route::middleware(['auth'])->group(function () {
     // ADMIN AREA
     // =========================================================================
     Route::prefix('admin')
-        ->middleware('role:SUPER_ADMIN|ADMIN|BENDAHARA|MANAGER|PETUGAS')
+        ->middleware('role:SUPER_ADMIN|ADMIN|BENDAHARA|MANAGER|PETUGAS|KASIR|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS')
         ->group(function () {
 
             Route::get('/home', [AdminHomeController::class, 'index'])->name('admin.home');
+
+            // Change password page (all authenticated admin roles)
+            Route::get('/password/change', fn() => view('admin.password.change'))->name('admin.password.change');
 
             // ------------------------------------------------------------------
             // KAS
@@ -65,17 +81,21 @@ Route::middleware(['auth'])->group(function () {
             //   ADMIN / MANAGER — no cash operations (oversight via reports only)
             // ------------------------------------------------------------------
             Route::prefix('cash')->group(function () {
-                Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS')->group(function () {
+                // View (index + print) — PENGAWAS read-only included
+                Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS|KASIR|PENGAWAS')->group(function () {
                     Route::get('/income',         [CashIncomeController::class,  'index'])->name('admin.cash.income.index');
                     Route::get('/income/print',   [CashIncomeController::class,  'printAll'])->name('admin.cash.income.print');
-                    Route::get('/income/create',  [CashIncomeController::class,  'create'])->name('admin.cash.income.create');
-                    Route::post('/income',        [CashIncomeController::class,  'store'])->name('admin.cash.income.store');
                     Route::get('/expense',        [CashExpenseController::class, 'index'])->name('admin.cash.expense.index');
                     Route::get('/expense/print',  [CashExpenseController::class, 'printAll'])->name('admin.cash.expense.print');
-                    Route::get('/expense/create', [CashExpenseController::class, 'create'])->name('admin.cash.expense.create');
-                    Route::post('/expense',       [CashExpenseController::class, 'store'])->name('admin.cash.expense.store');
                     Route::get('/transfer',       [CashTransferController::class,'index'])->name('admin.cash.transfer.index');
                     Route::get('/transfer/print', [CashTransferController::class,'printAll'])->name('admin.cash.transfer.print');
+                });
+                // Entry (create + store) — PENGAWAS excluded
+                Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS|KASIR')->group(function () {
+                    Route::get('/income/create',  [CashIncomeController::class,  'create'])->name('admin.cash.income.create');
+                    Route::post('/income',        [CashIncomeController::class,  'store'])->name('admin.cash.income.store');
+                    Route::get('/expense/create', [CashExpenseController::class, 'create'])->name('admin.cash.expense.create');
+                    Route::post('/expense',       [CashExpenseController::class, 'store'])->name('admin.cash.expense.store');
                     Route::get('/transfer/create',[CashTransferController::class,'create'])->name('admin.cash.transfer.create');
                     Route::post('/transfer',      [CashTransferController::class,'store'])->name('admin.cash.transfer.store');
                 });
@@ -103,13 +123,25 @@ Route::middleware(['auth'])->group(function () {
             //   Void  : BENDAHARA only       (supervisor approval)
             //   ADMIN / MANAGER — no savings operations
             // ------------------------------------------------------------------
-            Route::prefix('savings')->middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS')->group(function () {
-                Route::get('/deposit',        [SavingDepositController::class,  'index'])->name('admin.savings.deposit.index');
-                Route::get('/deposit/create', [SavingDepositController::class,  'create'])->name('admin.savings.deposit.create');
-                Route::post('/deposit',       [SavingDepositController::class,  'store'])->name('admin.savings.deposit.store');
-                Route::get('/withdraw',       [SavingWithdrawController::class, 'index'])->name('admin.savings.withdraw.index');
-                Route::get('/withdraw/create',[SavingWithdrawController::class, 'create'])->name('admin.savings.withdraw.create');
-                Route::post('/withdraw',      [SavingWithdrawController::class, 'store'])->name('admin.savings.withdraw.store');
+            // Member savings balance — all accounting roles
+            Route::prefix('savings/member-balance')->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA|ADMIN_DATA|PENGAWAS')->group(function () {
+                Route::get('/',              [MemberSavingsController::class,'index'])->name('admin.savings.member_balance.index');
+                Route::get('/{member}',      [MemberSavingsController::class,'show'])->name('admin.savings.member_balance.show');
+            });
+
+            Route::prefix('savings')->group(function () {
+                // View (index) — PENGAWAS read-only included
+                Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS|KASIR|PENGAWAS')->group(function () {
+                    Route::get('/deposit',  [SavingDepositController::class,  'index'])->name('admin.savings.deposit.index');
+                    Route::get('/withdraw', [SavingWithdrawController::class, 'index'])->name('admin.savings.withdraw.index');
+                });
+                // Entry (create + store) — PENGAWAS excluded
+                Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS|KASIR')->group(function () {
+                    Route::get('/deposit/create', [SavingDepositController::class,  'create'])->name('admin.savings.deposit.create');
+                    Route::post('/deposit',       [SavingDepositController::class,  'store'])->name('admin.savings.deposit.store');
+                    Route::get('/withdraw/create',[SavingWithdrawController::class, 'create'])->name('admin.savings.withdraw.create');
+                    Route::post('/withdraw',      [SavingWithdrawController::class, 'store'])->name('admin.savings.withdraw.store');
+                });
             });
 
             // Savings void — Bendahara only
@@ -127,17 +159,21 @@ Route::middleware(['auth'])->group(function () {
             //   Payment void             : BENDAHARA only
             //   ADMIN — no loan operations (oversight via reports)
             // ------------------------------------------------------------------
-            Route::middleware('role:SUPER_ADMIN|MANAGER|PETUGAS')->group(function () {
-                Route::get('/loans/applications',              [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
-                Route::get('/loans/applications/create',       [LoanApplicationController::class,'create'])->name('admin.loans.applications.create');
-                Route::post('/loans/applications',             [LoanApplicationController::class,'store'])->name('admin.loans.applications.store');
-                Route::get('/loans/applications/{application}',[LoanApplicationController::class,'show'])->name('admin.loans.applications.show');
-                Route::get('/loans/applications/{application}/edit', [LoanApplicationController::class,'edit'])->name('admin.loans.applications.edit');
-                Route::put('/loans/applications/{application}',      [LoanApplicationController::class,'update'])->name('admin.loans.applications.update');
-                Route::delete('/loans/applications/{application}/files/{file}', [LoanApplicationController::class,'deleteFile'])->name('admin.loans.applications.files.delete');
+            // Loan applications — view (index, show, download, PDFs) — PENGAWAS read-only included
+            Route::middleware('role:SUPER_ADMIN|MANAGER|PETUGAS|ADMIN_DATA|PENGAWAS')->group(function () {
+                Route::get('/loans/applications',               [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
+                Route::get('/loans/applications/{application}', [LoanApplicationController::class,'show'])->name('admin.loans.applications.show');
                 Route::get('/loans/applications/{application}/files/{file}/download',[LoanApplicationController::class,'downloadFile'])->name('admin.loans.applications.files.download');
                 Route::get('/loans/applications/{application}/agreement',[LoanApplicationController::class,'agreement'])->name('admin.loans.applications.agreement');
                 Route::get('/loans/applications/{application}/agreement-vehicle',[LoanApplicationController::class,'agreementVehicle'])->name('admin.loans.applications.agreement.vehicle');
+            });
+            // Loan applications — write (create, store, edit, update, delete) — PENGAWAS excluded
+            Route::middleware('role:SUPER_ADMIN|MANAGER|PETUGAS|ADMIN_DATA')->group(function () {
+                Route::get('/loans/applications/create',             [LoanApplicationController::class,'create'])->name('admin.loans.applications.create');
+                Route::post('/loans/applications',                   [LoanApplicationController::class,'store'])->name('admin.loans.applications.store');
+                Route::get('/loans/applications/{application}/edit', [LoanApplicationController::class,'edit'])->name('admin.loans.applications.edit');
+                Route::put('/loans/applications/{application}',      [LoanApplicationController::class,'update'])->name('admin.loans.applications.update');
+                Route::delete('/loans/applications/{application}/files/{file}', [LoanApplicationController::class,'deleteFile'])->name('admin.loans.applications.files.delete');
             });
 
             // Edit personal info on APPROVED applications — SUPER_ADMIN only
@@ -161,9 +197,13 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/loans/active/{loan}/kwitansi-pencairan', [LoanController::class,'kwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan');
             Route::post('/loans/active/{loan}/kwitansi-pencairan',[LoanController::class,'saveKwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan.save');
             Route::get('/loans/active/{loan}/kwitansi-plafon',    [LoanController::class,'kwitansiPlafon'])->name('admin.loans.active.kwitansi.plafon');
-            Route::get('/loans/active/{loan}/permohonan-dana',    [LoanController::class,'permohonanDana'])->name('admin.loans.active.permohonan.dana');
+            // Permohonan Dana — view (BENDAHARA + SUPER_ADMIN only)
+            Route::middleware('role:SUPER_ADMIN|BENDAHARA')->group(function () {
+                Route::get('/loans/active/{loan}/permohonan-dana',     [LoanController::class,'permohonanDana'])->name('admin.loans.active.permohonan.dana');
+                Route::get('/loans/active/{loan}/permohonan-dana/pdf', [LoanController::class,'permohonanDanaPdf'])->name('admin.loans.active.permohonan.dana.pdf');
+            });
 
-            Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS')->group(function () {
+            Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS|KASIR|ADMIN_COLLECTION')->group(function () {
                 Route::get('/loans/active/{loan}/payments/create',[LoanPaymentController::class,'create'])->name('admin.loans.payments.create');
                 Route::post('/loans/active/{loan}/payments',      [LoanPaymentController::class,'store'])->name('admin.loans.payments.store');
                 Route::get('/loans/payments/{payment}/receipt',   [LoanPaymentController::class,'receipt'])->name('admin.loans.payments.receipt');
@@ -178,6 +218,16 @@ Route::middleware(['auth'])->group(function () {
             // AKUNTANSI, LAPORAN, AUDIT — MANAGER + BENDAHARA + ADMIN/SUPER_ADMIN
             // Petugas has no access to financial statements or audit trails.
             // ------------------------------------------------------------------
+            // COA Management — SUPER_ADMIN only
+            Route::prefix('accounting/accounts')->middleware('role:SUPER_ADMIN')->group(function () {
+                Route::get('/',                 [AccountController::class,'index'])->name('admin.accounting.accounts.index');
+                Route::get('/create',           [AccountController::class,'create'])->name('admin.accounting.accounts.create');
+                Route::post('/',                [AccountController::class,'store'])->name('admin.accounting.accounts.store');
+                Route::get('/{account}/edit',   [AccountController::class,'edit'])->name('admin.accounting.accounts.edit');
+                Route::put('/{account}',        [AccountController::class,'update'])->name('admin.accounting.accounts.update');
+                Route::patch('/{account}/toggle',[AccountController::class,'toggle'])->name('admin.accounting.accounts.toggle');
+            });
+
             Route::middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA')->group(function () {
                 Route::get('/accounting/trial-balance',       [AccountingTrialBalanceController::class,'index'])->name('admin.accounting.trial_balance.index');
                 Route::get('/accounting/general-ledger',      [GeneralLedgerController::class,'index'])->name('admin.accounting.general_ledger.index');
@@ -202,15 +252,19 @@ Route::middleware(['auth'])->group(function () {
             });
 
             Route::prefix('audit')->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA')->group(function () {
-                Route::get('/void/cash',          [VoidAuditController::class,'cash'])->name('admin.audit.void.cash');
-                Route::get('/void/savings',       [VoidAuditController::class,'savings'])->name('admin.audit.void.savings');
-                Route::get('/void/loan-payments', [VoidAuditController::class,'loanPayments'])->name('admin.audit.void.loan_payments');
+                // Void Audit Trail
+                Route::get('/void/cash',                 [VoidAuditController::class,'cash'])->name('admin.audit.void.cash');
+                Route::get('/void/savings',              [VoidAuditController::class,'savings'])->name('admin.audit.void.savings');
+                Route::get('/void/loan-payments',        [VoidAuditController::class,'loanPayments'])->name('admin.audit.void.loan_payments');
                 Route::get('/void/cash/export',          [VoidAuditController::class,'exportCash'])->name('admin.audit.void.cash.export');
                 Route::get('/void/savings/export',       [VoidAuditController::class,'exportSavings'])->name('admin.audit.void.savings.export');
                 Route::get('/void/loan-payments/export', [VoidAuditController::class,'exportLoanPayments'])->name('admin.audit.void.loan_payments.export');
+                // Comprehensive Audit Log (M43)
+                Route::get('/log',        [AuditLogController::class,'index'])->name('admin.audit.log.index');
+                Route::get('/log/export', [AuditLogController::class,'export'])->name('admin.audit.log.export');
             });
 
-            Route::prefix('reports')->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA')->group(function () {
+            Route::prefix('reports')->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA|KASIR|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS')->group(function () {
                 Route::get('/cash',           [CashReportController::class,   'index'])->name('admin.reports.cash');
                 Route::get('/savings',        [SavingsReportController::class,'index'])->name('admin.reports.savings');
                 Route::get('/loans',          [LoansReportController::class,  'index'])->name('admin.reports.loans');
@@ -224,7 +278,7 @@ Route::middleware(['auth'])->group(function () {
             // MASTER DATA — ADMIN/SUPER_ADMIN only
             // Product rates, CoA, and member registry are config; only Admin changes them.
             // ------------------------------------------------------------------
-            Route::prefix('master')->middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
+            Route::prefix('master')->middleware('role:SUPER_ADMIN|ADMIN|ADMIN_DATA|PENGAWAS')->group(function () {
                 Route::get('/cash-categories',                    [CashCategoryController::class,'index'])->name('admin.master.cash_categories.index');
                 Route::get('/cash-categories/create',             [CashCategoryController::class,'create'])->name('admin.master.cash_categories.create');
                 Route::post('/cash-categories',                   [CashCategoryController::class,'store'])->name('admin.master.cash_categories.store');
@@ -262,6 +316,25 @@ Route::middleware(['auth'])->group(function () {
             });
 
             // ------------------------------------------------------------------
+            // PENAGIHAN (COLLECTION) — ADMIN_COLLECTION + management
+            // ------------------------------------------------------------------
+            Route::prefix('collection')->group(function () {
+                // View — PENGAWAS read-only included
+                Route::middleware('role:SUPER_ADMIN|ADMIN|MANAGER|ADMIN_COLLECTION|PENGAWAS')->group(function () {
+                    Route::get('/',                     [CollectionController::class,'index'])->name('admin.collection.index');
+                    Route::get('/laporan',              [CollectionController::class,'laporan'])->name('admin.collection.laporan');
+                    Route::get('/master-dhia',          [CollectionController::class,'masterDhia'])->name('admin.collection.master-dhia');
+                    Route::get('/letters/{letter}/pdf', [CollectionLetterController::class,'pdf'])->name('admin.collection.letters.pdf');
+                    Route::get('/{loan}',               [CollectionController::class,'show'])->name('admin.collection.show');
+                });
+                // Write — PENGAWAS excluded
+                Route::middleware('role:SUPER_ADMIN|ADMIN|MANAGER|ADMIN_COLLECTION')->group(function () {
+                    Route::patch('/{loan}',        [CollectionController::class,'update'])->name('admin.collection.update');
+                    Route::post('/{loan}/letters', [CollectionLetterController::class,'store'])->name('admin.collection.letters.store');
+                });
+            });
+
+            // ------------------------------------------------------------------
             // USER MANAGEMENT — ADMIN/SUPER_ADMIN only
             // ------------------------------------------------------------------
             Route::prefix('users')->middleware('role:SUPER_ADMIN|ADMIN')->group(function () {
@@ -272,9 +345,51 @@ Route::middleware(['auth'])->group(function () {
                 Route::put('/{user}',     [UserController::class,'update'])->name('admin.users.update');
                 Route::delete('/{user}',  [UserController::class,'destroy'])->name('admin.users.destroy');
             });
+
+            // ------------------------------------------------------------------
+            // NOTIFIKASI — all admin roles
+            // ------------------------------------------------------------------
+            Route::get('/notifications', [NotificationController::class,'index'])->name('admin.notifications.index');
+
+            // ------------------------------------------------------------------
+            // SIMPANAN WAJIB MASSAL — BENDAHARA + PETUGAS + KASIR
+            // ------------------------------------------------------------------
+            Route::middleware('role:SUPER_ADMIN|BENDAHARA|PETUGAS|KASIR')->group(function () {
+                Route::get('/savings/bulk-wajib/create', [BulkSavingController::class,'create'])->name('admin.savings.bulk_wajib.create');
+                Route::post('/savings/bulk-wajib',       [BulkSavingController::class,'store'])->name('admin.savings.bulk_wajib.store');
+            });
+
+            // ------------------------------------------------------------------
+            // AGUNAN (COLLATERAL REGISTRY) — nested under loan applications
+            // SUPER_ADMIN | ADMIN | MANAGER | ADMIN_DATA (config + view)
+            // Release: SUPER_ADMIN | BENDAHARA
+            // ------------------------------------------------------------------
+            Route::prefix('loans/applications/{application}/collaterals')
+                ->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA|PETUGAS|ADMIN_DATA')
+                ->group(function () {
+                    Route::get('/',                             [LoanCollateralController::class,'index'])->name('admin.loans.applications.collaterals.index');
+                    Route::get('/create',                       [LoanCollateralController::class,'create'])->name('admin.loans.applications.collaterals.create');
+                    Route::post('/',                            [LoanCollateralController::class,'store'])->name('admin.loans.applications.collaterals.store');
+                    Route::get('/{collateral}/download',        [LoanCollateralController::class,'download'])->name('admin.loans.applications.collaterals.download');
+                    Route::middleware('role:SUPER_ADMIN|BENDAHARA|ADMIN')->group(function () {
+                        Route::get('/{collateral}/release',     [LoanCollateralController::class,'releaseForm'])->name('admin.loans.applications.collaterals.release-form');
+                        Route::patch('/{collateral}/release',   [LoanCollateralController::class,'release'])->name('admin.loans.applications.collaterals.release');
+                        Route::delete('/{collateral}',          [LoanCollateralController::class,'destroy'])->name('admin.loans.applications.collaterals.destroy');
+                    });
+                });
         });
 
-    // Member portal (anggota)
+    // ------------------------------------------------------------------
+    // PORTAL ANGGOTA — users with MEMBER role
+    // ------------------------------------------------------------------
+    Route::prefix('portal')
+        ->middleware(['role:MEMBER'])
+        ->group(function () {
+            Route::get('/',            [MemberPortalController::class,'dashboard'])->name('portal.dashboard');
+            Route::get('/savings',     [MemberPortalController::class,'savings'])->name('portal.savings');
+            Route::get('/loans',       [MemberPortalController::class,'loans'])->name('portal.loans');
+            Route::get('/not-linked',  [MemberPortalController::class,'notLinked'])->name('portal.not-linked');
+        });
 });
 
 require __DIR__ . '/auth.php';

@@ -760,5 +760,60 @@
             @endif
             @endcan
 
+        {{-- ===== AGUNAN (COLLATERAL REGISTRY) ===== --}}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-800">Agunan / Jaminan</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">Daftar agunan yang diserahkan untuk pengajuan ini</p>
+                </div>
+                <a href="{{ route('admin.loans.applications.collaterals.index', $application) }}"
+                   class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">
+                    Kelola Agunan
+                </a>
+            </div>
+            @php
+                $collaterals = \Illuminate\Support\Facades\Schema::hasTable('loan_collaterals')
+                    ? $application->collaterals()->with('creator')->get()
+                    : collect();
+            @endphp
+            @if($collaterals->isEmpty())
+                <p class="px-5 py-4 text-sm text-gray-400">Belum ada agunan terdaftar.</p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                                <th class="px-4 py-2 text-left font-semibold">Jenis</th>
+                                <th class="px-4 py-2 text-left font-semibold">Deskripsi</th>
+                                <th class="px-4 py-2 text-right font-semibold">Nilai Taksiran</th>
+                                <th class="px-4 py-2 text-center font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($collaterals as $c)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2 font-medium text-gray-800">{{ $c->type_label }}</td>
+                                <td class="px-4 py-2 text-gray-600 text-xs max-w-xs truncate">{{ $c->description ?? '—' }}</td>
+                                <td class="px-4 py-2 text-right font-semibold text-gray-800">Rp {{ number_format($c->estimated_value, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 text-center">
+                                    @if($c->status === 'HELD')
+                                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Ditahan</span>
+                                    @else
+                                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Dilepas</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-5 py-2 border-t border-gray-100 text-xs text-gray-500 flex justify-between">
+                    <span>{{ $collaterals->count() }} agunan</span>
+                    <span class="font-semibold text-gray-700">Total: Rp {{ number_format($collaterals->sum('estimated_value'), 0, ',', '.') }}</span>
+                </div>
+            @endif
+        </div>
+
     </div>
 </x-admin-layout>

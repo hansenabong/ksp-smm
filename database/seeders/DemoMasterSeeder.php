@@ -67,7 +67,7 @@ class DemoMasterSeeder extends Seeder
                 'admin_fee'              => 50000,
                 'max_tenor_months'       => 24,
                 'penalty_daily_rate_bp'  => 30,   // 0.3%/hari
-                'early_repayment_rate_bp'=> 200,  // 2% pelunasan cepat
+                'early_repayment_rate_bp'=> 500,  // 5% pelunasan cepat
             ],
             [
                 'name'                   => 'Pinjaman Mikro',
@@ -76,12 +76,12 @@ class DemoMasterSeeder extends Seeder
                 'admin_fee'              => 25000,
                 'max_tenor_months'       => 12,
                 'penalty_daily_rate_bp'  => 20,   // 0.2%/hari
-                'early_repayment_rate_bp'=> 100,  // 1%
+                'early_repayment_rate_bp'=> 500,  // 5% pelunasan cepat
             ],
         ];
 
         foreach ($products as $p) {
-            LoanProduct::firstOrCreate(
+            LoanProduct::updateOrCreate(
                 ['name' => $p['name']],
                 array_merge($p, ['is_active' => true])
             );

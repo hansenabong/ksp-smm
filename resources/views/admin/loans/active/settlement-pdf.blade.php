@@ -208,6 +208,30 @@
                 <td class="text-right font-mono">{{ number_format($calc['outstanding'], 2, ',', '.') }}</td>
             </tr>
 
+            @if($calc['overdue_count'] > 0)
+            {{-- Angsuran tertunggak breakdown --}}
+            <tr class="section-header">
+                <td colspan="2" class="text-orange">
+                    Angsuran Tertunggak
+                    ({{ $calc['overdue_count'] }} angsuran belum dibayar,
+                    termasuk dalam sisa tagihan di atas)
+                </td>
+            </tr>
+            @foreach($calc['denda_details'] as $dd)
+            <tr class="detail-row">
+                <td>
+                    Angsuran #{{ $dd['installment_no'] }} — jatuh tempo {{ $dd['due_date']->format('d M Y') }}
+                    — sudah {{ $dd['days_late'] }} hari terlambat
+                </td>
+                <td class="text-right font-mono text-orange">{{ number_format($dd['base_amount'], 2, ',', '.') }}</td>
+            </tr>
+            @endforeach
+            <tr class="subtotal-row">
+                <td class="text-orange">Total Angsuran Tertunggak</td>
+                <td class="text-right font-mono text-orange">{{ number_format($calc['tunggakan'], 2, ',', '.') }}</td>
+            </tr>
+            @endif
+
             @if($calc['denda_keterlambatan'] > 0)
             {{-- Denda keterlambatan --}}
             <tr class="section-header">

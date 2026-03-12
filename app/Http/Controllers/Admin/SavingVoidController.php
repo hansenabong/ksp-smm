@@ -5,35 +5,40 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SavingTransaction;
 use App\Services\Savings\SavingsService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 
 class SavingVoidController extends Controller
 {
     public function create(SavingTransaction $transaction)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER']), 403);
-
         $transaction->load(['member', 'savingProduct', 'cashAccount']);
         return view('admin.savings.void', compact('transaction'));
     }
 
-    public function store(Request $request, SavingTransaction $transaction, SavingsService $service)
+    public function store(Request $request, SavingTransaction $transaction, SavingsService $service, AuditLogService $audit)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER']), 403);
-
         $validated = $request->validate([
             'void_reason' => ['required', 'string', 'max:255'],
         ]);
 
         $service->voidTransaction($transaction->id, $validated['void_reason'], auth()->id());
 
-        $returnUrl = $request->input('return');
+        $audit->record('void', 'SavingTransaction', $transaction->id,
+            "VOID simpanan [{$transaction->type}] anggota [{$transaction->member?->member_no}] — {$validated['void_reason']}",
+            [
+                'type'   => $transaction->type,
+                'amount' => (int) $transaction->amount,
+                'member' => $transaction->member?->member_no,
+                'reason' => $validated['void_reason'],
+            ]
+        );
 
-        // safety: hanya allow URL internal aplikasi
+        $returnUrl = $request->input('return');
         if ($returnUrl && !str_starts_with($returnUrl, url('/'))) {
             $returnUrl = null;
         }
-        // fallback kalau tidak ada return
+
         $fallback = $transaction->type === 'DEPOSIT'
             ? route('admin.savings.deposit.index')
             : route('admin.savings.withdraw.index');

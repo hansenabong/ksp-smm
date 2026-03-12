@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Kas / Bank</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Kas / Rekening</h2>
             <a href="{{ route('admin.master.cash_accounts.index') }}"
                class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
                 &larr; Kembali
@@ -30,13 +30,24 @@
                 <div class="text-xs text-gray-400 mt-0.5">Perubahan nama akan disinkronkan ke akun buku besar terkait.</div>
             </div>
 
-            <form method="POST" action="{{ route('admin.master.cash_accounts.update', $cashAccount) }}" class="px-5 py-5 space-y-4">
+            @php
+                $typeDescs = [
+                    'CASH'  => ['label' => 'Kas Tunai',     'hint' => 'Uang tunai · ledger 111x', 'icon' => '💵'],
+                    'BANK'  => ['label' => 'Rekening Bank', 'hint' => 'Simpanan bank · ledger 112x', 'icon' => '🏦'],
+                    'CHECK' => ['label' => 'Cek',           'hint' => 'Cek diterima · ledger 114x', 'icon' => '📄'],
+                    'GIRO'  => ['label' => 'Bilyet / Giro', 'hint' => 'Bilyet Giro · ledger 115x', 'icon' => '📋'],
+                ];
+                $ledgerPrefixes = ['CASH' => '111x', 'BANK' => '112x', 'CHECK' => '114x', 'GIRO' => '115x'];
+            @endphp
+
+            <form method="POST" action="{{ route('admin.master.cash_accounts.update', $cashAccount) }}" class="px-5 py-5 space-y-4"
+                  x-data="{ type: '{{ old('type', $cashAccount->type) }}' }">
                 @csrf
                 @method('PUT')
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-                        Nama Kas / Bank <span class="text-red-500">*</span>
+                        Nama Rekening <span class="text-red-500">*</span>
                     </label>
                     <input name="name" value="{{ old('name', $cashAccount->name) }}"
                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
@@ -48,13 +59,25 @@
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Tipe <span class="text-red-500">*</span>
                     </label>
-                    <select name="type"
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                            required>
-                        @foreach($types as $t)
-                            <option value="{{ $t }}" @selected(old('type', $cashAccount->type) == $t)>{{ $t }}</option>
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach($typeDescs as $val => $info)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="type" value="{{ $val }}"
+                                   x-model="type"
+                                   class="sr-only">
+                            <div class="flex items-start gap-2.5 p-3 border-2 rounded-xl transition"
+                                 :class="type === '{{ $val }}'
+                                     ? '{{ $val === 'CASH' ? 'border-amber-400 bg-amber-50' : ($val === 'BANK' ? 'border-blue-400 bg-blue-50' : ($val === 'CHECK' ? 'border-purple-400 bg-purple-50' : 'border-teal-400 bg-teal-50')) }}'
+                                     : 'border-gray-200 bg-white hover:border-gray-300'">
+                                <span class="text-lg leading-none mt-0.5">{{ $info['icon'] }}</span>
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-800">{{ $info['label'] }}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">{{ $info['hint'] }}</div>
+                                </div>
+                            </div>
+                        </label>
                         @endforeach
-                    </select>
+                    </div>
                     @error('type') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
@@ -65,12 +88,14 @@
                     </label>
                     @if($cashAccount->ledgerAccount)
                         <div class="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
-                            {{ $cashAccount->ledgerAccount->code }} – {{ $cashAccount->ledgerAccount->name }}
+                            <span class="font-mono text-xs text-gray-500">{{ $cashAccount->ledgerAccount->code }}</span>
+                            — {{ $cashAccount->ledgerAccount->name }}
                         </div>
                         <p class="text-xs text-gray-400 mt-1">Akun ledger dibuat otomatis dan tidak dapat diubah di sini.</p>
                     @else
+                        @php $prefix = $ledgerPrefixes[$cashAccount->type] ?? '???'; @endphp
                         <div class="w-full border border-amber-200 bg-amber-50 rounded-lg px-3 py-2 text-sm text-amber-800">
-                            Belum dipetakan. Klik <strong>Update</strong> — akun ledger {{ $cashAccount->type === 'CASH' ? '111x (Kas)' : '112x (Bank)' }} akan dibuat otomatis.
+                            Belum dipetakan. Klik <strong>Update</strong> — akun ledger <span class="font-mono">{{ $prefix }}</span> akan dibuat otomatis.
                         </div>
                     @endif
                 </div>

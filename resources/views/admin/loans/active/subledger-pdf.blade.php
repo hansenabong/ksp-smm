@@ -112,7 +112,7 @@
     <div class="module-tag">Finance — Module : Loan Sub-Ledger / Kartu Piutang</div>
 
     <div class="divider-thick"></div>
-    <h1 class="title">Kartu Piutang Pinjaman (Sub Ledger)</h1>
+    <h1 class="title">Sub Ledger</h1>
     <div class="divider-thick"></div>
 
     {{-- Info block --}}
@@ -183,14 +183,19 @@
     <table class="ledger">
         <thead>
             <tr>
-                <th style="width:18pt">No</th>
-                <th style="width:16pt">Flag</th>
-                <th style="width:52pt">Tanggal</th>
-                <th style="width:70pt">No. Dokumen</th>
-                <th style="width:28pt">Term</th>
-                <th style="width:72pt">Jumlah Angsuran</th>
-                <th style="width:72pt">Pembayaran</th>
-                <th style="width:72pt">Saldo Piutang</th>
+                <th rowspan="2" style="width:18pt">No</th>
+                <th rowspan="2" style="width:16pt">Flag</th>
+                <th rowspan="2" style="width:50pt">Tanggal</th>
+                <th rowspan="2" style="width:62pt">No. Dokumen</th>
+                <th rowspan="2" style="width:26pt">Term</th>
+                <th rowspan="2" style="width:64pt">Jumlah Angsuran</th>
+                <th colspan="2" style="width:80pt; text-align:center;">Denda</th>
+                <th rowspan="2" style="width:64pt">Pembayaran</th>
+                <th rowspan="2" style="width:64pt">Saldo Piutang</th>
+            </tr>
+            <tr>
+                <th style="width:34pt">Hari</th>
+                <th style="width:46pt">Jumlah</th>
             </tr>
         </thead>
         <tbody>
@@ -204,6 +209,10 @@
                         $trClass = 'row-open';
                     }
                 @endphp
+                @php
+                    $dendaHari   = !$row['is_disburse'] && isset($row['payment_obj']) ? (int)($row['payment_obj']?->penalty_days ?? 0) : 0;
+                    $dendaAmount = !$row['is_disburse'] && isset($row['payment_obj']) ? ((int)($row['payment_obj']?->penalty_amount ?? 0) + (int)($row['payment_obj']?->early_repayment_penalty ?? 0)) : 0;
+                @endphp
                 <tr class="{{ $trClass }}">
                     <td class="text-center">{{ $row['no'] }}</td>
                     <td class="text-center {{ $row['flag'] === 'L' ? 'badge-l' : 'badge-o' }}">{{ $row['flag'] }}</td>
@@ -215,6 +224,24 @@
                             —
                         @else
                             {{ number_format($row['amount'], 2, ',', '.') }}
+                        @endif
+                    </td>
+                    <td class="text-center font-mono">
+                        @if($row['is_disburse'])
+                            —
+                        @elseif($dendaHari > 0)
+                            {{ $dendaHari }}
+                        @else
+                            —
+                        @endif
+                    </td>
+                    <td class="text-right font-mono" style="color:{{ $dendaAmount > 0 ? '#991b1b' : 'inherit' }};">
+                        @if($row['is_disburse'])
+                            —
+                        @elseif($dendaAmount > 0)
+                            {{ number_format($dendaAmount, 2, ',', '.') }}
+                        @else
+                            —
                         @endif
                     </td>
                     <td class="text-right font-mono">
@@ -236,6 +263,8 @@
                     Total
                 </td>
                 <td class="text-right font-mono">{{ number_format($totalAmount, 2, ',', '.') }}</td>
+                <td class="text-center">—</td>
+                <td class="text-right font-mono">{{ number_format($totalPenalty, 2, ',', '.') }}</td>
                 <td class="text-right font-mono">{{ number_format($totalPayment, 2, ',', '.') }}</td>
                 <td class="text-right font-mono">{{ number_format(max(0, $totalAmount - $totalPayment), 2, ',', '.') }}</td>
             </tr>

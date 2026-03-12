@@ -9,17 +9,27 @@
             </div>
             <div class="flex items-center gap-2">
                 @if($shuPeriod->isFinalized())
-                <span class="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">FINALIZED</span>
+                <span class="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full print:hidden">FINALIZED</span>
                 @else
-                <span class="bg-yellow-100 text-yellow-700 text-xs font-semibold px-3 py-1 rounded-full">DRAFT</span>
+                <span class="bg-yellow-100 text-yellow-700 text-xs font-semibold px-3 py-1 rounded-full print:hidden">DRAFT</span>
                 @endif
+                <button onclick="window.print()"
+                        class="print:hidden inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Cetak PDF
+                </button>
                 <a href="{{ route('admin.shu.index') }}"
-                   class="text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 transition">
+                   class="print:hidden text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 transition">
                     ← Kembali
                 </a>
             </div>
         </div>
     </x-slot>
+
+    <style>@media print { .print\:hidden { display:none!important; } }</style>
 
     <div class="max-w-5xl mx-auto space-y-6">
 

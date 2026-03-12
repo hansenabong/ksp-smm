@@ -243,6 +243,69 @@ class AutoPostingService
     }
 
     /**
+     * Biaya Pencairan Pinjaman -> Journal (supplementary to postLoanDisbursement)
+     *
+     * When disbursement_fees are filled via Kwitansi Pencairan after approval,
+     * post a corrective entry that:
+     *   DR Kas            (fees come back into ledger — net outflow = principal - fees)
+     *   CR Income accounts (per fee type)
+     *
+     * Net effect on Kas: -principal + fees = -(principal - fees) = -net_disbursed ✓
+     */
+    public function postLoanDisbursementFees(Loan $loan): void
+    {
+        $fees = $loan->disbursement_fees ?? [];
+        if (empty($fees)) return;
+
+        $totalFees = array_sum($fees);
+        if ($totalFees <= 0) return;
+
+        // Guard: don't re-post if already posted
+        if ($this->alreadyPosted('loan_disbursement_fees', $loan->id)) return;
+
+        $loan->loadMissing(['loanProduct', 'disbursedCashAccount']);
+        $cashLedger = $this->cashLedgerIdFromCashAccount($loan->disbursedCashAccount);
+
+        $lines = [
+            ['account_id' => $cashLedger, 'dc' => 'D', 'amount' => (int)$totalFees],
+        ];
+
+        foreach ($fees as $feeKey => $amount) {
+            $amount = (int)$amount;
+            if ($amount <= 0) continue;
+            $accId   = $this->resolveDisbursementFeeAccount($loan, $feeKey);
+            $lines[] = ['account_id' => $accId, 'dc' => 'C', 'amount' => $amount];
+        }
+
+        $trxDate = $loan->disbursed_date ?? now()->toDateString();
+
+        $this->posting->createEntry([
+            'trx_date'    => $trxDate,
+            'source_type' => 'loan_disbursement_fees',
+            'source_id'   => $loan->id,
+            'description' => "Biaya Pencairan Pinjaman - Loan#{$loan->id}",
+            'created_by'  => $loan->created_by,
+        ], $lines);
+    }
+
+    /**
+     * Map a disbursement fee key to an income account.
+     * asuransi -> insurance income; all others -> admin income.
+     */
+    private function resolveDisbursementFeeAccount(Loan $loan, string $feeKey): int
+    {
+        if ($feeKey === 'asuransi') {
+            $acc = (int)($loan->loanProduct?->insurance_income_account_id ?? 0);
+            if ($acc > 0) return $acc;
+            return $this->ensureAccountByCode('4113', 'Pendapatan Biaya Provisi / Asuransi', 'REVENUE', 'C', '4100');
+        }
+
+        $acc = (int)($loan->loanProduct?->admin_income_account_id ?? 0);
+        if ($acc > 0) return $acc;
+        return $this->ensureAccountByCode('4112', 'Pendapatan Biaya Admin Pinjaman', 'REVENUE', 'C', '4100');
+    }
+
+    /**
      * Pembayaran angsuran -> Journal
      *
      * DR Kas                    (installment + penalty_amount + early_repayment_penalty)

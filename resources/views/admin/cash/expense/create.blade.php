@@ -27,7 +27,23 @@
                 <div class="text-xs text-gray-400 mt-0.5"><span class="text-red-500">*</span> Wajib diisi</div>
             </div>
 
-            <form method="POST" action="{{ route('admin.cash.expense.store') }}" class="px-5 py-5 space-y-4">
+            <form method="POST" action="{{ route('admin.cash.expense.store') }}" class="px-5 py-5 space-y-4"
+                  x-data="{
+                      accountTypeMap: @js($accountTypeMap),
+                      selectedAccountId: '{{ old('from_cash_account_id', '') }}',
+                      get accountType() { return this.accountTypeMap[this.selectedAccountId] ?? '' },
+                      get isCheckOrGiro() { return this.accountType === 'CHECK' || this.accountType === 'GIRO' },
+                      get refLabel() {
+                          if (this.accountType === 'CHECK') return 'No. Cek';
+                          if (this.accountType === 'GIRO')  return 'No. Bilyet Giro';
+                          return 'No. Referensi';
+                      },
+                      get refPlaceholder() {
+                          if (this.accountType === 'CHECK') return 'Contoh: CEK-001234';
+                          if (this.accountType === 'GIRO')  return 'Contoh: BG-001234';
+                          return 'Contoh: 24487D';
+                      }
+                  }">
                 @csrf
 
                 <div>
@@ -44,6 +60,7 @@
                         Dari Kas <span class="text-red-500">*</span>
                     </label>
                     <select name="from_cash_account_id"
+                            x-model="selectedAccountId"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
                         <option value="">— Pilih Kas —</option>
                         @foreach($cashAccounts as $acc)
@@ -53,6 +70,13 @@
                         @endforeach
                     </select>
                     @error('from_cash_account_id') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                    <div x-show="isCheckOrGiro" x-transition
+                         class="mt-1.5 flex items-center gap-1.5 text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <span x-text="refLabel + ' wajib diisi untuk tipe ini.'"></span>
+                    </div>
                 </div>
 
                 <div>
@@ -62,7 +86,7 @@
                     <select name="cash_category_id"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
                         <option value="">— Pilih Kategori —</option>
-                        @foreach($categories as $cat)
+                        @foreach ($categories as $cat)
                             <option value="{{ $cat->id }}" @selected(old('cash_category_id') == $cat->id)>{{ $cat->name }}</option>
                         @endforeach
                     </select>
@@ -87,6 +111,22 @@
                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                            maxlength="255" placeholder="Keterangan tambahan">
                     @error('description') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div x-show="isCheckOrGiro" x-transition>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        <span x-text="refLabel">No. Cek / Bilyet</span> <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="reference_code" value="{{ old('reference_code') }}"
+                           :required="isCheckOrGiro"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 border-purple-200 transition"
+                           maxlength="100"
+                           :placeholder="refPlaceholder">
+                    <p class="text-xs text-gray-400 mt-1">
+                        <span x-show="accountType === 'CHECK'">Nomor seri cek yang diterima.</span>
+                        <span x-show="accountType === 'GIRO'">Nomor bilyet giro yang diterima.</span>
+                    </p>
+                    @error('reference_code') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="pt-2 border-t border-gray-100 flex gap-2">

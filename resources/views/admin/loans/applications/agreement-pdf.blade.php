@@ -22,7 +22,8 @@
         .party-content { margin-left: 28pt; text-align: justify; }
         .clearfix::after { content: ''; display: table; clear: both; }
         .selanjutnya { text-align: justify; margin: 10pt 0; }
-        .pasal-header { text-align: center; font-weight: bold; margin-top: 14pt; margin-bottom: 2pt; }
+        .pasal-block { page-break-inside: avoid; margin-top: 14pt; }
+        .pasal-header { text-align: center; font-weight: bold; margin-bottom: 2pt; }
         .pasal-title { text-align: center; font-weight: bold; margin-bottom: 8pt; }
         .pasal-item { margin-bottom: 6pt; text-align: justify; }
         .pasal-item-num { float: left; width: 20pt; }
@@ -76,6 +77,33 @@
         $penaltyPct  = number_format($penaltyBp  / 100, 1);   // e.g. "0.3"
         $prepayPct   = number_format($prepayBp   / 100, 0);   // e.g. "5"
         $penaltyMonth= number_format($penaltyBp  / 100 * 30, 0); // approx /month
+
+        // Notaris
+        $hasNotaris  = !empty($application->notaris_deed_number);
+        $notarisDate = $application->notaris_deed_date
+            ? $application->notaris_deed_date->day . ' ' . $bulanId[$application->notaris_deed_date->month] . ' ' . $application->notaris_deed_date->year
+            : null;
+
+        // Disbursement fees
+        $disbFees  = $loan?->disbursement_fees ?? [];
+        $feeLabels = [
+            'biaya_administrasi' => 'Biaya Administrasi',
+            'biaya_provisi'      => 'Biaya Provisi',
+            'biaya_notaris'      => 'Biaya Notaris',
+            'asuransi'           => 'Asuransi',
+            'pengecekan'         => 'Pengecekan',
+            'ploting'            => 'Ploting',
+            'roya'               => 'Roya',
+            'pnpb'               => 'PNPB',
+            'hold_imb'           => 'Hold IMB',
+            'hold_pbb'           => 'Hold PBB',
+            'hold_angsuran'      => 'Hold Angsuran',
+            'bphtb'              => 'BPHTB',
+            'pph'                => 'PPh',
+        ];
+        $totalFees    = (int) array_sum(array_filter($disbFees, fn($v) => (int)$v > 0));
+        $netDisbursed = (int)$principal - $totalFees;
+        $hasFees      = !empty($disbFees) && $totalFees > 0;
 
         $adminFee = $application->admin_fee ?? $application->admin_monthly ?? 0;
         $tujuan   = $fd['tujuan_pembiayaan'] ?? $application->notes ?? null;
@@ -132,6 +160,15 @@
         </div>
     </div>
 
+    @if($hasNotaris)
+    <p class="opening" style="margin-top: 8pt;">
+        Perjanjian ini dibuat berdasarkan Akta Notaris
+        Nomor <strong>{{ $application->notaris_deed_number }}</strong>
+        tanggal <strong>{{ $notarisDate }}</strong>
+        yang dibuat di hadapan Notaris <strong>{{ $application->notaris_name }}</strong>@if($application->notaris_city), berkedudukan di {{ $application->notaris_city }}@endif.
+    </p>
+    @endif
+
     <p class="selanjutnya">
         Selanjutnya <em>"Pihak Pertama"</em> dan <em>"Pihak Kedua"</em> disebut <strong><em>"Para Pihak"</em></strong>.
     </p>
@@ -143,10 +180,10 @@
     </p>
 
     {{-- ===== PASAL 1 — PLAFOND DAN JANGKA WAKTU ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Plafond dan Jangka Waktu</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -161,6 +198,10 @@
                 @if($adminFee)<tr><td>Biaya Provisi / Admin</td><td>:</td><td>Rp {{ number_format($adminFee, 0, ',', '.') }},-</td></tr>@endif
                 @if($application->insurance_monthly)<tr><td>Biaya Asuransi per Bulan</td><td>:</td><td>Rp {{ number_format($application->insurance_monthly, 0, ',', '.') }},-</td></tr>@endif
                 @if($totalPayable)<tr><td>Total Kewajiban</td><td>:</td><td><strong>Rp {{ number_format($totalPayable, 0, ',', '.') }},-</strong></td></tr>@endif
+                @if($hasFees)
+                <tr><td>Total Biaya Pencairan</td><td>:</td><td>Rp {{ number_format($totalFees, 0, ',', '.') }},-</td></tr>
+                <tr><td>Dana Diterima Bersih</td><td>:</td><td><strong>Rp {{ number_format($netDisbursed, 0, ',', '.') }},-</strong></td></tr>
+                @endif
                 <tr><td>Tanggal Pencairan</td><td>:</td><td><strong>{{ $tglStr }}</strong></td></tr>
                 <tr><td>Jatuh Tempo Akhir</td><td>:</td><td><strong>{{ $tglLunas->day }} {{ $bulanId[$tglLunas->month] }} {{ $tglLunas->year }}</strong></td></tr>
             </table>
@@ -174,12 +215,13 @@
             <strong>{{ $tglLunas->day }} {{ $bulanId[$tglLunas->month] }} {{ $tglLunas->year }}</strong>.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== PASAL 2 — TUJUAN PENGGUNAAN ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Tujuan Penggunaan</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -194,13 +236,14 @@
             tujuan lain tanpa persetujuan tertulis <em>"Pihak Pertama"</em>.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== PASAL 3 — OBYEK PEMBIAYAAN (jika ada jaminan) ===== --}}
     @if($hasProperty || $hasVehicle)
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Obyek Pembiayaan</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -234,13 +277,14 @@
             Berikut segala sesuatu yang berdiri dan tertanam di atas tanah/obyek tersebut.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
     @endif
 
     {{-- ===== PASAL — ANGSURAN DAN BUNGA ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Angsuran dan Bunga</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -257,13 +301,14 @@
             (setara <strong>{{ number_format($bunga * 12, 0) }}% per tahun flat</strong>), dan dapat direview.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== PASAL — PROVISI (jika ada) ===== --}}
     @if($adminFee)
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Provisi dan Biaya-Biaya</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -278,13 +323,47 @@
             Provisi yang telah dibayarkan tidak dapat ditarik kembali dengan alasan apa pun.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
+    @endif
+
+    {{-- ===== PASAL — RINCIAN BIAYA PENCAIRAN (jika ada) ===== --}}
+    @if($hasFees)
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
+    <div class="pasal-title">Rincian Biaya Pencairan</div>
+    @php $pasalNo++; @endphp
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-text">
+            Pada saat pencairan, dipotong biaya-biaya sebagai berikut:
+            <table class="detail-table" style="margin-top: 4pt;">
+                @foreach($disbFees as $key => $amount)
+                    @if((int)$amount > 0)
+                    <tr>
+                        <td>{{ $feeLabels[$key] ?? $key }}</td>
+                        <td>:</td>
+                        <td>Rp {{ number_format((int)$amount, 0, ',', '.') }},-</td>
+                    </tr>
+                    @endif
+                @endforeach
+                <tr style="border-top: 1px solid #000; font-weight: bold;">
+                    <td>Total Biaya</td><td>:</td><td>Rp {{ number_format($totalFees, 0, ',', '.') }},-</td>
+                </tr>
+                <tr style="font-weight: bold;">
+                    <td>Dana Diterima Bersih</td><td>:</td>
+                    <td>Rp {{ number_format($netDisbursed, 0, ',', '.') }},- ({{ terbilang($netDisbursed) }} rupiah)</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    </div>{{-- /pasal-block --}}
     @endif
 
     {{-- ===== PASAL — DENDA KETERLAMBATAN ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Denda Keterlambatan</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -301,12 +380,13 @@
             berhak memperhitungkan pembayaran tersebut terlebih dahulu untuk pelunasan denda sebelum pokok.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== PASAL — PELUNASAN DIPERCEPAT ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Pelunasan Dipercepat</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -329,13 +409,14 @@
             Biaya provisi dan administrasi yang sudah dibayarkan tidak dapat ditarik kembali.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== PASAL — PENYERAHAN DOKUMEN (jika ada jaminan) ===== --}}
     @if($hasProperty || $hasVehicle)
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Penyerahan dan Pengembalian Dokumen / Sertipikat</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -359,13 +440,14 @@
             dari <em>"Pihak Pertama"</em>.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
     @endif
 
     {{-- ===== PASAL — WANPRESTASI ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Wanprestasi</div>
     @php $pasalNo++; @endphp
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -398,11 +480,12 @@
             <em>"Pihak Pertama"</em>.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== PASAL — HUKUM DAN YURISDIKSI ===== --}}
+    <div class="pasal-block">
     <div class="pasal-header">Pasal {{ $pasalNo }}</div>
     <div class="pasal-title">Hukum Yang Berlaku dan Yurisdiksi</div>
-
     <div class="pasal-item clearfix">
         <div class="pasal-item-num">1.</div>
         <div class="pasal-item-text">
@@ -424,6 +507,7 @@
             mempunyai kekuatan hukum yang sama.
         </div>
     </div>
+    </div>{{-- /pasal-block --}}
 
     {{-- ===== TANDA TANGAN ===== --}}
     <div class="signature-section">
@@ -445,6 +529,7 @@
                     <strong>Pihak Kedua</strong><br>
                     Pemohon
                     <div class="signature-box">
+                        <small style="display:block; margin-bottom: 50pt;">(Meterai Rp 10.000)</small>
                         ( {{ $fd['nama_lengkap'] ?? $member?->name ?? '___________________________' }} )<br>
                         <small>No. KTP: {{ $fd['no_ktp'] ?? '-' }}</small>
                     </div>

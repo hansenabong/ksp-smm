@@ -27,7 +27,23 @@
                 <div class="text-xs text-gray-400 mt-0.5"><span class="text-red-500">*</span> Wajib diisi</div>
             </div>
 
-            <form method="POST" action="{{ route('admin.cash.income.store') }}" class="px-5 py-5 space-y-4">
+            <form method="POST" action="{{ route('admin.cash.income.store') }}" class="px-5 py-5 space-y-4"
+                  x-data="{
+                      accountTypeMap: @js($accountTypeMap),
+                      selectedAccountId: '{{ old('to_cash_account_id', '') }}',
+                      get accountType() { return this.accountTypeMap[this.selectedAccountId] ?? '' },
+                      get isCheckOrGiro() { return this.accountType === 'CHECK' || this.accountType === 'GIRO' },
+                      get refLabel() {
+                          if (this.accountType === 'CHECK') return 'No. Cek';
+                          if (this.accountType === 'GIRO')  return 'No. Bilyet Giro';
+                          return 'No. Referensi';
+                      },
+                      get refPlaceholder() {
+                          if (this.accountType === 'CHECK') return 'Contoh: CEK-001234';
+                          if (this.accountType === 'GIRO')  return 'Contoh: BG-001234';
+                          return 'Contoh: 24487D';
+                      }
+                  }">
                 @csrf
 
                 <div>
@@ -44,6 +60,7 @@
                         Kas Tujuan <span class="text-red-500">*</span>
                     </label>
                     <select name="to_cash_account_id"
+                            x-model="selectedAccountId"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" required>
                         <option value="">— Pilih Kas —</option>
                         @foreach ($cashAccounts as $acc)
@@ -89,14 +106,20 @@
                     @error('description') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
-                <div>
+                {{-- No. Cek / Bilyet — hanya tampil saat tipe CHECK atau GIRO --}}
+                <div x-show="isCheckOrGiro" x-transition>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-                        No. Referensi <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                        <span x-text="refLabel">No. Cek / Bilyet</span> <span class="text-red-500">*</span>
                     </label>
                     <input type="text" name="reference_code" value="{{ old('reference_code') }}"
-                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                           maxlength="100" placeholder="Contoh: 24487D">
-                    <p class="text-xs text-gray-400 mt-1">Nomor referensi eksternal / voucher fisik</p>
+                           :required="isCheckOrGiro"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 border-purple-200 transition"
+                           maxlength="100"
+                           :placeholder="refPlaceholder">
+                    <p class="text-xs text-gray-400 mt-1">
+                        <span x-show="accountType === 'CHECK'">Nomor seri cek yang diterima.</span>
+                        <span x-show="accountType === 'GIRO'">Nomor bilyet giro yang diterima.</span>
+                    </p>
                     @error('reference_code') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 

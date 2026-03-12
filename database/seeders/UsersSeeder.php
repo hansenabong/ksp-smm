@@ -86,6 +86,90 @@ class UsersSeeder extends Seeder
                 'password' => Hash::make('Petugas3@KSP2025'),
                 'role'     => 'PETUGAS',
             ],
+
+            // KASIR — front-desk teller: cash in/out, savings, loan payments
+            [
+                'name'     => 'Kasir Teller',
+                'email'    => 'kasir@ksp.local',
+                'password' => Hash::make('Kasir@KSP2025'),
+                'role'     => 'KASIR',
+            ],
+
+            // ADMIN_DATA — data entry: member registration, loan applications
+            [
+                'name'     => 'Admin Data',
+                'email'    => 'admindata@ksp.local',
+                'password' => Hash::make('AdminData@KSP2025'),
+                'role'     => 'ADMIN_DATA',
+            ],
+
+            // ADMIN_COLLECTION — debt collector: track & receive loan payments
+            [
+                'name'     => 'Admin Penagihan',
+                'email'    => 'admincollection@ksp.local',
+                'password' => Hash::make('AdminCollection@KSP2025'),
+                'role'     => 'ADMIN_COLLECTION',
+            ],
+
+            // ── Real team accounts (for UAT / live testing) ───────────────────
+
+            // KASIR (Finance) — front-desk cash entry, savings, loan payments
+            [
+                'name'     => 'Dilla',
+                'email'    => 'dilla@ksp.local',
+                'password' => Hash::make('Dilla@KSP2025'),
+                'role'     => 'KASIR',
+            ],
+            [
+                'name'     => 'Nadia',
+                'email'    => 'nadia@ksp.local',
+                'password' => Hash::make('Nadia@KSP2025'),
+                'role'     => 'KASIR',
+            ],
+
+            // ADMIN_DATA — member & loan application data entry
+            [
+                'name'     => 'Gio',
+                'email'    => 'gio@ksp.local',
+                'password' => Hash::make('Gio@KSP2025'),
+                'role'     => 'ADMIN_DATA',
+            ],
+            [
+                'name'     => 'Adam',
+                'email'    => 'adam@ksp.local',
+                'password' => Hash::make('Adam@KSP2025'),
+                'role'     => 'ADMIN_DATA',
+            ],
+
+            // ADMIN_COLLECTION — loan collection & payment monitoring
+            [
+                'name'     => 'Dia',
+                'email'    => 'dia@ksp.local',
+                'password' => Hash::make('Dia@KSP2025'),
+                'role'     => 'ADMIN_COLLECTION',
+            ],
+            [
+                'name'     => 'Franky',
+                'email'    => 'franky@ksp.local',
+                'password' => Hash::make('Franky@KSP2025'),
+                'role'     => 'ADMIN_COLLECTION',
+            ],
+
+            // BENDAHARA (Treasury) — full transaction entry, approve/void
+            [
+                'name'     => 'Fitri',
+                'email'    => 'fitri@ksp.local',
+                'password' => Hash::make('Fitri@KSP2025'),
+                'role'     => 'BENDAHARA',
+            ],
+
+            // PENGAWAS — read-only supervisor (admin data, collection, treasury)
+            [
+                'name'     => 'Sri',
+                'email'    => 'sri@ksp.local',
+                'password' => Hash::make('Sri@KSP2025'),
+                'role'     => 'PENGAWAS',
+            ],
         ];
 
         foreach ($users as $data) {

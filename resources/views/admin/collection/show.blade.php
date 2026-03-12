@@ -1,0 +1,333 @@
+<x-admin-layout>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.collection.index') }}"
+                   class="text-sm text-gray-500 hover:text-gray-800">← Penagihan</a>
+                <span class="text-gray-300">/</span>
+                <h2 class="text-lg font-semibold text-gray-800">{{ $loan->member->name }}</h2>
+            </div>
+            <a href="{{ route('admin.loans.active.show', $loan) }}"
+               class="text-xs text-indigo-600 hover:underline">Lihat Detail Pinjaman →</a>
+        </div>
+    </x-slot>
+
+    @php
+        $levelLabels = \App\Models\CollectionRecord::LEVELS;
+        $levelColors = \App\Models\CollectionRecord::LEVEL_COLORS;
+        $currentLevel = $record->escalation_level ?? 0;
+        $noPk = $loan->application?->notaris_deed_number
+             ?: ('PK-KSP/'.str_pad($loan->id, 5, '0', STR_PAD_LEFT).'/'.date('Y', strtotime($loan->disbursed_date)));
+
+        $badgeClass = function(int $level) use ($levelColors) {
+            return match($levelColors[$level] ?? 'gray') {
+                'yellow' => 'bg-yellow-100 text-yellow-700',
+                'orange' => 'bg-orange-100 text-orange-700',
+                'red'    => 'bg-red-100 text-red-700',
+                'purple' => 'bg-purple-100 text-purple-700',
+                'rose'   => 'bg-rose-100 text-rose-700',
+                default  => 'bg-gray-100 text-gray-600',
+            };
+        };
+    @endphp
+
+    <div class="space-y-5">
+
+        {{-- Loan Summary --}}
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Ringkasan Pinjaman</div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-y divide-gray-100">
+                @php
+                    $items = [
+                        ['label' => 'No. Kontrak',     'value' => $noPk],
+                        ['label' => 'Tgl. Cair',       'value' => \Carbon\Carbon::parse($loan->disbursed_date)->format('d/m/Y')],
+                        ['label' => 'Plafon',          'value' => 'Rp '.number_format($loan->principal)],
+                        ['label' => 'Tenor',           'value' => $loan->tenor_months.' bulan'],
+                        ['label' => 'Angsuran/bln',    'value' => 'Rp '.number_format($loan->monthly_installment)],
+                        ['label' => 'Total Dibayar',   'value' => 'Rp '.number_format($loan->total_paid)],
+                        ['label' => 'Outstanding',     'value' => 'Rp '.number_format($loan->outstanding), 'bold' => true, 'color' => 'text-indigo-700'],
+                        ['label' => 'Tunggakan Est.',  'value' => $arrears > 0 ? 'Rp '.number_format($arrears) : 'Tidak ada', 'bold' => true, 'color' => $arrears > 0 ? 'text-red-600' : 'text-green-600'],
+                    ];
+                @endphp
+                @foreach($items as $item)
+                <div class="px-4 py-3">
+                    <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{{ $item['label'] }}</div>
+                    <div class="text-sm {{ ($item['bold'] ?? false) ? 'font-bold' : 'font-medium' }} {{ $item['color'] ?? 'text-gray-800' }} mt-0.5">
+                        {{ $item['value'] }}
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @if($monthsLate > 0)
+            <div class="px-5 py-2 bg-red-50 border-t border-red-100">
+                <span class="text-xs text-red-700 font-semibold">⚠ Estimasi {{ $monthsLate }} bulan dalam tunggakan</span>
+            </div>
+            @endif
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {{-- Collection Record Form --}}
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Catatan Penagihan</div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $badgeClass($currentLevel) }}">
+                            {{ $levelLabels[$currentLevel] }}
+                        </span>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('admin.collection.update', $loan) }}" class="px-5 py-4 space-y-4">
+                    @csrf @method('PATCH')
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            Cabang
+                        </label>
+                        <input type="text" name="branch" value="{{ $record->branch }}"
+                            placeholder="Contoh: BEKASI, TAJUR, CIPUTAT"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            Petugas Penagihan
+                        </label>
+                        <select name="petugas_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            <option value="">— Belum ditugaskan —</option>
+                            @foreach($petugasList as $pt)
+                            <option value="{{ $pt->id }}" @selected($record->petugas_id == $pt->id)>{{ $pt->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="is_restruk" value="1" class="rounded border-gray-300"
+                                {{ $record->is_restruk ? 'checked' : '' }}>
+                            <span class="text-sm text-gray-700 font-medium">Pinjaman Restrukturisasi</span>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                Tgl. Kontak Terakhir
+                            </label>
+                            <input type="date" name="last_contact_date"
+                                value="{{ $record->last_contact_date?->format('Y-m-d') }}"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                Rencana Kontak
+                            </label>
+                            <input type="date" name="next_contact_date"
+                                value="{{ $record->next_contact_date?->format('Y-m-d') }}"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        </div>
+                    </div>
+
+                    {{-- Property / Agunan fields (for Data Master DHIA) --}}
+                    <details class="border border-gray-200 rounded-lg">
+                        <summary class="px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide cursor-pointer select-none">
+                            Data Agunan &amp; Alamat (DHIA)
+                        </summary>
+                        <div class="px-3 pb-3 pt-2 space-y-3">
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NJOP (Rp)</label>
+                                    <input type="number" name="njop" value="{{ $record->njop }}" min="0"
+                                        placeholder="0"
+                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Luas Tanah (m²)</label>
+                                    <input type="number" name="luas_tanah" value="{{ $record->luas_tanah }}" min="0"
+                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Luas Bangunan (m²)</label>
+                                    <input type="number" name="luas_bangunan" value="{{ $record->luas_bangunan }}" min="0"
+                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Alamat Tinggal (Saat Ini)</label>
+                                <textarea name="alamat_tinggal" rows="2"
+                                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                    placeholder="Jika berbeda dari alamat KTP...">{{ $record->alamat_tinggal }}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Wilayah (KOTA)</label>
+                                <input type="text" name="wilayah" value="{{ $record->wilayah }}"
+                                    placeholder="Contoh: JAKARTA SELATAN, BEKASI, BOGOR"
+                                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            </div>
+                        </div>
+                    </details>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            Catatan
+                        </label>
+                        <textarea name="notes" rows="3"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                            placeholder="Catatan perkembangan penagihan...">{{ $record->notes }}</textarea>
+                    </div>
+
+                    @if(session('success'))
+                    <div class="text-green-600 text-xs">{{ session('success') }}</div>
+                    @endif
+
+                    <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 font-medium">
+                        Simpan Catatan
+                    </button>
+                </form>
+            </div>
+
+            {{-- Generate Letter --}}
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Buat Surat</div>
+                </div>
+                <form method="POST" action="{{ route('admin.collection.letters.store', $loan) }}" target="_blank" class="px-5 py-4 space-y-4">
+                    @csrf
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            Jenis Surat <span class="text-red-500">*</span>
+                        </label>
+                        <select name="letter_type" required
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            @foreach(\App\Models\CollectionLetter::TYPES as $type => $label)
+                            <option value="{{ $type }}" {{ $currentLevel + 1 == \App\Models\CollectionLetter::TYPE_LEVEL[$type] ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Eskalasi saat ini: <strong>{{ $levelLabels[$currentLevel] }}</strong></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            Tanggal Surat <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="letter_date" required
+                            value="{{ date('Y-m-d') }}"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            Catatan <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                        </label>
+                        <textarea name="notes" rows="2"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                            placeholder="Catatan internal..."></textarea>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 font-medium flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Buat & Unduh PDF
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {{-- Letter History --}}
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Riwayat Surat ({{ $letters->count() }})</div>
+            </div>
+            @if($letters->isEmpty())
+            <div class="px-5 py-8 text-center text-gray-400 text-sm">Belum ada surat yang dibuat.</div>
+            @else
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
+                        <th class="px-4 py-2 text-left">Tanggal</th>
+                        <th class="px-4 py-2 text-left">Jenis</th>
+                        <th class="px-4 py-2 text-left">No. Surat</th>
+                        <th class="px-4 py-2 text-left">Dibuat Oleh</th>
+                        <th class="px-4 py-2 text-left">Catatan</th>
+                        <th class="px-4 py-2 text-center">PDF</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($letters as $letter)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-2 text-gray-600">{{ $letter->letter_date->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold
+                                {{ match($letter->letter_type) {
+                                    'SP1'    => 'bg-yellow-100 text-yellow-700',
+                                    'SP2'    => 'bg-orange-100 text-orange-700',
+                                    'SP3'    => 'bg-red-100 text-red-700',
+                                    'SOMASI' => 'bg-purple-100 text-purple-700',
+                                    'CESSIE' => 'bg-rose-100 text-rose-700',
+                                    default  => 'bg-gray-100 text-gray-600',
+                                } }}">
+                                {{ $letter->type_label }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ $letter->letter_number }}</td>
+                        <td class="px-4 py-2 text-gray-600">{{ $letter->creator?->name ?? '-' }}</td>
+                        <td class="px-4 py-2 text-xs text-gray-400">{{ $letter->notes ?? '-' }}</td>
+                        <td class="px-4 py-2 text-center">
+                            <a href="{{ route('admin.collection.letters.pdf', $letter) }}" target="_blank"
+                               class="inline-flex items-center px-2.5 py-1 text-xs bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-medium">
+                                PDF
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @endif
+        </div>
+
+        {{-- Recent Payments --}}
+        @if($loan->payments->isNotEmpty())
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Riwayat Angsuran Terakhir</div>
+            </div>
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
+                        <th class="px-4 py-2 text-left">Tanggal</th>
+                        <th class="px-4 py-2 text-right">Jumlah</th>
+                        <th class="px-4 py-2 text-right">Denda</th>
+                        <th class="px-4 py-2 text-left">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($loan->payments->take(10) as $pay)
+                    <tr class="{{ $pay->is_voided ? 'opacity-50' : 'hover:bg-gray-50' }}">
+                        <td class="px-4 py-2 text-gray-600">{{ \Carbon\Carbon::parse($pay->trx_date)->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2 text-right font-mono text-gray-700">{{ number_format($pay->amount) }}</td>
+                        <td class="px-4 py-2 text-right font-mono text-xs {{ $pay->penalty_amount > 0 ? 'text-red-600' : 'text-gray-400' }}">
+                            {{ $pay->penalty_amount > 0 ? number_format($pay->penalty_amount) : '-' }}
+                        </td>
+                        <td class="px-4 py-2">
+                            @if($pay->is_voided)
+                            <span class="text-xs text-gray-400 line-through">Dibatalkan</span>
+                            @else
+                            <span class="text-xs text-green-600">Sah</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+
+    </div>
+</x-admin-layout>

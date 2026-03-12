@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
+use App\Services\Accounting\AutoPostingService;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class LoanController extends Controller
 {
+    public function __construct(private AutoPostingService $autoPosting) {}
+
     public function index()
     {
         $totals = Loan::where('status', 'ACTIVE')
@@ -74,6 +77,17 @@ class LoanController extends Controller
         return view('admin.loans.active.permohonan-dana', compact('loan', 'fees'));
     }
 
+    public function permohonanDanaPdf(Loan $loan)
+    {
+        $loan->load(['member', 'loanProduct', 'application', 'disbursedCashAccount', 'creator']);
+        $fees = $loan->disbursement_fees ?? [];
+
+        $pdf = Pdf::loadView('admin.loans.active.permohonan-dana-pdf', compact('loan', 'fees'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download('permohonan-dana-' . $loan->id . '.pdf');
+    }
+
     // ─────────────────────────────────────────────────────────────
     //  KWITANSI PLAFON
     // ─────────────────────────────────────────────────────────────
@@ -112,6 +126,13 @@ class LoanController extends Controller
             }
         }
         $loan->update(['disbursement_fees' => $fees ?: null]);
+
+        // Post supplementary GL entry for fees (idempotent — skips if already posted)
+        if ($fees) {
+            $loan->load(['loanProduct', 'disbursedCashAccount']);
+            $this->autoPosting->postLoanDisbursementFees($loan);
+        }
+
         return redirect()
             ->route('admin.loans.active.kwitansi.pencairan', $loan)
             ->with('success', 'Biaya pencairan berhasil disimpan.');
@@ -338,9 +359,13 @@ class LoanController extends Controller
 
         $totalAmount  = collect($rows)->skip(1)->sum('amount');
         $totalPayment = collect($rows)->skip(1)->sum('payment');
+        $totalPenalty = collect($rows)->skip(1)->sum(function ($row) {
+            $p = $row['payment_obj'] ?? null;
+            return $p ? ((int)($p->penalty_amount ?? 0) + (int)($p->early_repayment_penalty ?? 0)) : 0;
+        });
 
         $pdf = Pdf::loadView('admin.loans.active.subledger-pdf', compact(
-            'loan', 'rows', 'totalAmount', 'totalPayment'
+            'loan', 'rows', 'totalAmount', 'totalPayment', 'totalPenalty'
         ))->setPaper('a4', 'portrait');
 
         return $pdf->download('subledger-' . $loan->id . '.pdf');

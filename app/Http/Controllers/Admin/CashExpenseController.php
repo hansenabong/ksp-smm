@@ -82,22 +82,26 @@ class CashExpenseController extends Controller
 
     public function create()
     {
-        $cashAccounts = CashAccount::where('is_active', true)->orderBy('name')->get();
-        $categories   = CashCategory::active()->forType('EXPENSE')
+        $cashAccounts   = CashAccount::where('is_active', true)->orderBy('name')->get();
+        $categories     = CashCategory::active()->forType('EXPENSE')
             ->orderBy('sort_order')->orderBy('name')->get();
+        $accountTypeMap = $cashAccounts->pluck('type', 'id');
 
-        return view('admin.cash.expense.create', compact('cashAccounts', 'categories'));
+        return view('admin.cash.expense.create', compact('cashAccounts', 'categories', 'accountTypeMap'));
     }
 
     public function store(Request $request, CashTransactionService $service)
     {
+        $accountType = CashAccount::find($request->from_cash_account_id)?->type;
+        $refRequired = in_array($accountType, ['CHECK', 'GIRO']) ? 'required' : 'nullable';
+
         $validated = $request->validate([
             'trx_date'             => ['required', 'date'],
             'from_cash_account_id' => ['required', 'exists:cash_accounts,id'],
             'cash_category_id'     => ['required', 'exists:cash_categories,id'],
             'amount'               => ['required', 'integer', 'min:1'],
             'description'          => ['nullable', 'string', 'max:255'],
-            'reference_code'       => ['nullable', 'string', 'max:100'],
+            'reference_code'       => [$refRequired, 'string', 'max:100'],
         ]);
 
         $cashCategory = CashCategory::findOrFail($validated['cash_category_id']);
