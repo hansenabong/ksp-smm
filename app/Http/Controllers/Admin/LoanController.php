@@ -15,13 +15,7 @@ class LoanController extends Controller
 
     public function index()
     {
-        $totals = Loan::where('status', 'ACTIVE')
-            ->selectRaw('
-                COALESCE(SUM(principal), 0)   AS total_principal,
-                COALESCE(SUM(total_paid), 0)  AS total_paid,
-                COALESCE(SUM(outstanding), 0) AS total_outstanding
-            ')
-            ->first();
+        $totalPrincipal = (int) Loan::where('status', 'ACTIVE')->sum('principal');
 
         $loans = Loan::with(['member', 'loanProduct'])
             ->where('status', 'ACTIVE')
@@ -30,10 +24,8 @@ class LoanController extends Controller
             ->withQueryString();
 
         return view('admin.loans.active.index', [
-            'loans'            => $loans,
-            'totalPrincipal'   => $totals->total_principal,
-            'totalPaid'        => $totals->total_paid,
-            'totalOutstanding' => $totals->total_outstanding,
+            'loans'          => $loans,
+            'totalPrincipal' => $totalPrincipal,
         ]);
     }
 

@@ -1,14 +1,15 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
+            @php $isCollection = request()->routeIs('admin.collection.*'); @endphp
             <div>
-                <div class="text-xs text-gray-400 mb-0.5">Pinjaman / Aktif / Jadwal Angsuran</div>
+                <div class="text-xs text-gray-400 mb-0.5">{{ $isCollection ? 'Penagihan / Amortisasi' : 'Pinjaman / Aktif / Amortisasi' }}</div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Amortization Schedule — #{{ $loan->id }}
+                    Amortisasi — #{{ $loan->id }}
                 </h2>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('admin.loans.active.schedule.pdf', $loan) }}"
+                <a href="{{ route($isCollection ? 'admin.collection.schedule.pdf' : 'admin.loans.active.schedule.pdf', $loan) }}"
                    target="_blank"
                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,7 +18,7 @@
                     </svg>
                     Cetak PDF
                 </a>
-                <a href="{{ route('admin.loans.active.show', $loan) }}"
+                <a href="{{ $isCollection ? route('admin.collection.show', $loan) : route('admin.loans.active.show', $loan) }}"
                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
                     &larr; Kembali
                 </a>

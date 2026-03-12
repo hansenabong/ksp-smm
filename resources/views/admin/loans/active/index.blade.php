@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pinjaman Aktif</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pinjaman Approved</h2>
         </div>
     </x-slot>
 
@@ -17,7 +17,7 @@
         @endif
 
         {{-- Summary Stats --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 gap-4">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-4">
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Aktif</div>
                 <div class="mt-1 text-2xl font-bold text-gray-800">{{ $loans->total() }}</div>
@@ -28,22 +28,12 @@
                 <div class="mt-1 text-lg font-bold text-gray-800">Rp {{ number_format($totalPrincipal, 0, ',', '.') }}</div>
                 <div class="text-xs text-gray-400 mt-0.5">tersalur</div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-4">
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Sudah Dibayar</div>
-                <div class="mt-1 text-lg font-bold text-green-600">Rp {{ number_format($totalPaid, 0, ',', '.') }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">total penerimaan</div>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-4">
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Sisa Tagihan</div>
-                <div class="mt-1 text-lg font-bold text-red-600">Rp {{ number_format($totalOutstanding, 0, ',', '.') }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">outstanding</div>
-            </div>
         </div>
 
         {{-- Table Card --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-700">Daftar Pinjaman Aktif</span>
+                <span class="text-sm font-medium text-gray-700">Daftar Pinjaman Approved</span>
                 <span class="text-xs text-gray-400">{{ $loans->total() }} data</span>
             </div>
 
@@ -54,18 +44,11 @@
                             <th class="text-left px-4 py-3">Pinjaman</th>
                             <th class="text-left px-4 py-3">Anggota</th>
                             <th class="text-right px-4 py-3">Pokok &amp; Angsuran</th>
-                            <th class="text-left px-4 py-3 w-40">Progres Bayar</th>
-                            <th class="text-right px-4 py-3">Sisa Tagihan</th>
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                         @forelse($loans as $loan)
-                            @php
-                                $pct = $loan->total_payable > 0
-                                    ? min(100, round(($loan->total_paid / $loan->total_payable) * 100))
-                                    : 0;
-                            @endphp
                             <tr class="hover:bg-gray-50 transition-colors">
 
                                 {{-- Pinjaman: ID + tanggal cair + produk --}}
@@ -90,27 +73,6 @@
                                     </div>
                                 </td>
 
-                                {{-- Progress --}}
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex-1 bg-gray-100 rounded-full h-1.5">
-                                            <div class="bg-green-500 h-1.5 rounded-full transition-all"
-                                                 style="width: {{ $pct }}%"></div>
-                                        </div>
-                                        <span class="text-xs text-gray-500 tabular-nums w-8 text-right shrink-0">{{ $pct }}%</span>
-                                    </div>
-                                    <div class="text-xs text-gray-400 tabular-nums mt-1">
-                                        {{ number_format($loan->total_paid, 0, ',', '.') }}
-                                        <span class="text-gray-300">/</span>
-                                        {{ number_format($loan->total_payable, 0, ',', '.') }}
-                                    </div>
-                                </td>
-
-                                {{-- Sisa --}}
-                                <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    <div class="font-bold text-red-600">Rp {{ number_format($loan->outstanding, 0, ',', '.') }}</div>
-                                </td>
-
                                 {{-- Aksi --}}
                                 <td class="px-4 py-3 text-right">
                                     <a href="{{ route('admin.loans.active.show', $loan) }}"
@@ -121,7 +83,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-5 py-12 text-center text-gray-400 text-sm">
+                                <td colspan="4" class="px-5 py-12 text-center text-gray-400 text-sm">
                                     Belum ada pinjaman aktif.
                                 </td>
                             </tr>

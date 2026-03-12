@@ -2,7 +2,7 @@
 
 ## Overview
 
-KSP-SMM is a web-based financial management system for a savings & loan cooperative (Koperasi Simpan Pinjam). It handles member management, multi-account cash operations, savings products, loan lifecycle (application → approval → disbursement → payments → closure), penalty calculations, notaris deed tracking, disbursement receipts (kwitansi), and double-entry accounting with automated journal posting.
+KSP-SMM is a web-based financial management system for a savings & loan cooperative (Koperasi Simpan Pinjam). It handles member management, multi-account cash operations, savings products, loan lifecycle (application → approval → disbursement → payments → closure), penalty calculations, notaris deed tracking, disbursement receipts (kwitansi), double-entry accounting with automated journal posting, and a full collection/penagihan module with escalation tracking.
 
 ---
 
@@ -34,7 +34,7 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 22 | Cetak Semua PDF — bulk print for Pengeluaran and Transfer kas (mirrors existing Pemasukan feature) | ✅ Done |
 | 23 | Role matrix refactor (Finance/Accounting standard) — ADMIN config-only; BENDAHARA approve/void; MANAGER approve loans; PETUGAS entry | ✅ Done |
 | 24 | PK B (Kendaraan) loan agreement — vehicle collateral PDF template (Pasal 3 with 11 vehicle spec fields), separate from PK A (Sertipikat) | ✅ Done |
-| 25 | Loan show page UI — "Cetak Dokumen" dropdown consolidates all print actions; primary action buttons (Bayar Angsuran, Pelunasan) remain visible | ✅ Done |
+| 25 | Loan show page UI — "Cetak Dokumen" dropdown consolidates kwitansi + PK + permohonan dana; Bayar Angsuran as primary action | ✅ Done |
 | 26 | New roles — KASIR, ADMIN_DATA, ADMIN_COLLECTION with full route/sidebar/policy integration | ✅ Done |
 | 27 | Subledger PDF denda columns — Hari + Jumlah sub-columns between "Jumlah Angsuran" and "Pembayaran" | ✅ Done |
 | 28 | Settlement PDF angsuran tertunggak — overdue installment breakdown section with per-installment detail and days-late | ✅ Done |
@@ -50,7 +50,8 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 38 | **Bulk Simpanan Wajib** — batch monthly savings entry form: select product + cash account + date, enter amounts per active member with Alpine.js running total; one saving transaction per member in a single DB transaction | ✅ Done |
 | 39 | **Loan Application Agreement v2** — PK A and PK B PDFs incorporate notaris deed data (number, date, name, city) and disbursement fees table (biaya pencairan breakdown) | ✅ Done |
 | 40 | **Print Statements — Cash Balances** — "Cetak PDF" print button on Saldo Kas page with `window.print()`, print-hidden sidebar, and timestamp watermark | ✅ Done |
-| 43 | **Audit Log** — `audit_logs` table + `AuditLogService`; records void (cash/savings/loan payment) and loan approval/rejection events; browse UI with filter by action/module/user/date + CSV export; sidebar "Log Aktivitas" link under Audit section; Audit VOID submenus fully upgraded (project-standard UI, print button, date formatting, type badges, stats banner, fixed export filenames with date range); void forms upgraded (card layout, textarea reason, JS confirm dialog); fixed `savings/void` using wrong `x-app-layout`; removed redundant `abort_unless` MANAGER check from all 3 void controllers (route middleware is authoritative) | ✅ Done |
+| 43 | **Audit Log** — `audit_logs` table + `AuditLogService`; records void (cash/savings/loan payment) and loan approval/rejection events; browse UI with filter by action/module/user/date + CSV export; sidebar "Log Aktivitas" link; Audit VOID submenus upgraded (project-standard UI, print button, date formatting, type badges, stats banner); void forms upgraded (card layout, textarea reason, JS confirm dialog); removed redundant `abort_unless` MANAGER check from all 3 void controllers | ✅ Done |
+| 44 | **Collection Module Restructure** — Pelunasan, Jadwal Angsuran (Amortisasi), and SubLedger moved from Pinjaman Approved into Admin Collection; new collection-prefixed routes (`/collection/{loan}/schedule`, `/settlement`, `/subledger/pdf`); sidebar "Amortisasi" and "Sub Ledger" dead links removed; "Master Tagihan" sidebar item stays highlighted when on schedule/settlement/subledger pages; views detect context (`routeIs('admin.collection.*')`) for correct breadcrumbs and back-button targets; **Progress Bayar** (color-coded progress bar + %) and **Sisa Tagihan** (outstanding Rp) columns added to Master Tagihan Nasabah table | ✅ Done |
 
 ---
 
@@ -60,16 +61,17 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 
 | # | Milestone | Priority |
 |---|-----------|----------|
+| 45 | **Real-Time Collection Updates (Laravel Echo)** — broadcast `LoanPayment` created/voided events via WebSocket (Laravel Echo + Pusher/Soketi); Master Tagihan Nasabah collection index subscribes to payment channel and updates Progress Bayar and Sisa Tagihan cells live without page refresh | **High** |
 | 41 | **API v1 Expansion** — REST endpoints for loan applications (currently partial), member data, payments; token auth via Laravel Sanctum | Medium |
-| 45 | **Rekening Koran (Account Statement)** — monthly per-member consolidated statement (simpanan + pinjaman) with PDF download and optional email delivery | Medium |
-| 46 | **Restrukturisasi Pinjaman** — restructure active loans: extend tenor, reduce rate, reschedule installments; tracks original vs restructured terms; GL adjustment journal | High |
-| 47 | **Multi-Branch Support** — `branches` table, each member/cash account/loan scoped to a branch; branch-level reporting and dashboards; cross-branch transfer workflow | Medium |
-| 48 | **Approval Workflow Engine** — configurable multi-level approval chains for loans (e.g., PETUGAS → MANAGER → BENDAHARA for amounts > threshold); approval history log with comments | Medium |
-| 49 | **SMS / WhatsApp Notifications** — automated reminders for upcoming installments (H-3), overdue alerts, and approval status changes via Fonnte/Wablas gateway | Medium |
-| 50 | **Simpanan Berjangka (Deposito)** — time-deposit savings product with fixed tenor, maturity date, auto-rollover option, break-penalty, and interest accrual journal | Low |
-| 51 | **Member Document Vault** — centralized per-member file storage (KTP, KK, slip gaji, etc.) with categorization, expiry tracking, and access control | Low |
-| 52 | **Dashboard Analytics v2** — interactive charts (Chart.js / Livewire): monthly trend lines for disbursements, collections, NPL ratio, savings growth; drill-down by product/branch | Low |
-| 53 | **Bulk Loan Payment Import** — CSV/Excel upload for batch angsuran processing (bank auto-debit reconciliation); validation preview before commit | Medium |
+| 46 | **Rekening Koran (Account Statement)** — monthly per-member consolidated statement (simpanan + pinjaman) with PDF download and optional email delivery | Medium |
+| 47 | **Restrukturisasi Pinjaman** — restructure active loans: extend tenor, reduce rate, reschedule installments; tracks original vs restructured terms; GL adjustment journal | High |
+| 48 | **Multi-Branch Support** — `branches` table, each member/cash account/loan scoped to a branch; branch-level reporting and dashboards; cross-branch transfer workflow | Medium |
+| 49 | **Approval Workflow Engine** — configurable multi-level approval chains for loans (e.g., PETUGAS → MANAGER → BENDAHARA for amounts > threshold); approval history log with comments | Medium |
+| 50 | **SMS / WhatsApp Notifications** — automated reminders for upcoming installments (H-3), overdue alerts, and approval status changes via Fonnte/Wablas gateway | Medium |
+| 51 | **Simpanan Berjangka (Deposito)** — time-deposit savings product with fixed tenor, maturity date, auto-rollover option, break-penalty, and interest accrual journal | Low |
+| 52 | **Member Document Vault** — centralized per-member file storage (KTP, KK, slip gaji, etc.) with categorization, expiry tracking, and access control | Low |
+| 53 | **Dashboard Analytics v2** — interactive charts (Chart.js / Livewire): monthly trend lines for disbursements, collections, NPL ratio, savings growth; drill-down by product/branch | Low |
+| 54 | **Bulk Loan Payment Import** — CSV/Excel upload for batch angsuran processing (bank auto-debit reconciliation); validation preview before commit | Medium |
 
 ### Hardening
 
@@ -77,23 +79,23 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 |---|-----------|----------|
 | 42 | **2FA / OTP Login** — optional TOTP second factor for SUPER_ADMIN and ADMIN accounts using `pragmarx/google2fa-laravel` | High |
 | 44 | **Automated Test Coverage** — Pest feature tests for critical workflows (loan lifecycle, cash void, SHU finalization, AutoPostingService balance integrity) | High |
-| 54 | **Input Validation Hardening** — centralized Form Request classes for all store/update actions; replace inline `$request->validate()` with dedicated FormRequest objects | High |
-| 55 | **Database Backup & Restore** — scheduled `pg_dump` via Laravel scheduler (daily/weekly); admin UI to list backups, download, and one-click restore; retention policy | High |
-| 56 | **Comprehensive Logging & Monitoring** — extend AuditLog to cover login/logout, data exports, master data changes; structured JSON logs for external SIEM integration | Medium |
-| 57 | **Rate Limiting & Brute Force Protection** — login throttle (5 attempts/15 min lockout), API rate limiting per token, CAPTCHA on repeated failures | Medium |
-| 58 | **Data Encryption at Rest** — encrypt sensitive member fields (NIK, phone, address) using Laravel's `encrypted` cast; key rotation strategy | Low |
-| 59 | **Content Security Policy (CSP)** — strict CSP headers via middleware; nonce-based inline script allowlisting; Subresource Integrity (SRI) for CDN assets | Low |
+| 55 | **Input Validation Hardening** — centralized Form Request classes for all store/update actions; replace inline `$request->validate()` with dedicated FormRequest objects | High |
+| 56 | **Database Backup & Restore** — scheduled `pg_dump` via Laravel scheduler (daily/weekly); admin UI to list backups, download, and one-click restore; retention policy | High |
+| 57 | **Comprehensive Logging & Monitoring** — extend AuditLog to cover login/logout, data exports, master data changes; structured JSON logs for external SIEM integration | Medium |
+| 58 | **Rate Limiting & Brute Force Protection** — login throttle (5 attempts/15 min lockout), API rate limiting per token, CAPTCHA on repeated failures | Medium |
+| 59 | **Data Encryption at Rest** — encrypt sensitive member fields (NIK, phone, address) using Laravel's `encrypted` cast; key rotation strategy | Low |
+| 60 | **Content Security Policy (CSP)** — strict CSP headers via middleware; nonce-based inline script allowlisting; Subresource Integrity (SRI) for CDN assets | Low |
 
 ### Scaling & Infrastructure
 
 | # | Milestone | Priority |
 |---|-----------|----------|
-| 60 | **Queue-Based Heavy Operations** — move PDF generation, bulk simpanan wajib, CSV exports, and SHU calculation to Laravel queues (Redis/database driver); progress bar UI | High |
-| 61 | **Database Performance Optimization** — add composite indexes on high-query tables (journal_lines, loan_payments, cash_transactions by date/account); query caching for dashboard KPIs; N+1 query audit | High |
-| 62 | **Dockerized Deployment** — `docker-compose.yml` with PHP-FPM, Nginx, PostgreSQL, Redis containers; `.env.docker` template; CI/CD pipeline (GitHub Actions) for build → test → deploy | Medium |
-| 63 | **Read Replica & Connection Pooling** — Laravel database read/write splitting config; PgBouncer for connection pooling; session-based sticky reads for write-after-read consistency | Low |
-| 64 | **Asset & Response Caching** — Vite asset versioning, HTTP cache headers for static files; server-side response caching for report pages (5-min TTL); Redis cache driver | Medium |
-| 65 | **Horizontal Scaling Readiness** — session storage in Redis (replace file driver), centralized file storage (S3-compatible for uploads/documents), stateless app servers behind load balancer | Low |
+| 61 | **Queue-Based Heavy Operations** — move PDF generation, bulk simpanan wajib, CSV exports, and SHU calculation to Laravel queues (Redis/database driver); progress bar UI | High |
+| 62 | **Database Performance Optimization** — add composite indexes on high-query tables (journal_lines, loan_payments, cash_transactions by date/account); query caching for dashboard KPIs; N+1 query audit | High |
+| 63 | **Dockerized Deployment** — `docker-compose.yml` with PHP-FPM, Nginx, PostgreSQL, Redis containers; `.env.docker` template; CI/CD pipeline (GitHub Actions) for build → test → deploy | Medium |
+| 64 | **Read Replica & Connection Pooling** — Laravel database read/write splitting config; PgBouncer for connection pooling; session-based sticky reads for write-after-read consistency | Low |
+| 65 | **Asset & Response Caching** — Vite asset versioning, HTTP cache headers for static files; server-side response caching for report pages (5-min TTL); Redis cache driver | Medium |
+| 66 | **Horizontal Scaling Readiness** — session storage in Redis (replace file driver), centralized file storage (S3-compatible for uploads/documents), stateless app servers behind load balancer | Low |
 
 ---
 
@@ -108,6 +110,7 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | Auth/RBAC  | Laravel Breeze + Spatie Permission 7                  |
 | PDF        | barryvdh/laravel-dompdf 3                            |
 | Testing    | Pest 4                                               |
+| Real-time  | Laravel Echo + WebSocket broadcasting *(planned M45)* |
 
 ---
 
@@ -117,10 +120,10 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 ksp/
 ├── app/
 │   ├── Http/Controllers/
-│   │   ├── Admin/               # 32 controllers
+│   │   ├── Admin/               # 33 controllers
 │   │   │   ├── Master/          #   CashAccount, CashCategory, Member, SavingProduct, LoanProduct
 │   │   │   ├── Reports/         #   Cash, Savings, Loans reports (+ CSV export)
-│   │   │   ├── Audit/           #   VoidAuditController (+ CSV export)
+│   │   │   ├── Audit/           #   VoidAuditController, AuditLogController (+ CSV export)
 │   │   │   ├── Accounting/      #   GeneralLedger, JournalEntry, IncomeStatement, BalanceSheet, SHU
 │   │   │   ├── Collection/      #   CollectionController, CollectionLetterController
 │   │   │   ├── AdminHomeController
@@ -130,7 +133,7 @@ ksp/
 │   │   │   ├── BulkSavingController    # batch mandatory savings entry
 │   │   │   ├── Cash*Controller  #   Income, Expense, Balance, Transfer, Void
 │   │   │   ├── Saving*Controller#   Deposit, Withdraw, Void
-│   │   │   └── Loan*Controller  #   Application, Loan (+ settlement/kwitansi/permohonan), Payment, PaymentVoid
+│   │   │   └── Loan*Controller  #   Application, Loan (+ settlement/kwitansi/permohonan/schedule/subledger), Payment, PaymentVoid
 │   │   ├── Portal/              # MemberPortalController (dashboard, savings, loans)
 │   │   ├── Auth/                # 8 Breeze authentication controllers
 │   │   └── Api/V1/              # 1 API controller (loan applications)
@@ -142,17 +145,20 @@ ksp/
 │   │   └── Savings/             #   SavingsService
 │   ├── Policies/                # MemberPolicy, LoanApplicationPolicy
 │   └── helpers.php              # terbilang() — number to Indonesian words
-├── resources/views/             # 55+ Blade templates
+├── resources/views/             # 60+ Blade templates
 │   └── admin/
 │       ├── accounting/          #   trial_balance/, general_ledger/, journal_entries/, income_statement/, balance_sheet/, shu/
-│       ├── audit/               #   void/ (cash, savings, loan_payments)
+│       ├── audit/               #   log/ (AuditLog), void/ (cash, savings, loan_payments)
 │       ├── cash/                #   balances, expense, income, transfer, void (each with print-all PDF view)
-│       ├── loans/               #   active/ (show, schedule, settlement, kwitansi-plafon, kwitansi-pencairan, permohonan-dana, subledger PDF)
-│       │                        #   applications/ (index, show, create, edit, edit-personal, agreement PDF, agreement-vehicle PDF)
+│       ├── collection/          #   index (Master Tagihan), show, laporan, master-dhia, letters/ (5 PDF templates)
+│       ├── loans/               #   active/ (show, schedule*, settlement*, subledger PDF*, kwitansi-plafon, kwitansi-pencairan, permohonan-dana)
+│       │                        #   applications/ (index, show, create, edit, edit-personal, agreement PDF, agreement-vehicle PDF, penawaran PDF)
 │       │                        #   payments/ (create, receipt PDF)
+│       │                        #   * also accessible via collection-prefixed routes
 │       ├── collaterals/         #   index, create, release
 │       ├── master/              #   cash_accounts, cash_categories, loan_products, members, saving_products
 │       ├── notifications/       #   index (computed alerts)
+│       ├── password/            #   change
 │       ├── reports/             #   cash, loans, savings
 │       ├── savings/             #   deposit, withdraw, void, bulk_wajib/
 │       ├── users/               #   create, edit, index
@@ -161,7 +167,7 @@ ksp/
 │   ├── web.php                  # All admin routes (role-gated per finance matrix) + portal routes
 │   └── auth.php                 # Auth routes (public /register disabled)
 ├── database/
-│   ├── migrations/              # 40+ migration files
+│   ├── migrations/              # 42+ migration files
 │   └── seeders/                 # RolesSeeder (incl. MEMBER role), UsersSeeder, DemoMasterSeeder, AccountingSeeder, CashCategorySeeder, DemoTransactionSeeder, MasterConfigSeeder
 └── config/                      # 11 config files
 ```
@@ -174,14 +180,14 @@ ksp/
 
 | Model              | Purpose                                                             |
 |--------------------|---------------------------------------------------------------------|
+| `User`             | System users with Spatie roles                                      |
+| `Member`           | Cooperative members (member_no, name, phone, NIK, address, active, user_id for portal) |
+| `CashAccount`      | Cash accounts (name, type CASH/BANK/CHECK/GIRO, ledger auto-linked, active) |
+| `CashCategory`     | Cash transaction categories (type INCOME/EXPENSE/TRANSFER, linked GL account) |
+| `SavingProduct`    | Savings product definitions (interest rate, withdrawable flag)      |
+| `LoanProduct`      | Loan products (interest rate, admin fee, tenor, penalty rates in bp, linked GL accounts) |
 | `CollectionRecord` | One-per-loan collection tracking: petugas, branch, escalation level (0–5), contact dates, is_restruk, property data (NJOP, LT, LB, alamat_tinggal, wilayah) |
 | `CollectionLetter` | Per-loan collection letters issued: type (SP1/SP2/SP3/SOMASI/CESSIE), letter number, date, creator |
-| `User`             | System users with Spatie roles                                      |
-| `Member`         | Cooperative members (member_no, name, phone, NIK, address, active) |
-| `CashAccount`    | Cash accounts (name, type CASH/BANK, ledger auto-linked, active)   |
-| `CashCategory`   | Cash transaction categories (type INCOME/EXPENSE/TRANSFER, linked GL account) |
-| `SavingProduct`  | Savings product definitions (interest rate, withdrawable flag)      |
-| `LoanProduct`    | Loan products (interest rate, admin fee, tenor, penalty rates, linked GL accounts) |
 
 ### Transaction Entities
 
@@ -202,6 +208,9 @@ ksp/
 | `Account`      | Chart of Accounts — 5-level hierarchy (code, name, type, dc, parent)|
 | `JournalEntry` | Accounting journal entries (source-tracked, source_type/source_id)   |
 | `JournalLine`  | Individual debit/credit lines (account_id, dc, amount)              |
+| `AuditLog`     | System activity log: user, action, subject_type/id, description, metadata (jsonb) |
+| `ShuPeriod`    | SHU calculation period with allocation percentages                   |
+| `ShuMemberAllocation` | Per-member SHU distribution for a given period                 |
 
 ---
 
@@ -227,7 +236,7 @@ Seeded by `AccountingSeeder`. Five-level hierarchy:
 | 5xxx       | Expenses (Beban)                | Debit          |
 
 Dynamic account linking:
-- `CashAccount` (CASH type) → leaf auto-generated under 1110 (111x); (BANK type) → leaf under 1120 (112x)
+- `CashAccount` (CASH type) → leaf auto-generated under 1110 (111x); (BANK type) → leaf under 1120 (112x); (CHECK) → 114x; (GIRO) → 115x
 - `SavingProduct` → `ledger_account_id` leaf under 2110
 - `LoanProduct` → `receivable_account_id` (under 1130) + `interest_income_account_id`, `admin_income_account_id`, `insurance_income_account_id` (4111–4113)
 - `CashCategory` (INCOME) → `account_id` leaf under equity (3xxx) or revenue (4xxx)
@@ -297,7 +306,7 @@ Dynamic account linking:
 | `PETUGAS`          | Data entry — create transactions (kas, simpanan, loan payments), submit loan applications |
 | `KASIR`            | Cashier — kas income/expense/transfer entry + loan payment entry; no void, no approval |
 | `ADMIN_DATA`       | Loan administration — create/manage loan applications + master data view |
-| `ADMIN_COLLECTION` | Collection — loan payment entry + collection reports; no void, no approval |
+| `ADMIN_COLLECTION` | Collection — loan payment entry + collection module (Master Tagihan, Amortisasi, Pelunasan, SubLedger); no void, no approval |
 | `PENGAWAS`         | Supervisor (read-only) — view kas, simpanan, pengajuan pinjaman, collection, laporan; no create/void/approve |
 | `MEMBER`           | Member self-service — access to read-only Member Portal only (no admin area) |
 
@@ -319,9 +328,10 @@ Dynamic account linking:
 | **Pinjaman** — setujui / tolak | ✓ | — | ✓ | — | — | — | — | — | — |
 | **Pinjaman** — bayar angsuran | ✓ | — | — | ✓ | ✓ | ✓ | — | ✓ | — |
 | **Pinjaman** — void angsuran | ✓ | — | — | ✓ | — | — | — | — | — |
-| **Pinjaman** — lihat aktif, kwitansi, settlement | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Pinjaman** — kwitansi, cetak dokumen | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Penagihan** — lihat (index, show, laporan) | ✓ | ✓ | ✓ | — | — | — | — | ✓ | ✓ |
 | **Penagihan** — update / tambah surat | ✓ | ✓ | ✓ | — | — | — | — | ✓ | — |
+| **Penagihan** — Pelunasan / Jadwal / SubLedger | ✓ | — | — | — | — | — | — | ✓ | — |
 | **Laporan** (kas, simpanan, pinjaman) | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ |
 | **Akuntansi / Audit** | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
 | **SHU** — lihat | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
@@ -365,8 +375,16 @@ Policy rules:
    - Auto-computes late penalty and early repayment penalty
    - Creates cash income, posts GL journal
    - Auto-closes loan when outstanding = 0
-6. **Settlement (Pelunasan)** — calculator page with date picker; generates PDF breakdown
+6. **Settlement / Jadwal / SubLedger** — accessed from the collection detail page (Admin Collection) via `/collection/{loan}/settlement`, `/schedule`, `/subledger/pdf`
 7. **Void** — reverses payment + cash tx + journal entries
+
+### Collection Workflow
+1. **Master Tagihan** — overview table of all active loans with Progress Bayar (color-coded progress bar), Sisa Tagihan, tunggakan, and contact data
+2. **Collection Detail** — per-loan page with catatan penagihan form, buat surat dropdown, letter history, and recent payments
+3. **Escalation** — level 0 (Normal) → SP1 → SP2 → SP3 → Somasi → Pra-Cessie; each letter auto-increments the loan's escalation level
+4. **Jadwal Angsuran / Amortisasi** — accessible from collection detail page header; shows full payment schedule with paid/overdue highlighting
+5. **Pelunasan** — early settlement calculator with date picker, denda breakdown, and PDF; accessible from collection detail page header
+6. **SubLedger** — per-loan ledger card PDF showing all payments and running balance; accessible from collection detail page header
 
 ### Void Audit Trail
 All voidable entities track: `is_voided`, `void_reason`, `voided_by`, `voided_at`.
@@ -385,10 +403,14 @@ Void operations cascade through linked records (transaction → cash → journal
 | Pra-Cessie (Pengalihan Piutang) | `/collection/letters/{id}/pdf` | DomPDF |
 | Loan Agreement PK A (Sertipikat) | `/loans/applications/{id}/agreement` | DomPDF |
 | Loan Agreement PK B (Kendaraan) | `/loans/applications/{id}/agreement-vehicle` | DomPDF |
+| Penawaran Pembiayaan | `/loans/applications/{id}/penawaran` | DomPDF |
 | Payment Receipt | `/loans/payments/{id}/receipt` | DomPDF |
-| Loan Schedule | `/loans/active/{id}/schedule/pdf` | DomPDF |
-| Settlement PDF | `/loans/active/{id}/settlement/pdf` | DomPDF |
-| Sub-Ledger PDF | `/loans/active/{id}/subledger/pdf` | DomPDF |
+| Loan Schedule (from Loans) | `/loans/active/{id}/schedule/pdf` | DomPDF |
+| Loan Schedule (from Collection) | `/collection/{id}/schedule/pdf` | DomPDF |
+| Settlement PDF (from Loans) | `/loans/active/{id}/settlement/pdf` | DomPDF |
+| Settlement PDF (from Collection) | `/collection/{id}/settlement/pdf` | DomPDF |
+| Sub-Ledger PDF (from Loans) | `/loans/active/{id}/subledger/pdf` | DomPDF |
+| Sub-Ledger PDF (from Collection) | `/collection/{id}/subledger/pdf` | DomPDF |
 | Kwitansi Plafon | `/loans/active/{id}/kwitansi-plafon` | `window.print()` |
 | Kwitansi Pencairan | `/loans/active/{id}/kwitansi-pencairan` | `window.print()` |
 | Permohonan Dana | `/loans/active/{id}/permohonan-dana` | `window.print()` |
@@ -435,7 +457,7 @@ Void operations cascade through linked records (transaction → cash → journal
 | Mass assignment protection | All models use explicit `$fillable` arrays |
 | Privilege escalation guard | `UserController::canManage()` — ADMIN cannot edit/delete MANAGER/BENDAHARA/ADMIN users |
 | Public registration disabled | `/register` route removed in `routes/auth.php` |
-| File ownership check | `deleteFile()` and `downloadFile()` verify `loan_application_id === application->id`; PETUGAS ownership enforced on `show()`, `deleteFile()`, `downloadFile()` |
+| File ownership check | `deleteFile()` and `downloadFile()` verify `loan_application_id === application->id`; PETUGAS ownership enforced |
 | MIME type integrity | File uploads store MIME from `getMimeType()` (reads actual file content via `finfo`), not client-supplied header |
 | Rate limiting — profile/password | `PATCH /profile` throttle:10/min, `DELETE /profile` throttle:5/min, `PUT /password` throttle:5/min |
 
@@ -447,20 +469,21 @@ None — all previously identified issues have been resolved.
 
 ## Reporting & Audit
 
-| Report              | Filters                         | Export |
-|---------------------|---------------------------------|--------|
-| Laporan Collection  | as-of date (always today)       | Print  |
-| Data Master DHIA    | borrower name, wilayah          | Print  |
-| Master Tagihan Nasabah | name, escalation level, petugas | Print |
-| Cash Report         | date range, account, type       | CSV    |
-| Savings Report      | date range, product, type       | CSV    |
-| Loans Report        | date range, product, status     | CSV    |
-| Trial Balance       | date range                      | —      |
-| Income Statement    | date range                      | —      |
-| Balance Sheet       | as-of date                      | —      |
-| Void Audit — Cash   | date range                      | CSV    |
-| Void Audit — Savings| date range                      | CSV    |
-| Void Audit — Loans  | date range                      | CSV    |
+| Report                    | Filters                                | Export  |
+|---------------------------|----------------------------------------|---------|
+| Master Tagihan Nasabah    | name, escalation level, petugas, sort | Print / CSV |
+| Laporan Collection        | as-of date (always today)              | Print / CSV |
+| Data Master DHIA          | borrower name, wilayah                 | Print / CSV |
+| Cash Report               | date range, account, type              | CSV     |
+| Savings Report            | date range, product, type              | CSV     |
+| Loans Report              | date range, product, status            | CSV     |
+| Trial Balance             | date range                             | —       |
+| Income Statement          | date range                             | —       |
+| Balance Sheet             | as-of date                             | —       |
+| Void Audit — Cash         | date range                             | CSV     |
+| Void Audit — Savings      | date range                             | CSV     |
+| Void Audit — Loans        | date range                             | CSV     |
+| Log Aktivitas (Audit Log) | action, module, user, date range       | CSV     |
 
 ---
 
@@ -558,10 +581,11 @@ All migrations are applied in order. Key groups:
 - Core tables: users, members, cash_accounts, saving_products, loan_products
 - Transaction tables: cash_transactions, saving_transactions, loan_applications, loans, loan_payments, loan_application_files
 - Accounting tables: accounts, journal_entries, journal_lines
-- Extension migrations: penalty rates, notaris fields, form data snapshots, COA ledger links, cash categories, ledger uniqueness constraint, disbursement_fees JSON column
+- Extension migrations: penalty rates, notaris fields, form data snapshots, COA ledger links, cash categories, ledger uniqueness constraint, disbursement_fees JSON column, CHECK/GIRO account types
 - Collection migrations: collection_records (escalation, petugas, property data), collection_letters
 - M36 migration: `2026_03_12_000001_add_user_id_to_members_table` — nullable `user_id` FK for portal access
 - M37 migration: `2026_03_12_000002_create_loan_collaterals_table` — collateral registry (type, value, document, HELD/RELEASED)
+- M43 migration: `2026_03_12_100001_create_audit_logs_table` — system activity log
 
 ---
 

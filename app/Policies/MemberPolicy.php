@@ -13,6 +13,6 @@ class MemberPolicy
      */
     public function viewSensitive(User $user, Member $member): bool
     {
-        return $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PETUGAS', 'ADMIN_DATA', 'ADMIN_COLLECTION']);
+        return $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION']);
     }
 }

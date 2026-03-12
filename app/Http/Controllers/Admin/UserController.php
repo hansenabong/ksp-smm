@@ -14,12 +14,12 @@ class UserController extends Controller
 {
     /** All roles — SUPER_ADMIN can assign any */
     private const ALL_ROLES = [
-        'SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA', 'PETUGAS',
-        'KASIR', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'PENGAWAS', 'MEMBER',
+        'SUPER_ADMIN',
+        'ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY', 'FINANCE', 'PENGAWAS',
     ];
 
     /** ADMIN may create/assign operational roles (not SUPER_ADMIN/ADMIN) */
-    private const ADMIN_ASSIGNABLE = ['MANAGER', 'BENDAHARA', 'PETUGAS', 'KASIR', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'PENGAWAS', 'MEMBER'];
+    private const ADMIN_ASSIGNABLE = ['ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY', 'FINANCE', 'PENGAWAS'];
 
     private function allowedRoles(): array
     {

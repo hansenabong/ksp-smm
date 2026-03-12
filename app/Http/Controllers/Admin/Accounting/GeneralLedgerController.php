@@ -12,7 +12,7 @@ class GeneralLedgerController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']), 403);
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
 
         $validated = $request->validate([
             'account_id' => ['nullable', 'integer', 'exists:accounts,id'],
@@ -103,7 +103,7 @@ class GeneralLedgerController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']), 403);
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
 
         $dateFrom  = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo    = $request->input('date_to', now()->toDateString());

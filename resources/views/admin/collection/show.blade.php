@@ -7,8 +7,29 @@
                 <span class="text-gray-300">/</span>
                 <h2 class="text-lg font-semibold text-gray-800">{{ $loan->member->name }}</h2>
             </div>
-            <a href="{{ route('admin.loans.active.show', $loan) }}"
-               class="text-xs text-indigo-600 hover:underline">Lihat Detail Pinjaman →</a>
+            <div class="flex items-center gap-2">
+                @if($loan->status === 'ACTIVE')
+                <a href="{{ route('admin.collection.settlement', $loan) }}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+                    </svg>
+                    Pelunasan
+                </a>
+                <a href="{{ route('admin.collection.schedule', $loan) }}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Amortisasi
+                </a>
+                <a href="{{ route('admin.collection.subledger.pdf', $loan) }}" target="_blank"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 4v16M6 4v16"/></svg>
+                    SubLedger
+                </a>
+                @endif
+                <a href="{{ route('admin.loans.active.show', $loan) }}"
+                   class="text-xs text-indigo-600 hover:underline">Lihat Detail Pinjaman →</a>
+            </div>
         </div>
     </x-slot>
 

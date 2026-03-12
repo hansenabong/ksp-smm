@@ -9,19 +9,15 @@ class LoanApplicationPolicy
 {
     /**
      * Who can view sensitive form_data (KTP, agunan, jaminan, personal info).
-     * BENDAHARA sees only financial summary; PETUGAS sees only applications they created.
+     * ADMIN_DATA sees only applications they created.
      */
     public function viewSensitiveData(User $user, LoanApplication $application): bool
     {
-        if ($user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ADMIN_DATA', 'ADMIN_COLLECTION'])) {
+        if ($user->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY'])) {
             return true;
         }
 
-        if ($user->hasRole('PETUGAS')) {
-            return $application->created_by === $user->id;
-        }
-
-        return false; // BENDAHARA, KASIR
+        return false;
     }
 
     /**
@@ -29,6 +25,6 @@ class LoanApplicationPolicy
      */
     public function approve(User $user): bool
     {
-        return $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER']);
+        return $user->hasRole('SUPER_ADMIN');
     }
 }

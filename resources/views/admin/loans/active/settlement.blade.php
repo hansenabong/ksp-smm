@@ -1,12 +1,13 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
+            @php $isCollection = request()->routeIs('admin.collection.*'); @endphp
             <div>
-                <div class="text-xs text-gray-400 mb-0.5">Pinjaman / Aktif / Perhitungan Pelunasan</div>
+                <div class="text-xs text-gray-400 mb-0.5">{{ $isCollection ? 'Penagihan / Perhitungan Pelunasan' : 'Pinjaman / Aktif / Perhitungan Pelunasan' }}</div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Perhitungan Pelunasan — #{{ $loan->id }}</h2>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('admin.loans.active.settlement.pdf', [$loan, 'settlement_date' => $settlementDate]) }}"
+                <a href="{{ route($isCollection ? 'admin.collection.settlement.pdf' : 'admin.loans.active.settlement.pdf', [$loan, 'settlement_date' => $settlementDate]) }}"
                    target="_blank"
                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,7 +15,7 @@
                     </svg>
                     Cetak PDF
                 </a>
-                <a href="{{ route('admin.loans.active.show', $loan) }}"
+                <a href="{{ $isCollection ? route('admin.collection.show', $loan) : route('admin.loans.active.show', $loan) }}"
                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">
                     &larr; Kembali
                 </a>
@@ -52,7 +53,7 @@
 
         {{-- Date picker --}}
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
-            <form method="GET" action="{{ route('admin.loans.active.settlement', $loan) }}" class="flex items-end gap-3">
+            <form method="GET" action="{{ route($isCollection ? 'admin.collection.settlement' : 'admin.loans.active.settlement', $loan) }}" class="flex items-end gap-3">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Tanggal Pelunasan

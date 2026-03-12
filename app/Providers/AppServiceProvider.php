@@ -24,12 +24,12 @@ class AppServiceProvider extends ServiceProvider
 
         // Standalone gate: any role that may see personal member data
         Gate::define('view-sensitive-member-data', fn($user) =>
-            $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PETUGAS'])
+            $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION'])
         );
 
         // Standalone gate: user management
         Gate::define('create-user', fn($user) =>
-            $user->hasAnyRole(['SUPER_ADMIN', 'ADMIN'])
+            $user->hasRole('SUPER_ADMIN')
         );
     }
 }

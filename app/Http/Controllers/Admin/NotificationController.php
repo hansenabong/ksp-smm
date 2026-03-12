@@ -24,8 +24,8 @@ class NotificationController extends Controller
     {
         $alerts = [];
 
-        // Pending loan applications — SUPER_ADMIN / MANAGER
-        if ($u?->hasAnyRole(['SUPER_ADMIN', 'MANAGER'])) {
+        // Pending loan applications — SUPER_ADMIN
+        if ($u?->hasRole('SUPER_ADMIN')) {
             $count = LoanApplication::where('status', 'PENDING')->count();
             if ($count > 0) {
                 $alerts[] = [
@@ -40,7 +40,7 @@ class NotificationController extends Controller
         }
 
         // Overdue active loans (no payment in last 30 days) — treasury / collection
-        if ($u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER', 'ADMIN_COLLECTION'])) {
+        if ($u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_COLLECTION'])) {
             $cutoff = Carbon::today()->subDays(30)->toDateString();
             $overdueLoans = Loan::where('status', 'ACTIVE')
                 ->where('outstanding', '>', 0)
@@ -59,8 +59,8 @@ class NotificationController extends Controller
             }
         }
 
-        // Draft SHU periods — SUPER_ADMIN / MANAGER / BENDAHARA
-        if ($u?->hasAnyRole(['SUPER_ADMIN', 'MANAGER', 'BENDAHARA'])) {
+        // Draft SHU periods — SUPER_ADMIN / FINANCE
+        if ($u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE'])) {
             $draftShu = ShuPeriod::where('status', 'DRAFT')->count();
             if ($draftShu > 0) {
                 $alerts[] = [
@@ -75,7 +75,7 @@ class NotificationController extends Controller
         }
 
         // Loans nearing end of tenor — treasury / collection
-        if ($u?->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER', 'ADMIN_COLLECTION'])) {
+        if ($u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_COLLECTION'])) {
             $nearMaturity = Loan::where('status', 'ACTIVE')
                 ->where('outstanding', '>', 0)
                 ->whereRaw("disbursed_date <= (CURRENT_DATE - (tenor_months - 1) * INTERVAL '1 month')")

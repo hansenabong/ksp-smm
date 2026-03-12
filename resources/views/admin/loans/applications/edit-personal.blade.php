@@ -807,10 +807,10 @@
                         @error('doc_kk') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div>
-                        <label class="text-sm">Agunan</label>
-                        <input type="file" name="doc_agunan" accept=".jpg,.jpeg,.png,.pdf"
+                        <label class="text-sm">Agunan (bisa lebih dari satu)</label>
+                        <input type="file" name="doc_agunan[]" accept=".jpg,.jpeg,.png,.pdf" multiple
                             class="w-full border rounded px-3 py-2 text-sm">
-                        @error('doc_agunan') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        @error('doc_agunan.*') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                     </div>
                 </div>
                 <div class="mt-3">

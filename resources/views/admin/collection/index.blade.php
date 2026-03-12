@@ -117,6 +117,8 @@
                     <th colspan="3">Realisasi</th>
                     <th rowspan="3" class="col-num">Sisa<br>Kewajiban</th>
                     <th rowspan="3" class="col-num">TOTAL<br>BAYAR</th>
+                    <th rowspan="3" style="min-width:120px;text-align:center">Progress<br>Bayar</th>
+                    <th rowspan="3" class="col-num">Sisa<br>Tagihan</th>
                     <th rowspan="3" class="col-addr">Alamat Tinggal</th>
                     <th rowspan="3" class="col-addr">Alamat Jaminan</th>
                     <th rowspan="3" class="col-phone">Contact Person</th>
@@ -190,6 +192,21 @@
                     {{-- Sisa / Total --}}
                     <td class="col-num">{{ number_format($loan->_sisa_kewajiban) }}</td>
                     <td class="col-num">{{ number_format($loan->_total_bayar) }}</td>
+                    {{-- Progress Bayar --}}
+                    @php
+                        $pctPaid = $loan->total_payable > 0 ? min(100, round($loan->total_paid / $loan->total_payable * 100)) : 0;
+                        $barColor = $pctPaid >= 75 ? '#22c55e' : ($pctPaid >= 40 ? '#f59e0b' : '#ef4444');
+                    @endphp
+                    <td style="text-align:center;padding:4px 8px">
+                        <div style="background:#e5e7eb;border-radius:9999px;height:8px;width:80px;display:inline-block;vertical-align:middle">
+                            <div style="background:{{ $barColor }};border-radius:9999px;height:8px;width:{{ $pctPaid * 0.8 }}px"></div>
+                        </div>
+                        <div style="font-size:9px;margin-top:1px;font-weight:600;color:#374151">{{ $pctPaid }}%</div>
+                    </td>
+                    {{-- Sisa Tagihan --}}
+                    <td class="col-num" style="font-weight:600;{{ $loan->outstanding > 0 ? 'color:#dc2626' : 'color:#16a34a' }}">
+                        {{ number_format($loan->outstanding) }}
+                    </td>
                     {{-- Addresses --}}
                     <td class="col-addr" style="white-space:normal;font-size:9px">{{ $loan->_alamat_tinggal }}</td>
                     <td class="col-addr" style="white-space:normal;font-size:9px">{{ $loan->_alamat_jaminan }}</td>
@@ -209,7 +226,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="25" class="text-center py-8 text-gray-400">Tidak ada data pinjaman aktif.</td>
+                    <td colspan="27" class="text-center py-8 text-gray-400">Tidak ada data pinjaman aktif.</td>
                 </tr>
                 @endforelse
 
@@ -226,6 +243,8 @@
                     <td></td>
                     <td class="col-num">{{ number_format($loans->getCollection()->sum('_sisa_kewajiban')) }}</td>
                     <td class="col-num">{{ number_format($loans->getCollection()->sum('_total_bayar')) }}</td>
+                    <td></td>
+                    <td class="col-num col-neg" style="font-weight:600">{{ number_format($loans->getCollection()->sum('outstanding')) }}</td>
                     <td colspan="5"></td>
                 </tr>
                 @endif

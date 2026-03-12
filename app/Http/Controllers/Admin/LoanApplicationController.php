@@ -153,13 +153,11 @@ class LoanApplicationController extends Controller
             'form_data.angsuran_lain'                => ['nullable', 'integer', 'min:0'],
             'form_data.biaya_lain'                   => ['nullable', 'integer', 'min:0'],
 
-            // upload dokumen fixed (single)
-            'doc_ktp' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_kk' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_agunan' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-
-            // tambahan dokumen (multiple)
-            'doc_others.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            // upload dokumen
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             // tetap ada (boleh override), tapi defaultnya diisi dari produk
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'admin_monthly' => ['nullable', 'integer', 'min:0'],
@@ -245,7 +243,12 @@ class LoanApplicationController extends Controller
 
         $saveOne($request->file('doc_ktp'), 'KTP');
         $saveOne($request->file('doc_kk'), 'KK');
-        $saveOne($request->file('doc_agunan'), 'AGUNAN');
+
+        if ($request->hasFile('doc_agunan')) {
+            foreach ($request->file('doc_agunan') as $f) {
+                $saveOne($f, 'AGUNAN');
+            }
+        }
 
         if ($request->hasFile('doc_others')) {
             foreach ($request->file('doc_others') as $f) {
@@ -260,7 +263,7 @@ class LoanApplicationController extends Controller
     {
         abort_unless($application->status === 'PENDING', 403, 'Hanya pengajuan PENDING yang bisa diedit.');
 
-        if (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by !== auth()->id()) {
+        if (auth()->user()->hasRole('ADMIN_DATA') && (int)$application->created_by !== auth()->id()) {
             abort(403);
         }
 
@@ -275,7 +278,7 @@ class LoanApplicationController extends Controller
     {
         abort_unless($application->status === 'PENDING', 403, 'Hanya pengajuan PENDING yang bisa diedit.');
 
-        if (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by !== auth()->id()) {
+        if (auth()->user()->hasRole('ADMIN_DATA') && (int)$application->created_by !== auth()->id()) {
             abort(403);
         }
 
@@ -373,10 +376,10 @@ class LoanApplicationController extends Controller
             'form_data.biaya_hidup'                  => ['nullable', 'integer', 'min:0'],
             'form_data.angsuran_lain'                => ['nullable', 'integer', 'min:0'],
             'form_data.biaya_lain'                   => ['nullable', 'integer', 'min:0'],
-            'doc_ktp'      => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_kk'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_agunan'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_others.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'admin_monthly'            => ['nullable', 'integer', 'min:0'],
             'insurance_monthly'        => ['nullable', 'integer', 'min:0'],
@@ -445,7 +448,12 @@ class LoanApplicationController extends Controller
 
         $saveOne($request->file('doc_ktp'), 'KTP');
         $saveOne($request->file('doc_kk'), 'KK');
-        $saveOne($request->file('doc_agunan'), 'AGUNAN');
+
+        if ($request->hasFile('doc_agunan')) {
+            foreach ($request->file('doc_agunan') as $f) {
+                $saveOne($f, 'AGUNAN');
+            }
+        }
 
         if ($request->hasFile('doc_others')) {
             foreach ($request->file('doc_others') as $f) {
@@ -464,7 +472,7 @@ class LoanApplicationController extends Controller
         // PENDING: SUPER_ADMIN, ADMIN, MANAGER, or PETUGAS (own only)
         // APPROVED: SUPER_ADMIN only (for personal info correction)
         if ($application->status === 'PENDING') {
-            if (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by !== auth()->id()) {
+            if (auth()->user()->hasRole('ADMIN_DATA') && (int)$application->created_by !== auth()->id()) {
                 abort(403);
             }
         } elseif ($application->status === 'APPROVED') {
@@ -486,7 +494,7 @@ class LoanApplicationController extends Controller
     public function show(LoanApplication $application)
     {
         // PETUGAS may only view their own applications (IDOR guard)
-        if (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by !== auth()->id()) {
+        if (auth()->user()->hasRole('ADMIN_DATA') && (int)$application->created_by !== auth()->id()) {
             abort(403, 'Anda hanya bisa melihat pengajuan yang Anda buat sendiri.');
         }
 
@@ -599,10 +607,10 @@ class LoanApplicationController extends Controller
             'notaris_deed_date'   => ['nullable', 'date'],
             'notaris_city'        => ['nullable', 'string', 'max:100'],
             // Additional files
-            'doc_ktp'      => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_kk'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_agunan'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_others.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
         // Only update personal/notaris fields — financial terms are immutable
@@ -631,7 +639,12 @@ class LoanApplicationController extends Controller
 
         $saveOne($request->file('doc_ktp'), 'KTP');
         $saveOne($request->file('doc_kk'), 'KK');
-        $saveOne($request->file('doc_agunan'), 'AGUNAN');
+
+        if ($request->hasFile('doc_agunan')) {
+            foreach ($request->file('doc_agunan') as $f) {
+                $saveOne($f, 'AGUNAN');
+            }
+        }
 
         if ($request->hasFile('doc_others')) {
             foreach ($request->file('doc_others') as $f) {
@@ -680,6 +693,27 @@ class LoanApplicationController extends Controller
 
         return redirect()->route('admin.loans.applications.index')->with('success', 'Pengajuan ditolak.');
     }
+    public function penawaranPembiayaan(LoanApplication $application)
+    {
+        abort_unless($application->status === 'APPROVED', 404);
+
+        $application->load(['member', 'loanProduct', 'approver', 'collaterals']);
+
+        $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
+
+        $nomorSurat = 'SPP-' . now()->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'admin.loans.applications.penawaran-pembiayaan-pdf',
+            compact('application', 'loan', 'nomorSurat')
+        );
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'penawaran-pembiayaan-' . str_replace('/', '-', $nomorSurat) . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
     public function agreement(LoanApplication $application)
     {
         abort_unless($application->status === 'APPROVED', 404);
@@ -724,7 +758,7 @@ class LoanApplicationController extends Controller
         }
 
         // PETUGAS may only download files from their own applications (IDOR guard)
-        if (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by !== auth()->id()) {
+        if (auth()->user()->hasRole('ADMIN_DATA') && (int)$application->created_by !== auth()->id()) {
             abort(403, 'Anda hanya bisa mengakses dokumen pengajuan yang Anda buat sendiri.');
         }
 

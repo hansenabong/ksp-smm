@@ -82,7 +82,7 @@ class CollectionController extends Controller
         ];
 
         $petugasList = User::whereHas('roles', fn($q) => $q->whereIn('name',
-                ['ADMIN_COLLECTION', 'PETUGAS', 'SUPER_ADMIN', 'ADMIN', 'MANAGER']))
+                ['ADMIN_COLLECTION', 'SUPER_ADMIN']))
             ->orderBy('name')->get();
 
         return view('admin.collection.index', compact(
@@ -461,7 +461,7 @@ class CollectionController extends Controller
         $monthsLate = $this->computeMonthsLate($loan, $today);
 
         $petugasList = User::whereHas('roles', fn($q) => $q->whereIn('name',
-                ['ADMIN_COLLECTION', 'PETUGAS', 'SUPER_ADMIN', 'ADMIN', 'MANAGER']))
+                ['ADMIN_COLLECTION', 'SUPER_ADMIN']))
             ->orderBy('name')->get();
 
         $todayStr = now()->toDateString();

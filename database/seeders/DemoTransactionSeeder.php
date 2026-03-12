@@ -61,11 +61,10 @@ class DemoTransactionSeeder extends Seeder
         $this->loanSvc   = app(LoanService::class);
 
         // Resolve users (fall back gracefully if a role has no users)
-        $this->adminId     = User::role('ADMIN')->first()?->id
-                          ?? User::role('SUPER_ADMIN')->first()?->id
+        $this->adminId     = User::role('SUPER_ADMIN')->first()?->id
                           ?? User::first()->id;
-        $this->petugasId   = User::role('PETUGAS')->first()?->id   ?? $this->adminId;
-        $this->bendaharaId = User::role('BENDAHARA')->first()?->id ?? $this->adminId;
+        $this->petugasId   = User::role('ADMIN_DATA')->first()?->id    ?? $this->adminId;
+        $this->bendaharaId = User::role('TREASURY')->first()?->id ?? $this->adminId;
 
         // Resolve master data
         $this->kasTunai     = CashAccount::where('name', 'Kas Tunai')->firstOrFail();
@@ -255,7 +254,7 @@ class DemoTransactionSeeder extends Seeder
             return;
         }
 
-        $managerId = User::role('MANAGER')->first()?->id ?? $this->adminId;
+        $managerId = $this->adminId;
 
         /**
          * Columns: [member_idx, product, principal, tenor, apply_date, approve_date, paid_months, late_on_installment]

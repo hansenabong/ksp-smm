@@ -22,7 +22,7 @@ class ShuController extends Controller
 
     public function index()
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA']), 403);
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
 
         $periods = ShuPeriod::orderByDesc('year')->get();
 
@@ -31,7 +31,7 @@ class ShuController extends Controller
 
     public function create()
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER']), 403);
+        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
 
         $suggestedYear = now()->year;
 
@@ -51,7 +51,7 @@ class ShuController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER']), 403);
+        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
 
         $data = $request->validate([
             'year'             => ['required', 'integer', 'min:2000', 'max:2099', 'unique:shu_periods,year'],
@@ -108,7 +108,7 @@ class ShuController extends Controller
 
     public function show(ShuPeriod $shuPeriod)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'BENDAHARA']), 403);
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
 
         $shuPeriod->load(['memberAllocations.member', 'creator', 'finalizer', 'journalEntry']);
         $allocations = $shuPeriod->memberAllocations->sortByDesc('shu_total');
@@ -118,7 +118,7 @@ class ShuController extends Controller
 
     public function recalculate(ShuPeriod $shuPeriod)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER']), 403);
+        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
 
         if ($shuPeriod->isFinalized()) {
             return back()->withErrors(['status' => 'Periode sudah FINALIZED, tidak dapat dihitung ulang.']);
@@ -138,7 +138,7 @@ class ShuController extends Controller
 
     public function finalize(ShuPeriod $shuPeriod)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'MANAGER']), 403);
+        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
 
         if ($shuPeriod->isFinalized()) {
             return back()->withErrors(['status' => 'Periode sudah FINALIZED.']);
@@ -215,7 +215,7 @@ class ShuController extends Controller
 
     public function destroy(ShuPeriod $shuPeriod)
     {
-        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN']), 403);
+        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
 
         if ($shuPeriod->isFinalized()) {
             return back()->withErrors(['status' => 'Periode FINALIZED tidak dapat dihapus.']);
