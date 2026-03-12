@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BalanceSheetController extends Controller
 {
@@ -84,5 +85,72 @@ class BalanceSheetController extends Controller
             'cumulativeNetIncome', 'totalEquitySection', 'totalLiabilityEquity',
             'isBalanced', 'difference'
         ));
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'BENDAHARA', 'MANAGER']), 403);
+
+        $dateTo = $request->input('date_to', now()->toDateString());
+
+        $allAccounts = Account::query()
+            ->where('accounts.is_active', true)
+            ->whereDoesntHave('children')
+            ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
+            ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
+            ->select([
+                'accounts.id', 'accounts.code', 'accounts.name', 'accounts.type', 'accounts.normal_balance',
+                DB::raw("COALESCE(SUM(CASE WHEN je.id IS NOT NULL AND je.is_voided = false AND je.trx_date <= ? AND jl.dc = 'D' THEN jl.amount ELSE 0 END), 0) AS total_debit"),
+                DB::raw("COALESCE(SUM(CASE WHEN je.id IS NOT NULL AND je.is_voided = false AND je.trx_date <= ? AND jl.dc = 'C' THEN jl.amount ELSE 0 END), 0) AS total_credit"),
+            ])
+            ->addBinding([$dateTo, $dateTo], 'select')
+            ->groupBy('accounts.id', 'accounts.code', 'accounts.name', 'accounts.type', 'accounts.normal_balance')
+            ->orderBy('accounts.code')
+            ->get()
+            ->map(function ($r) {
+                $r->total_debit  = (int) $r->total_debit;
+                $r->total_credit = (int) $r->total_credit;
+                $r->amount = $r->normal_balance === 'D'
+                    ? $r->total_debit - $r->total_credit
+                    : $r->total_credit - $r->total_debit;
+                return $r;
+            });
+
+        $assets      = $allAccounts->where('type', 'ASSET')->filter(fn($r) => $r->amount != 0 || $r->total_debit > 0)->values();
+        $liabilities = $allAccounts->where('type', 'LIABILITY')->filter(fn($r) => $r->amount != 0 || $r->total_credit > 0)->values();
+        $equities    = $allAccounts->where('type', 'EQUITY')->filter(fn($r) => $r->amount != 0)->values();
+
+        $totalRevenue        = (int) $allAccounts->where('type', 'REVENUE')->sum('amount');
+        $totalExpense        = (int) $allAccounts->where('type', 'EXPENSE')->sum('amount');
+        $cumulativeNetIncome = $totalRevenue - $totalExpense;
+        $totalAssets         = (int) $assets->sum('amount');
+        $totalLiabilities    = (int) $liabilities->sum('amount');
+        $totalEquity         = (int) $equities->sum('amount');
+        $totalEquitySection  = $totalEquity + $cumulativeNetIncome;
+
+        $filename = 'neraca_per-' . $dateTo . '.csv';
+
+        return response()->streamDownload(function () use ($assets, $liabilities, $equities, $totalAssets, $totalLiabilities, $totalEquity, $cumulativeNetIncome, $totalEquitySection, $dateTo) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Neraca / Balance Sheet', 'Per: ' . $dateTo], ';');
+            fputcsv($out, [], ';');
+            fputcsv($out, ['Kode', 'Nama Akun', 'Jumlah (Rp)'], ';');
+            fputcsv($out, ['', '-- AKTIVA --'], ';');
+            foreach ($assets as $r) { fputcsv($out, [$r->code, $r->name, $r->amount], ';'); }
+            fputcsv($out, ['', 'Total Aktiva', $totalAssets], ';');
+            fputcsv($out, [], ';');
+            fputcsv($out, ['', '-- KEWAJIBAN --'], ';');
+            foreach ($liabilities as $r) { fputcsv($out, [$r->code, $r->name, $r->amount], ';'); }
+            fputcsv($out, ['', 'Total Kewajiban', $totalLiabilities], ';');
+            fputcsv($out, [], ';');
+            fputcsv($out, ['', '-- EKUITAS --'], ';');
+            foreach ($equities as $r) { fputcsv($out, [$r->code, $r->name, $r->amount], ';'); }
+            fputcsv($out, ['', 'Laba/Rugi Berjalan', $cumulativeNetIncome], ';');
+            fputcsv($out, ['', 'Total Ekuitas', $totalEquitySection], ';');
+            fputcsv($out, [], ';');
+            fputcsv($out, ['', 'Total Kewajiban + Ekuitas', $totalLiabilities + $totalEquitySection], ';');
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 }

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin\Collection;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Admin\Collection\CollectionLetterController;
 use App\Models\CollectionRecord;
 use App\Models\CollectionLetter;
 use App\Models\Loan;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CollectionController extends Controller
 {
@@ -20,6 +23,7 @@ class CollectionController extends Controller
         $levelFilter   = $request->input('level');
         $petugasFilter = $request->input('petugas_id');
         $search        = $request->input('q');
+        $sortBy        = $request->input('sort_by');
 
         $query = Loan::with([
                 'member', 'application', 'loanProduct', 'collectionRecord.petugas',
@@ -48,9 +52,17 @@ class CollectionController extends Controller
             $query->whereHas('collectionRecord', fn($r) => $r->where('petugas_id', $petugasFilter));
         }
 
-        $loans = $query->paginate(100)->withQueryString();
         $today = Carbon::today();
-        $loans->getCollection()->transform(fn($l) => $this->enrichLoan($l, $today));
+
+        if ($sortBy) {
+            // Load all, enrich, sort in PHP (no pagination when sort active)
+            $raw = $query->get();
+            $raw->transform(fn($l) => $this->enrichLoan($l, $today));
+            $loans = $this->applySort($raw, $sortBy)->values();
+        } else {
+            $loans = $query->paginate(100)->withQueryString();
+            $loans->getCollection()->transform(fn($l) => $this->enrichLoan($l, $today));
+        }
 
         // Summary totals (all active)
         $allActive = Loan::where('status', 'ACTIVE')
@@ -74,8 +86,107 @@ class CollectionController extends Controller
             ->orderBy('name')->get();
 
         return view('admin.collection.index', compact(
-            'loans', 'totals', 'petugasList', 'levelFilter', 'petugasFilter', 'search', 'today'
+            'loans', 'totals', 'petugasList', 'levelFilter', 'petugasFilter', 'search', 'today', 'sortBy'
         ));
+    }
+
+    /**
+     * Export Master Tagihan Nasabah as CSV (Excel-compatible).
+     */
+    public function exportIndex(Request $request): StreamedResponse
+    {
+        $levelFilter   = $request->input('level');
+        $petugasFilter = $request->input('petugas_id');
+        $search        = $request->input('q');
+        $sortBy        = $request->input('sort_by');
+
+        $query = Loan::with([
+                'member', 'application', 'loanProduct', 'collectionRecord.petugas',
+                'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1),
+            ])
+            ->where('status', 'ACTIVE')
+            ->orderBy('id');
+
+        if ($search) {
+            $query->whereHas('member', fn($q) => $q->where('name', 'ilike', "%{$search}%")
+                ->orWhere('member_no', 'ilike', "%{$search}%"));
+        }
+
+        if ($levelFilter !== null && $levelFilter !== '') {
+            if ($levelFilter == '0') {
+                $query->where(function ($q) {
+                    $q->whereDoesntHave('collectionRecord')
+                      ->orWhereHas('collectionRecord', fn($r) => $r->where('escalation_level', 0));
+                });
+            } else {
+                $query->whereHas('collectionRecord', fn($r) => $r->where('escalation_level', $levelFilter));
+            }
+        }
+
+        if ($petugasFilter) {
+            $query->whereHas('collectionRecord', fn($r) => $r->where('petugas_id', $petugasFilter));
+        }
+
+        $today = Carbon::today();
+        $loans = $query->get();
+        $loans->transform(fn($l) => $this->enrichLoan($l, $today));
+        $loans = $this->applySort($loans, $sortBy)->values();
+
+        $filename = 'master-tagihan-' . $today->format('Ymd') . '.csv';
+
+        return response()->streamDownload(function () use ($loans) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
+
+            $headers = [
+                'No', 'Nasabah', 'No. Anggota', 'Nomor Kontrak', 'Cabang',
+                'Pinjaman', 'Tenor', 'Angsuran Ke', 'Tgl Jatuh Tempo', 'Angsuran Berjalan (Rp)',
+                'Angsuran Bulanan (Rp)', 'Bln Telat', 'Tunggakan (Rp)',
+                'Total Kewajiban (Rp)', 'Realisasi Tgl', 'Realisasi Rp', 'Realisasi Tunggakan',
+                'Sisa Kewajiban (Rp)', 'Total Bayar (Rp)',
+                'Alamat KTP', 'Alamat Jaminan', 'Alamat Tinggal', 'No Telepon',
+                'Status Eskalasi', 'Petugas',
+            ];
+            fputcsv($out, $headers, ';');
+
+            foreach ($loans as $i => $loan) {
+                $rec   = $loan->collectionRecord;
+                $noPk  = $loan->application?->notaris_deed_number
+                      ?: ('PK-KSP/' . str_pad($loan->id, 5, '0', STR_PAD_LEFT) . '/' . date('Y', strtotime($loan->disbursed_date)));
+                $level = $rec?->escalation_level ?? 0;
+                $levelLabel = CollectionRecord::LEVELS[$level] ?? 'Normal';
+
+                fputcsv($out, [
+                    $i + 1,
+                    strtoupper($loan->member->name),
+                    $loan->member->member_no ?? '',
+                    $noPk,
+                    $rec?->branch ?? '',
+                    $loan->principal,
+                    $loan->tenor_months,
+                    $loan->_ke,
+                    $loan->_bejalan_tgl,
+                    $loan->_angsuran_berjalan,
+                    $loan->monthly_installment,
+                    $loan->_bln_telat ?: '',
+                    $loan->_tunggakan != 0 ? $loan->_tunggakan : '',
+                    $loan->_total_kewajiban,
+                    $loan->_realisasi_tgl ?? '',
+                    $loan->_realisasi_rp ?: '',
+                    $loan->_realisasi_tunggakan != 0 ? $loan->_realisasi_tunggakan : '',
+                    $loan->_sisa_kewajiban,
+                    $loan->_total_bayar,
+                    $loan->member->address ?? '',
+                    $loan->_alamat_jaminan,
+                    $loan->_alamat_tinggal,
+                    $loan->member->phone ?? '',
+                    $levelLabel,
+                    $rec?->petugas?->name ?? '',
+                ], ';');
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
@@ -108,6 +219,12 @@ class CollectionController extends Controller
             $bucket['count']       = $subset->count();
             $bucket['outstanding'] = $subset->sum('outstanding');
             $bucket['arrears']     = $subset->sum(fn($l) => abs($l->_tunggakan));
+            // member names for click-to-expand
+            $bucket['members']     = $subset->map(fn($l) => [
+                'name'     => $l->member->name,
+                'overdue'  => $l->_days_overdue,
+                'tunggakan'=> abs($l->_tunggakan),
+            ])->values()->toArray();
         }
         unset($bucket);
 
@@ -120,16 +237,100 @@ class CollectionController extends Controller
             ->pluck('cnt', 'letter_type');
 
         $summary = [
-            'total_nasabah'   => $loans->count(),
+            'total_nasabah'     => $loans->count(),
             'total_outstanding' => $loans->sum('outstanding'),
-            'npl_nasabah'     => $npl->count(),
-            'npl_outstanding' => $npl->sum('outstanding'),
-            'npl_pct'         => $loans->count() > 0
+            'npl_nasabah'       => $npl->count(),
+            'npl_outstanding'   => $npl->sum('outstanding'),
+            'npl_pct'           => $loans->count() > 0
                 ? round($npl->count() / $loans->count() * 100, 1)
                 : 0,
         ];
 
         return view('admin.collection.laporan', compact('buckets', 'summary', 'spCounts', 'today', 'loans'));
+    }
+
+    /**
+     * Export Laporan Collection as CSV.
+     */
+    public function exportLaporan(): StreamedResponse
+    {
+        $today = Carbon::today();
+
+        $loans = Loan::with([
+                'member', 'application', 'collectionRecord',
+                'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1),
+            ])
+            ->where('status', 'ACTIVE')
+            ->get()
+            ->map(fn($l) => $this->enrichLoan($l, $today));
+
+        $buckets = [
+            'lancar'   => ['label' => 'Lancar (0 hari)',  'min' => 0,  'max' => 0],
+            'b1_30'    => ['label' => '1 – 30 hari',      'min' => 1,  'max' => 30],
+            'b31_60'   => ['label' => '31 – 60 hari',     'min' => 31, 'max' => 60],
+            'b61_plus' => ['label' => '61 hari ke atas',  'min' => 61, 'max' => PHP_INT_MAX],
+        ];
+
+        $totalCount = $loans->count();
+
+        foreach ($buckets as $key => &$bucket) {
+            $subset = $loans->filter(fn($l) =>
+                $l->_days_overdue >= $bucket['min'] && $l->_days_overdue <= $bucket['max']
+            );
+            $bucket['count']       = $subset->count();
+            $bucket['outstanding'] = $subset->sum('outstanding');
+            $bucket['arrears']     = $subset->sum(fn($l) => abs($l->_tunggakan));
+            $bucket['loans']       = $subset->values();
+        }
+        unset($bucket);
+
+        $filename = 'laporan-collection-' . $today->format('Ymd') . '.csv';
+
+        return response()->streamDownload(function () use ($buckets, $totalCount, $today) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+
+            // Summary header
+            fputcsv($out, ['LAPORAN COLLECTION — Per ' . $today->format('d/m/Y')], ';');
+            fputcsv($out, [], ';');
+
+            // Kolektabilitas table
+            fputcsv($out, ['Kolektabilitas', 'Nasabah', 'Persentase', 'Outstanding (Rp)', 'Tunggakan (Rp)'], ';');
+            foreach ($buckets as $bucket) {
+                $pct = $totalCount > 0 ? number_format($bucket['count'] / $totalCount * 100, 1) . '%' : '0%';
+                fputcsv($out, [
+                    $bucket['label'],
+                    $bucket['count'],
+                    $pct,
+                    $bucket['outstanding'],
+                    $bucket['arrears'],
+                ], ';');
+            }
+            fputcsv($out, [], ';');
+
+            // Per-bucket member detail
+            foreach ($buckets as $bucket) {
+                if ($bucket['count'] === 0) continue;
+                fputcsv($out, ['--- ' . $bucket['label'] . ' ---'], ';');
+                fputcsv($out, ['No', 'Nama Nasabah', 'No. Anggota', 'Nomor Kontrak', 'Pinjaman (Rp)', 'Hari Telat', 'Tunggakan (Rp)'], ';');
+                foreach ($bucket['loans'] as $i => $loan) {
+                    $noPk = $loan->application?->notaris_deed_number
+                          ?: ('PK-KSP/' . str_pad($loan->id, 5, '0', STR_PAD_LEFT) . '/' . date('Y', strtotime($loan->disbursed_date)));
+                    fputcsv($out, [
+                        $i + 1,
+                        $loan->member->name,
+                        $loan->member->member_no ?? '',
+                        $noPk,
+                        $loan->principal,
+                        $loan->_days_overdue ?: '-',
+                        abs($loan->_tunggakan) ?: '-',
+                    ], ';');
+                }
+                fputcsv($out, [], ';');
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
@@ -139,6 +340,7 @@ class CollectionController extends Controller
     {
         $search  = $request->input('q');
         $wilayah = $request->input('wilayah');
+        $sortBy  = $request->input('sort_by');
 
         $query = Loan::with(['member', 'application', 'collectionRecord',
                 'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1)])
@@ -153,13 +355,94 @@ class CollectionController extends Controller
         }
 
         $today = Carbon::today();
-        $loans = $query->paginate(100)->withQueryString();
-        $loans->getCollection()->transform(fn($l) => $this->enrichLoan($l, $today));
+
+        if ($sortBy) {
+            $raw = $query->get();
+            $raw->transform(fn($l) => $this->enrichLoan($l, $today));
+            $loans = $this->applySort($raw, $sortBy)->values();
+        } else {
+            $loans = $query->paginate(100)->withQueryString();
+            $loans->getCollection()->transform(fn($l) => $this->enrichLoan($l, $today));
+        }
 
         $wilayahList = CollectionRecord::whereNotNull('wilayah')
             ->distinct()->pluck('wilayah')->sort()->values();
 
-        return view('admin.collection.master-dhia', compact('loans', 'search', 'wilayah', 'wilayahList', 'today'));
+        return view('admin.collection.master-dhia', compact('loans', 'search', 'wilayah', 'wilayahList', 'today', 'sortBy'));
+    }
+
+    /**
+     * Export Data Master DHIA as CSV.
+     */
+    public function exportMasterDhia(Request $request): StreamedResponse
+    {
+        $search  = $request->input('q');
+        $wilayah = $request->input('wilayah');
+        $sortBy  = $request->input('sort_by');
+
+        $query = Loan::with(['member', 'application', 'collectionRecord',
+                'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1)])
+            ->where('status', 'ACTIVE')
+            ->orderBy('id');
+
+        if ($search) {
+            $query->whereHas('member', fn($q) => $q->where('name', 'ilike', "%{$search}%"));
+        }
+        if ($wilayah) {
+            $query->whereHas('collectionRecord', fn($q) => $q->where('wilayah', 'ilike', "%{$wilayah}%"));
+        }
+
+        $today = Carbon::today();
+        $loans = $query->get();
+        $loans->transform(fn($l) => $this->enrichLoan($l, $today));
+        $loans = $this->applySort($loans, $sortBy)->values();
+
+        $filename = 'master-dhia-' . $today->format('Ymd') . '.csv';
+
+        return response()->streamDownload(function () use ($loans) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+
+            fputcsv($out, [
+                'No', 'Tgl Pencairan', 'Nama Nasabah', 'Nomor Kontrak', 'Plafond (Rp)',
+                'Tenor', 'Angsuran Ke', 'NJOP', 'LT (m²)', 'LB (m²)',
+                'Angsuran Berjalan (Rp)', 'Tunggakan (Rp)', 'Hari Keterlambatan',
+                'Alamat KTP', 'Alamat Jaminan', 'Alamat Tinggal', 'Wilayah', 'No Telepon', 'Keterangan',
+            ], ';');
+
+            foreach ($loans as $i => $loan) {
+                $rec   = $loan->collectionRecord;
+                $noPk  = $loan->application?->notaris_deed_number
+                      ?: ('PK-KSP/' . str_pad($loan->id, 5, '0', STR_PAD_LEFT) . '/' . date('Y', strtotime($loan->disbursed_date)));
+
+                $alamatTinggal = $rec?->alamat_tinggal ?: ($loan->_alamat_tinggal ?? $loan->member->address ?? '');
+                $njopVal = $rec?->njop ?: ($loan->application?->form_data['njop_agunan'] ?? null);
+
+                fputcsv($out, [
+                    $i + 1,
+                    Carbon::parse($loan->disbursed_date)->format('d/m/Y'),
+                    $loan->member->name,
+                    $noPk,
+                    $loan->principal,
+                    $loan->tenor_months,
+                    $loan->_ke,
+                    $njopVal ?? '',
+                    $rec?->luas_tanah ?? '',
+                    $rec?->luas_bangunan ?? '',
+                    $loan->monthly_installment,
+                    $loan->_tunggakan < 0 ? abs($loan->_tunggakan) : '',
+                    $loan->_days_overdue > 0 ? $loan->_days_overdue : '',
+                    $loan->member->address ?? '',
+                    $loan->_alamat_jaminan,
+                    $alamatTinggal,
+                    $rec?->wilayah ?? '',
+                    $loan->member->phone ?? '',
+                    $rec?->notes ?? '',
+                ], ';');
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
@@ -181,8 +464,14 @@ class CollectionController extends Controller
                 ['ADMIN_COLLECTION', 'PETUGAS', 'SUPER_ADMIN', 'ADMIN', 'MANAGER']))
             ->orderBy('name')->get();
 
+        $todayStr = now()->toDateString();
+        $nextNumbers = [];
+        foreach (\App\Models\CollectionLetter::TYPES as $type => $label) {
+            $nextNumbers[$type] = CollectionLetterController::previewNumber($type, $todayStr);
+        }
+
         return view('admin.collection.show', compact(
-            'loan', 'record', 'letters', 'arrears', 'monthsLate', 'petugasList'
+            'loan', 'record', 'letters', 'arrears', 'monthsLate', 'petugasList', 'nextNumbers'
         ));
     }
 
@@ -228,7 +517,7 @@ class CollectionController extends Controller
         $monthsLate = $loan->monthly_installment > 0
             ? (int) ceil($arrears / $loan->monthly_installment)
             : 0;
-        $loan->_bln_telat = -$monthsLate;
+        $loan->_bln_telat = $monthsLate;
 
         // Proper days overdue: date since first unpaid installment was due
         if ($arrears > 0 && $loan->monthly_installment > 0) {
@@ -249,7 +538,7 @@ class CollectionController extends Controller
         $loan->_sisa_kewajiban        = (int) $loan->outstanding;
         $loan->_total_bayar           = (int) $loan->outstanding;
         $loan->_kota_jaminan          = $loan->application?->form_data['kota_agunan'] ?? '';
-        $loan->_alamat_tinggal        = $loan->member->address ?? '';
+        $loan->_alamat_tinggal        = $loan->collectionRecord?->alamat_tinggal ?: ($loan->member->address ?? '');
         $loan->_alamat_jaminan        = $this->buildAlamatJaminan($loan);
 
         return $loan;
@@ -269,6 +558,16 @@ class CollectionController extends Controller
             $fd['kota_agunan']       ?? '',
         ]);
         return implode(' ', $parts) ?: ($loan->member->address ?? '');
+    }
+
+    private function applySort(Collection $loans, ?string $sortBy): Collection
+    {
+        return match ($sortBy) {
+            'alamat_ktp'     => $loans->sortBy(fn($l) => strtolower($l->member->address ?? '')),
+            'alamat_jaminan' => $loans->sortBy(fn($l) => strtolower($l->_alamat_jaminan ?? '')),
+            'alamat_tinggal' => $loans->sortBy(fn($l) => strtolower($l->_alamat_tinggal ?? '')),
+            default          => $loans,
+        };
     }
 
     private function computeArrears(Loan $loan, Carbon $today): int

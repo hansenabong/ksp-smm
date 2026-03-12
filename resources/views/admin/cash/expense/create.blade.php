@@ -113,6 +113,16 @@
                     @error('description') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Kode Referensi <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                    </label>
+                    <input type="text" name="ref_number" value="{{ old('ref_number') }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-300"
+                           maxlength="150" placeholder="No. bukti, kode transfer, dsb.">
+                    @error('ref_number') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
                 <div x-show="isCheckOrGiro" x-transition>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         <span x-text="refLabel">No. Cek / Bilyet</span> <span class="text-red-500">*</span>

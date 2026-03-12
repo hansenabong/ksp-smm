@@ -191,10 +191,8 @@
 
                             @if ($canAcc)
                                 <div class="{{ $section }}">Akuntansi</div>
-                                @if($u?->hasRole('SUPER_ADMIN'))
                                 <a class="{{ $link(request()->routeIs('admin.accounting.accounts.*')) }}"
                                    href="{{ route('admin.accounting.accounts.index') }}">Bagan Akun (COA)</a>
-                                @endif
                                 <a class="{{ $link(request()->routeIs('admin.accounting.income_statement.*')) }}"
                                    href="{{ route('admin.accounting.income_statement.index') }}">Laba Rugi</a>
                                 <a class="{{ $link(request()->routeIs('admin.accounting.balance_sheet.*')) }}"

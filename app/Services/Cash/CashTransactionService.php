@@ -20,6 +20,7 @@ class CashTransactionService
             $tx = CashTransaction::create([
                 'code'               => 'TMP-' . Str::uuid()->toString(),
                 'reference_code'     => $data['reference_code'] ?? null,
+                'ref_number'         => $data['ref_number'] ?? null,
                 'trx_date'           => $data['trx_date'],
                 'type'               => 'INCOME',
                 'to_cash_account_id' => $data['to_cash_account_id'],
@@ -66,6 +67,7 @@ class CashTransactionService
             $tx = CashTransaction::create([
                 'code'                 => 'TMP-' . Str::uuid()->toString(),
                 'reference_code'       => $data['reference_code'] ?? null,
+                'ref_number'           => $data['ref_number'] ?? null,
                 'trx_date'             => $data['trx_date'],
                 'type'                 => 'EXPENSE',
                 'from_cash_account_id' => $data['from_cash_account_id'],
@@ -168,6 +170,7 @@ class CashTransactionService
             $tx = CashTransaction::create([
                 'code'                 => 'TMP-' . Str::uuid()->toString(),
                 'reference_code'       => $data['reference_code'] ?? null,
+                'ref_number'           => $data['ref_number'] ?? null,
                 'trx_date'             => $data['trx_date'],
                 'type'                 => 'TRANSFER',
                 'from_cash_account_id' => $data['from_cash_account_id'],

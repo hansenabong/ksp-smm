@@ -162,14 +162,15 @@ Route::middleware(['auth'])->group(function () {
             // Loan applications — view (index, show, download, PDFs) — PENGAWAS read-only included
             Route::middleware('role:SUPER_ADMIN|MANAGER|PETUGAS|ADMIN_DATA|PENGAWAS')->group(function () {
                 Route::get('/loans/applications',               [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
+                // NOTE: 'create' must be registered before '{application}' to avoid route conflict
+                Route::get('/loans/applications/create',        [LoanApplicationController::class,'create'])->name('admin.loans.applications.create')->middleware('role:SUPER_ADMIN|MANAGER|PETUGAS|ADMIN_DATA');
                 Route::get('/loans/applications/{application}', [LoanApplicationController::class,'show'])->name('admin.loans.applications.show');
                 Route::get('/loans/applications/{application}/files/{file}/download',[LoanApplicationController::class,'downloadFile'])->name('admin.loans.applications.files.download');
                 Route::get('/loans/applications/{application}/agreement',[LoanApplicationController::class,'agreement'])->name('admin.loans.applications.agreement');
                 Route::get('/loans/applications/{application}/agreement-vehicle',[LoanApplicationController::class,'agreementVehicle'])->name('admin.loans.applications.agreement.vehicle');
             });
-            // Loan applications — write (create, store, edit, update, delete) — PENGAWAS excluded
+            // Loan applications — write (store, edit, update, delete) — PENGAWAS excluded
             Route::middleware('role:SUPER_ADMIN|MANAGER|PETUGAS|ADMIN_DATA')->group(function () {
-                Route::get('/loans/applications/create',             [LoanApplicationController::class,'create'])->name('admin.loans.applications.create');
                 Route::post('/loans/applications',                   [LoanApplicationController::class,'store'])->name('admin.loans.applications.store');
                 Route::get('/loans/applications/{application}/edit', [LoanApplicationController::class,'edit'])->name('admin.loans.applications.edit');
                 Route::put('/loans/applications/{application}',      [LoanApplicationController::class,'update'])->name('admin.loans.applications.update');
@@ -218,23 +219,30 @@ Route::middleware(['auth'])->group(function () {
             // AKUNTANSI, LAPORAN, AUDIT — MANAGER + BENDAHARA + ADMIN/SUPER_ADMIN
             // Petugas has no access to financial statements or audit trails.
             // ------------------------------------------------------------------
-            // COA Management — SUPER_ADMIN only
-            Route::prefix('accounting/accounts')->middleware('role:SUPER_ADMIN')->group(function () {
-                Route::get('/',                 [AccountController::class,'index'])->name('admin.accounting.accounts.index');
-                Route::get('/create',           [AccountController::class,'create'])->name('admin.accounting.accounts.create');
-                Route::post('/',                [AccountController::class,'store'])->name('admin.accounting.accounts.store');
-                Route::get('/{account}/edit',   [AccountController::class,'edit'])->name('admin.accounting.accounts.edit');
-                Route::put('/{account}',        [AccountController::class,'update'])->name('admin.accounting.accounts.update');
-                Route::patch('/{account}/toggle',[AccountController::class,'toggle'])->name('admin.accounting.accounts.toggle');
+            // COA Management — index: ADMIN+; write: SUPER_ADMIN only
+            Route::prefix('accounting/accounts')->middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA')->group(function () {
+                Route::get('/', [AccountController::class,'index'])->name('admin.accounting.accounts.index');
+                Route::middleware('role:SUPER_ADMIN')->group(function () {
+                    Route::get('/create',           [AccountController::class,'create'])->name('admin.accounting.accounts.create');
+                    Route::post('/',                [AccountController::class,'store'])->name('admin.accounting.accounts.store');
+                    Route::get('/{account}/edit',   [AccountController::class,'edit'])->name('admin.accounting.accounts.edit');
+                    Route::put('/{account}',        [AccountController::class,'update'])->name('admin.accounting.accounts.update');
+                    Route::patch('/{account}/toggle',[AccountController::class,'toggle'])->name('admin.accounting.accounts.toggle');
+                });
             });
 
             Route::middleware('role:SUPER_ADMIN|ADMIN|MANAGER|BENDAHARA')->group(function () {
-                Route::get('/accounting/trial-balance',       [AccountingTrialBalanceController::class,'index'])->name('admin.accounting.trial_balance.index');
-                Route::get('/accounting/general-ledger',      [GeneralLedgerController::class,'index'])->name('admin.accounting.general_ledger.index');
-                Route::get('/accounting/journal-entries',     [JournalEntryController::class,'index'])->name('admin.accounting.journal_entries.index');
-                Route::get('/accounting/journal-entries/{entry}',[JournalEntryController::class,'show'])->name('admin.accounting.journal_entries.show');
-                Route::get('/accounting/income-statement',    [IncomeStatementController::class,'index'])->name('admin.accounting.income_statement.index');
-                Route::get('/accounting/balance-sheet',       [BalanceSheetController::class,'index'])->name('admin.accounting.balance_sheet.index');
+                Route::get('/accounting/trial-balance',              [AccountingTrialBalanceController::class,'index'])->name('admin.accounting.trial_balance.index');
+                Route::get('/accounting/trial-balance/export',       [AccountingTrialBalanceController::class,'export'])->name('admin.accounting.trial_balance.export');
+                Route::get('/accounting/general-ledger',             [GeneralLedgerController::class,'index'])->name('admin.accounting.general_ledger.index');
+                Route::get('/accounting/general-ledger/export',      [GeneralLedgerController::class,'export'])->name('admin.accounting.general_ledger.export');
+                Route::get('/accounting/journal-entries',            [JournalEntryController::class,'index'])->name('admin.accounting.journal_entries.index');
+                Route::get('/accounting/journal-entries/export',     [JournalEntryController::class,'export'])->name('admin.accounting.journal_entries.export');
+                Route::get('/accounting/journal-entries/{entry}',    [JournalEntryController::class,'show'])->name('admin.accounting.journal_entries.show');
+                Route::get('/accounting/income-statement',           [IncomeStatementController::class,'index'])->name('admin.accounting.income_statement.index');
+                Route::get('/accounting/income-statement/export',    [IncomeStatementController::class,'export'])->name('admin.accounting.income_statement.export');
+                Route::get('/accounting/balance-sheet',              [BalanceSheetController::class,'index'])->name('admin.accounting.balance_sheet.index');
+                Route::get('/accounting/balance-sheet/export',       [BalanceSheetController::class,'export'])->name('admin.accounting.balance_sheet.export');
             });
 
             // SHU: read → ADMIN + MANAGER + BENDAHARA; write → MANAGER only
@@ -322,8 +330,11 @@ Route::middleware(['auth'])->group(function () {
                 // View — PENGAWAS read-only included
                 Route::middleware('role:SUPER_ADMIN|ADMIN|MANAGER|ADMIN_COLLECTION|PENGAWAS')->group(function () {
                     Route::get('/',                     [CollectionController::class,'index'])->name('admin.collection.index');
+                    Route::get('/export',               [CollectionController::class,'exportIndex'])->name('admin.collection.export');
                     Route::get('/laporan',              [CollectionController::class,'laporan'])->name('admin.collection.laporan');
+                    Route::get('/export-laporan',       [CollectionController::class,'exportLaporan'])->name('admin.collection.export-laporan');
                     Route::get('/master-dhia',          [CollectionController::class,'masterDhia'])->name('admin.collection.master-dhia');
+                    Route::get('/export-dhia',          [CollectionController::class,'exportMasterDhia'])->name('admin.collection.export-dhia');
                     Route::get('/letters/{letter}/pdf', [CollectionLetterController::class,'pdf'])->name('admin.collection.letters.pdf');
                     Route::get('/{loan}',               [CollectionController::class,'show'])->name('admin.collection.show');
                 });

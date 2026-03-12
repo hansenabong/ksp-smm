@@ -102,7 +102,8 @@ class CashIncomeController extends Controller
             'cash_category_id'   => ['required', 'exists:cash_categories,id'],
             'amount'             => ['required', 'integer', 'min:1'],
             'description'        => ['nullable', 'string', 'max:255'],
-            'reference_code'     => [$refRequired, 'string', 'max:100'],
+            'reference_code'     => [$refRequired, 'string', 'max:100', 'unique:cash_transactions,reference_code'],
+            'ref_number'         => ['nullable', 'string', 'max:150'],
         ]);
 
         $cashCategory = CashCategory::findOrFail($validated['cash_category_id']);

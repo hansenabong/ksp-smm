@@ -2,9 +2,15 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-gray-800">Master Tagihan Nasabah</h2>
-            <button onclick="window.print()" class="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600 print:hidden">
-                Cetak
-            </button>
+            <div class="flex gap-2 print:hidden">
+                <a href="{{ route('admin.collection.export', array_filter(['q'=>$search,'level'=>$levelFilter,'petugas_id'=>$petugasFilter,'sort_by'=>$sortBy])) }}"
+                   class="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                    ↓ Export Excel
+                </a>
+                <button onclick="window.print()" class="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600">
+                    Cetak
+                </button>
+            </div>
         </div>
     </x-slot>
 
@@ -72,8 +78,17 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Urutkan</label>
+                <select name="sort_by" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    <option value="">Default (ID)</option>
+                    <option value="alamat_ktp"     @selected($sortBy === 'alamat_ktp')>Alamat KTP</option>
+                    <option value="alamat_jaminan" @selected($sortBy === 'alamat_jaminan')>Alamat Jaminan</option>
+                    <option value="alamat_tinggal" @selected($sortBy === 'alamat_tinggal')>Alamat Tinggal</option>
+                </select>
+            </div>
             <button type="submit" class="px-4 py-1.5 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 font-medium">Filter</button>
-            @if($search || $levelFilter !== null || $petugasFilter)
+            @if($search || $levelFilter !== null || $petugasFilter || $sortBy)
             <a href="{{ route('admin.collection.index') }}" class="px-4 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200">Reset</a>
             @endif
         </form>
@@ -96,7 +111,7 @@
                     {{-- JW group --}}
                     <th colspan="4">JW</th>
                     {{-- Angsuran group --}}
-                    <th colspan="3">Angsuran</th>
+                    <th colspan="2">Angsuran</th>
                     <th rowspan="3" class="col-num">Total<br>Kewajiban</th>
                     {{-- Realisasi --}}
                     <th colspan="3">Realisasi</th>
@@ -115,7 +130,6 @@
                     {{-- Bejalan --}}
                     <th colspan="2">Bejalan</th>
                     {{-- Angsuran sub --}}
-                    <th rowspan="2" class="col-num">Berjalan<br>(Rp)</th>
                     <th rowspan="2" class="col-sm">Bln</th>
                     <th rowspan="2" class="col-num">Tunggakan<br>(Rp)</th>
                     {{-- Realisasi sub --}}
@@ -137,9 +151,10 @@
                     $level = $rec?->escalation_level ?? 0;
                     $noPk  = $loan->application?->notaris_deed_number
                           ?: ('PK-KSP/'.str_pad($loan->id, 5, '0', STR_PAD_LEFT).'/'.date('Y', strtotime($loan->disbursed_date)));
+                    $rowNo = method_exists($loans, 'firstItem') ? $loans->firstItem() + $i : $loop->iteration;
                 @endphp
                 <tr>
-                    <td class="col-no text-gray-500">{{ $loans->firstItem() + $i }}</td>
+                    <td class="col-no text-gray-500">{{ $rowNo }}</td>
                     <td class="col-name">
                         <strong>{{ strtoupper($loan->member->name) }}</strong>
                         @if($rec?->is_restruk)<br><span style="font-size:9px;color:#2563EB">[Restruk]</span>@endif
@@ -156,8 +171,7 @@
                     <td class="col-sm" style="font-size:9px">{{ $loan->_bejalan_tgl }}</td>
                     <td class="col-num">{{ number_format($loan->_angsuran_berjalan) }}</td>
                     {{-- Angsuran --}}
-                    <td class="col-num">{{ number_format($loan->monthly_installment) }}</td>
-                    <td class="col-sm {{ $loan->_bln_telat < 0 ? 'col-neg' : '' }}">
+                    <td class="col-sm {{ $loan->_bln_telat > 0 ? 'col-neg' : '' }}">
                         {{ $loan->_bln_telat != 0 ? $loan->_bln_telat : '' }}
                     </td>
                     <td class="col-num {{ $loan->_tunggakan < 0 ? 'col-neg' : '' }}">
@@ -195,7 +209,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="26" class="text-center py-8 text-gray-400">Tidak ada data pinjaman aktif.</td>
+                    <td colspan="25" class="text-center py-8 text-gray-400">Tidak ada data pinjaman aktif.</td>
                 </tr>
                 @endforelse
 
@@ -204,7 +218,6 @@
                 <tr class="total-row">
                     <td colspan="7" class="text-right">TOTAL</td>
                     <td colspan="4"></td>
-                    <td class="col-num">{{ number_format($loans->getCollection()->sum('monthly_installment')) }}</td>
                     <td></td>
                     <td class="col-num col-neg">{{ number_format($loans->getCollection()->sum('_tunggakan')) }}</td>
                     <td class="col-num">{{ number_format($loans->getCollection()->sum('_total_kewajiban')) }}</td>
@@ -220,7 +233,7 @@
             </table>
         </div>
 
-        @if($loans->hasPages())
+        @if(method_exists($loans, 'hasPages') && $loans->hasPages())
         <div class="px-4 py-3 border-t border-gray-100 print:hidden">
             {{ $loans->links() }}
         </div>

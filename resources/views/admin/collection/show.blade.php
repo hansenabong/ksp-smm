@@ -193,22 +193,35 @@
                 <div class="px-5 py-4 border-b border-gray-100">
                     <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Buat Surat</div>
                 </div>
-                <form method="POST" action="{{ route('admin.collection.letters.store', $loan) }}" target="_blank" class="px-5 py-4 space-y-4">
+                <form method="POST" action="{{ route('admin.collection.letters.store', $loan) }}" target="_blank" class="px-5 py-4 space-y-4"
+                    x-data="{
+                        letterType: '{{ collect(\App\Models\CollectionLetter::TYPE_LEVEL)->filter(fn($l) => $l == $currentLevel + 1)->keys()->first() ?? 'SP1' }}',
+                        nextNumbers: @json($nextNumbers),
+                        get suggestedNumber() { return this.nextNumbers[this.letterType] ?? '' }
+                    }">
                     @csrf
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                             Jenis Surat <span class="text-red-500">*</span>
                         </label>
-                        <select name="letter_type" required
+                        <select name="letter_type" required x-model="letterType"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
                             @foreach(\App\Models\CollectionLetter::TYPES as $type => $label)
-                            <option value="{{ $type }}" {{ $currentLevel + 1 == \App\Models\CollectionLetter::TYPE_LEVEL[$type] ? 'selected' : '' }}>
-                                {{ $label }}
-                            </option>
+                            <option value="{{ $type }}">{{ $label }}</option>
                             @endforeach
                         </select>
                         <p class="text-xs text-gray-400 mt-1">Eskalasi saat ini: <strong>{{ $levelLabels[$currentLevel] }}</strong></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                            No. Surat <span class="text-xs text-gray-400 font-normal">(otomatis jika dikosongkan)</span>
+                        </label>
+                        <input type="text" name="letter_number"
+                            :placeholder="suggestedNumber"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        <p class="text-xs text-gray-400 mt-1">Kosongkan untuk menggunakan nomor otomatis: <span class="font-mono" x-text="suggestedNumber"></span></p>
                     </div>
 
                     <div>

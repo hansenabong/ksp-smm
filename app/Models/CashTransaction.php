@@ -15,6 +15,7 @@ class CashTransaction extends Model
     protected $fillable = [
         'code',
         'reference_code',
+        'ref_number',
         'trx_date',
         'type',
         'from_cash_account_id',

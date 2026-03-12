@@ -19,15 +19,20 @@ class CollectionLetterController extends Controller
     public function store(Request $request, Loan $loan)
     {
         $data = $request->validate([
-            'letter_type' => 'required|in:SP1,SP2,SP3,SOMASI,CESSIE',
-            'letter_date' => 'required|date',
-            'notes'       => 'nullable|string|max:1000',
+            'letter_type'   => 'required|in:SP1,SP2,SP3,SOMASI,CESSIE',
+            'letter_date'   => 'required|date',
+            'letter_number' => 'nullable|string|max:80',
+            'notes'         => 'nullable|string|max:1000',
         ]);
+
+        $letterNumber = filled($data['letter_number'] ?? null)
+            ? $data['letter_number']
+            : $this->generateNumber($data['letter_type'], $loan, $data['letter_date']);
 
         $letter = CollectionLetter::create([
             'loan_id'       => $loan->id,
             'letter_type'   => $data['letter_type'],
-            'letter_number' => $this->generateNumber($data['letter_type'], $loan, $data['letter_date']),
+            'letter_number' => $letterNumber,
             'letter_date'   => $data['letter_date'],
             'created_by'    => auth()->id(),
             'notes'         => $data['notes'] ?? null,
@@ -78,12 +83,20 @@ class CollectionLetterController extends Controller
 
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function generateNumber(string $type, Loan $loan, string $date): string
+    public static function previewNumber(string $type, string $date): string
     {
         $year  = \Carbon\Carbon::parse($date)->format('Y');
-        $count = CollectionLetter::where('letter_type', $type)
-            ->whereYear('letter_date', $year)
-            ->count() + 1;
+
+        // SP1/SP2/SP3 share one sequential counter; SOMASI and CESSIE are independent
+        if (in_array($type, ['SP1', 'SP2', 'SP3'])) {
+            $count = CollectionLetter::whereIn('letter_type', ['SP1', 'SP2', 'SP3'])
+                ->whereYear('letter_date', $year)
+                ->count() + 1;
+        } else {
+            $count = CollectionLetter::where('letter_type', $type)
+                ->whereYear('letter_date', $year)
+                ->count() + 1;
+        }
 
         $prefix = match ($type) {
             'SP1'    => 'SP1',
@@ -95,5 +108,10 @@ class CollectionLetterController extends Controller
         };
 
         return $prefix . '/' . $year . '/' . str_pad($count, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function generateNumber(string $type, Loan $loan, string $date): string
+    {
+        return self::previewNumber($type, $date);
     }
 }

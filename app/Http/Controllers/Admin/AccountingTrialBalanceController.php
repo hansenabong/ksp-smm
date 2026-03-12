@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AccountingTrialBalanceController extends Controller
 {
@@ -136,5 +137,64 @@ class AccountingTrialBalanceController extends Controller
             'totalEndingD', 'totalEndingC',
             'obBalanced', 'periodBalanced', 'endingBalanced', 'isBalanced'
         ));
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'BENDAHARA', 'MANAGER']), 403);
+
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo   = $request->input('date_to', now()->toDateString());
+
+        $rows = Account::query()
+            ->where('accounts.is_active', true)
+            ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
+            ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
+            ->select([
+                'accounts.id', 'accounts.code', 'accounts.name', 'accounts.type', 'accounts.normal_balance',
+                DB::raw("COALESCE(SUM(CASE WHEN je.id IS NOT NULL AND je.is_voided = false AND je.trx_date < ? AND jl.dc = 'D' THEN jl.amount ELSE 0 END), 0) AS ob_debit"),
+                DB::raw("COALESCE(SUM(CASE WHEN je.id IS NOT NULL AND je.is_voided = false AND je.trx_date < ? AND jl.dc = 'C' THEN jl.amount ELSE 0 END), 0) AS ob_credit"),
+                DB::raw("COALESCE(SUM(CASE WHEN je.id IS NOT NULL AND je.is_voided = false AND je.trx_date >= ? AND je.trx_date <= ? AND jl.dc = 'D' THEN jl.amount ELSE 0 END), 0) AS period_debit"),
+                DB::raw("COALESCE(SUM(CASE WHEN je.id IS NOT NULL AND je.is_voided = false AND je.trx_date >= ? AND je.trx_date <= ? AND jl.dc = 'C' THEN jl.amount ELSE 0 END), 0) AS period_credit"),
+            ])
+            ->addBinding([$dateFrom, $dateFrom, $dateFrom, $dateTo, $dateFrom, $dateTo], 'select')
+            ->groupBy('accounts.id', 'accounts.code', 'accounts.name', 'accounts.type', 'accounts.normal_balance')
+            ->orderBy('accounts.code')
+            ->get()
+            ->map(function ($r) {
+                $obD = (int) $r->ob_debit; $obC = (int) $r->ob_credit;
+                $pd  = (int) $r->period_debit; $pc  = (int) $r->period_credit;
+                $isD = $r->normal_balance === 'D';
+                $obNet  = $isD ? ($obD - $obC) : ($obC - $obD);
+                $endNet = $isD ? ($obD + $pd - $obC - $pc) : ($obC + $pc - $obD - $pd);
+                $r->ob_d_col     = $isD ? max($obNet, 0)  : max(-$obNet, 0);
+                $r->ob_c_col     = $isD ? max(-$obNet, 0) : max($obNet, 0);
+                $r->ending_d_col = $isD ? max($endNet, 0)  : max(-$endNet, 0);
+                $r->ending_c_col = $isD ? max(-$endNet, 0) : max($endNet, 0);
+                $r->period_debit = $pd; $r->period_credit = $pc;
+                return $r;
+            })
+            ->filter(fn($r) => $r->ob_debit > 0 || $r->ob_credit > 0 || $r->period_debit > 0 || $r->period_credit > 0);
+
+        $typeLabels = ['ASSET'=>'Aktiva','LIABILITY'=>'Kewajiban','EQUITY'=>'Modal','REVENUE'=>'Pendapatan','EXPENSE'=>'Beban'];
+
+        $filename = 'neraca-saldo_' . $dateFrom . '_sd_' . $dateTo . '.csv';
+
+        return response()->streamDownload(function () use ($rows, $typeLabels, $dateFrom, $dateTo) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Neraca Saldo', 'Per: ' . $dateFrom . ' s/d ' . $dateTo], ';');
+            fputcsv($out, [], ';');
+            fputcsv($out, ['Kode', 'Nama Akun', 'Tipe', 'Saldo Awal (D)', 'Saldo Awal (K)', 'Mutasi Debit', 'Mutasi Kredit', 'Saldo Akhir (D)', 'Saldo Akhir (K)'], ';');
+            foreach ($rows->groupBy('type') as $type => $group) {
+                fputcsv($out, ['', '— ' . ($typeLabels[$type] ?? $type) . ' —'], ';');
+                foreach ($group as $r) {
+                    fputcsv($out, [$r->code, $r->name, $typeLabels[$r->type] ?? $r->type, $r->ob_d_col, $r->ob_c_col, $r->period_debit, $r->period_credit, $r->ending_d_col, $r->ending_c_col], ';');
+                }
+            }
+            fputcsv($out, [], ';');
+            fputcsv($out, ['', 'TOTAL', '', $rows->sum('ob_d_col'), $rows->sum('ob_c_col'), $rows->sum('period_debit'), $rows->sum('period_credit'), $rows->sum('ending_d_col'), $rows->sum('ending_c_col')], ';');
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 }

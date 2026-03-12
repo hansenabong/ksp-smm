@@ -2,9 +2,15 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-gray-800">Laporan Collection</h2>
-            <button onclick="window.print()" class="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600 print:hidden">
-                Cetak
-            </button>
+            <div class="flex gap-2 print:hidden">
+                <a href="{{ route('admin.collection.export-laporan') }}"
+                   class="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                    ↓ Export Excel
+                </a>
+                <button onclick="window.print()" class="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600">
+                    Cetak
+                </button>
+            </div>
         </div>
     </x-slot>
 
@@ -45,9 +51,10 @@
     </div>
 
     {{-- ── Collectability Table ── --}}
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-5">
-        <div class="px-5 py-4 border-b border-gray-100">
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-5" x-data="{ openBucket: null }">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">Kolektabilitas Pinjaman</div>
+            <div class="text-[10px] text-gray-400 print:hidden">Klik jumlah nasabah untuk melihat detail nama</div>
         </div>
         <table class="w-full text-sm">
             <thead>
@@ -60,11 +67,12 @@
                     <th class="px-4 py-3 text-right">Tunggakan (Rp)</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody>
                 @php $totalCount = $summary['total_nasabah']; @endphp
                 @foreach($buckets as $key => $bucket)
                 @php $c = $bucketColors[$key]; @endphp
-                <tr class="{{ $c['bg'] }}">
+                {{-- Main row --}}
+                <tr class="{{ $c['bg'] }} border-b border-gray-100">
                     <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $loop->iteration }}</td>
                     <td class="px-4 py-2.5">
                         <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $c['badge'] }}">
@@ -72,7 +80,15 @@
                         </span>
                     </td>
                     <td class="px-4 py-2.5 text-right font-semibold {{ $c['text'] }}">
+                        @if($bucket['count'] > 0)
+                        <button type="button"
+                            @click="openBucket = openBucket === '{{ $key }}' ? null : '{{ $key }}'"
+                            class="underline decoration-dotted cursor-pointer hover:opacity-70 print:no-underline print:cursor-default">
+                            {{ number_format($bucket['count']) }}
+                        </button>
+                        @else
                         {{ number_format($bucket['count']) }}
+                        @endif
                     </td>
                     <td class="px-4 py-2.5 text-right {{ $c['text'] }}">
                         {{ $totalCount > 0 ? number_format($bucket['count'] / $totalCount * 100, 1) : 0 }}%
@@ -84,6 +100,42 @@
                         {{ $bucket['arrears'] > 0 ? number_format($bucket['arrears']) : '-' }}
                     </td>
                 </tr>
+                {{-- Expandable member list --}}
+                @if($bucket['count'] > 0)
+                <tr x-show="openBucket === '{{ $key }}'" x-cloak class="print:hidden">
+                    <td colspan="6" class="px-0 py-0">
+                        <div class="bg-white border-b border-gray-200 px-6 py-3">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
+                                Daftar Nasabah — {{ $bucket['label'] }}
+                            </div>
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-gray-100">
+                                        <th class="text-left py-1 pr-3 w-6">No</th>
+                                        <th class="text-left py-1 pr-3">Nama Nasabah</th>
+                                        <th class="text-right py-1 pr-3">Hari Telat</th>
+                                        <th class="text-right py-1">Tunggakan (Rp)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    @foreach($bucket['members'] as $mi => $m)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="py-1 pr-3 text-gray-400">{{ $mi + 1 }}</td>
+                                        <td class="py-1 pr-3 font-medium text-gray-800">{{ $m['name'] }}</td>
+                                        <td class="py-1 pr-3 text-right {{ $m['overdue'] > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
+                                            {{ $m['overdue'] > 0 ? $m['overdue'] . ' hari' : '-' }}
+                                        </td>
+                                        <td class="py-1 text-right {{ $m['tunggakan'] > 0 ? 'text-red-600 font-semibold font-mono' : 'text-gray-400' }}">
+                                            {{ $m['tunggakan'] > 0 ? number_format($m['tunggakan']) : '-' }}
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                @endif
                 @endforeach
 
                 {{-- NPL subtotal (b1_30 + b31_60 + b61_plus) --}}
@@ -92,7 +144,7 @@
                     $nplOutst   = $buckets['b1_30']['outstanding'] + $buckets['b31_60']['outstanding'] + $buckets['b61_plus']['outstanding'];
                     $nplArrears = $buckets['b1_30']['arrears'] + $buckets['b31_60']['arrears'] + $buckets['b61_plus']['arrears'];
                 @endphp
-                <tr class="bg-red-100 font-bold">
+                <tr class="bg-red-100 font-bold border-b border-gray-100">
                     <td class="px-4 py-2.5 text-red-700"></td>
                     <td class="px-4 py-2.5 text-red-700">Jumlah NPL</td>
                     <td class="px-4 py-2.5 text-right text-red-700">{{ number_format($nplCount) }}</td>
@@ -110,9 +162,7 @@
                     <td class="px-4 py-2.5 text-right">{{ number_format($totalCount) }}</td>
                     <td class="px-4 py-2.5 text-right">100%</td>
                     <td class="px-4 py-2.5 text-right font-mono">{{ number_format($summary['total_outstanding']) }}</td>
-                    <td class="px-4 py-2.5 text-right font-mono">
-                        {{ number_format($nplArrears) }}
-                    </td>
+                    <td class="px-4 py-2.5 text-right font-mono">{{ number_format($nplArrears) }}</td>
                 </tr>
             </tbody>
         </table>

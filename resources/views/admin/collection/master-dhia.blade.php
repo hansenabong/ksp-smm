@@ -2,9 +2,15 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-gray-800">Data Master DHIA</h2>
-            <button onclick="window.print()" class="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600 print:hidden">
-                Cetak
-            </button>
+            <div class="flex gap-2 print:hidden">
+                <a href="{{ route('admin.collection.export-dhia', array_filter(['q'=>$search,'wilayah'=>$wilayah,'sort_by'=>$sortBy])) }}"
+                   class="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                    ↓ Export Excel
+                </a>
+                <button onclick="window.print()" class="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600">
+                    Cetak
+                </button>
+            </div>
         </div>
     </x-slot>
 
@@ -42,8 +48,17 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Urutkan</label>
+                <select name="sort_by" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    <option value="">Default (ID)</option>
+                    <option value="alamat_ktp"     @selected($sortBy === 'alamat_ktp')>Alamat KTP</option>
+                    <option value="alamat_jaminan" @selected($sortBy === 'alamat_jaminan')>Alamat Jaminan</option>
+                    <option value="alamat_tinggal" @selected($sortBy === 'alamat_tinggal')>Alamat Tinggal</option>
+                </select>
+            </div>
             <button type="submit" class="px-4 py-1.5 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 font-medium">Filter</button>
-            @if($search || $wilayah)
+            @if($search || $wilayah || $sortBy)
             <a href="{{ route('admin.collection.master-dhia') }}" class="px-4 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200">Reset</a>
             @endif
         </form>
@@ -105,9 +120,10 @@
                     $njopVal = $rec?->njop ?: ($loan->application?->form_data['njop_agunan'] ?? null);
                     $ltVal   = $rec?->luas_tanah ?: null;
                     $lbVal   = $rec?->luas_bangunan ?: null;
+                    $rowNo   = method_exists($loans, 'firstItem') ? $loans->firstItem() + $i : $loop->iteration;
                 @endphp
                 <tr>
-                    <td style="text-align:center;color:#9CA3AF">{{ $loans->firstItem() + $i }}</td>
+                    <td style="text-align:center;color:#9CA3AF">{{ $rowNo }}</td>
                     <td style="text-align:center">{{ \Carbon\Carbon::parse($loan->disbursed_date)->format('d/m/Y') }}</td>
                     <td><strong>{{ $loan->member->name }}</strong>
                         @if($rec?->is_restruk)<br><span style="font-size:8px;color:#2563EB">[Restruk]</span>@endif
@@ -151,7 +167,7 @@
             </table>
         </div>
 
-        @if($loans->hasPages())
+        @if(method_exists($loans, 'hasPages') && $loans->hasPages())
         <div class="px-4 py-3 border-t border-gray-100 print:hidden">
             {{ $loans->links() }}
         </div>
