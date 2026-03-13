@@ -3,27 +3,29 @@
 
     // ── Role matrix ────────────────────────────────────────────────────────────
     // SUPER_ADMIN      : everything
-    // ADMIN_DATA       : member CRUD, loan applications, master data (write), laporan
-    // ADMIN_COLLECTION : loan payments, collection menu, pinjaman approved, laporan
-    // TREASURY         : pinjaman approved (view), pengajuan (view), kwitansi, PK, permohonan dana
-    // FINANCE          : accounting menus only
-    // PENGAWAS         : read-only — pinjaman, laporan, master data (view only), saldo anggota
+    // ADMIN_DATA       : loan applications (create/edit), pinjaman approved, master anggota
+    // ADMIN_COLLECTION : collection (all), pinjaman approved, loan payments, master anggota
+    // TREASURY         : pengajuan (view), pinjaman approved (view), kwitansi, PK,
+    //                    permohonan dana, DHIA (view only)
+    // FINANCE          : kas, simpanan, laporan, master data (all), audit, akuntansi
+    // PENGAWAS         : pengajuan (view), pinjaman approved, all collection, master anggota
+    // LEGAL            : same access as PENGAWAS
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Kas — SUPER_ADMIN only
-    $canCash       = $u?->hasRole('SUPER_ADMIN');
+    // Kas — SUPER_ADMIN + FINANCE
+    $canCash       = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
 
-    // Simpanan — SUPER_ADMIN only
-    $canSavings    = $u?->hasRole('SUPER_ADMIN');
+    // Simpanan — SUPER_ADMIN + FINANCE
+    $canSavings    = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
 
-    // Saldo anggota — ADMIN_DATA + PENGAWAS can view
-    $canSavBalance = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'PENGAWAS']);
+    // Saldo anggota — SUPER_ADMIN + FINANCE
+    $canSavBalance = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
 
-    // Loan applications — ADMIN_DATA + TREASURY (for docs) + PENGAWAS (view)
-    $canLoanApp    = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'TREASURY', 'PENGAWAS']);
+    // Loan applications — ADMIN_DATA + TREASURY (for docs) + PENGAWAS/LEGAL (view)
+    $canLoanApp    = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'TREASURY', 'PENGAWAS', 'LEGAL']);
 
-    // Active loans index — TREASURY included (view-only, to access loan docs from list)
-    $canActiveLoans = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY', 'PENGAWAS']);
+    // Active loans index — view-only for non-admin roles
+    $canActiveLoans = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY', 'PENGAWAS', 'LEGAL']);
 
     // Treasury doc routes — TREASURY
     $canTreasury   = $u?->hasAnyRole(['SUPER_ADMIN', 'TREASURY']);
@@ -31,20 +33,26 @@
     // Loan payments entry — ADMIN_COLLECTION
     $canPayments   = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_COLLECTION']);
 
-    // Reports
-    $canReports    = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'PENGAWAS']);
+    // Reports — SUPER_ADMIN + FINANCE only
+    $canReports    = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
 
-    // Audit — SUPER_ADMIN only
-    $canAudit      = $u?->hasRole('SUPER_ADMIN');
+    // Audit — SUPER_ADMIN + FINANCE
+    $canAudit      = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
 
     // Akuntansi — FINANCE
     $canAcc        = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
 
-    // Admin Collection menu — ADMIN_COLLECTION only
-    $canCollection = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_COLLECTION']);
+    // Admin Collection menu — ADMIN_COLLECTION + PENGAWAS + LEGAL (all menus)
+    $canCollection = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_COLLECTION', 'PENGAWAS', 'LEGAL']);
 
-    // Master data — ADMIN_DATA + PENGAWAS (view)
-    $canMaster     = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'PENGAWAS']);
+    // DHIA only — also accessible by TREASURY (read-only)
+    $canDhia       = $u?->hasAnyRole(['SUPER_ADMIN', 'ADMIN_COLLECTION', 'PENGAWAS', 'LEGAL', 'TREASURY']);
+
+    // Master data: financial items (Jenis Simpanan, Jenis Pinjaman, Kategori Kas, Kas) — FINANCE only
+    $canMaster     = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE']);
+
+    // Master data: Anggota — broader access (no money amounts)
+    $canMasterMembers = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'PENGAWAS', 'LEGAL']);
 
     // User management — SUPER_ADMIN only
     $canUsers      = $u?->hasRole('SUPER_ADMIN');
@@ -155,14 +163,20 @@
                             @endif
 
                             {{-- ADMIN COLLECTION --}}
-                            @if($canCollection)
+                            @if($canCollection || $canDhia)
                             <div class="{{ $section }}">Admin Collection</div>
+                            @if($canCollection)
                             <a class="{{ $link(request()->routeIs('admin.collection.index') || request()->routeIs('admin.collection.show') || request()->routeIs('admin.collection.update') || request()->routeIs('admin.collection.letters.*') || request()->routeIs('admin.collection.schedule*') || request()->routeIs('admin.collection.settlement*') || request()->routeIs('admin.collection.subledger*')) }}"
                                href="{{ route('admin.collection.index') }}">Master Tagihan</a>
+                            @endif
+                            @if($canDhia)
                             <a class="{{ $link(request()->routeIs('admin.collection.master-dhia')) }}"
                                href="{{ route('admin.collection.master-dhia') }}">Data Master DHIA</a>
+                            @endif
+                            @if($canCollection)
                             <a class="{{ $link(request()->routeIs('admin.collection.laporan')) }}"
                                href="{{ route('admin.collection.laporan') }}">Laporan Collection</a>
+                            @endif
                             @endif
 
                             {{-- LAPORAN --}}
@@ -177,18 +191,24 @@
                             @endif
 
                             {{-- MASTER DATA --}}
-                            @if($canMaster)
+                            @if($canMaster || $canMasterMembers)
                             <div class="{{ $section }}">Master Data</div>
+                            @if($canMaster)
                             <a class="{{ $link(request()->routeIs('admin.master.cash_categories.*')) }}"
                                href="{{ route('admin.master.cash_categories.index') }}">Kategori Kas</a>
                             <a class="{{ $link(request()->routeIs('admin.master.cash_accounts.*')) }}"
                                href="{{ route('admin.master.cash_accounts.index') }}">Kas</a>
+                            @endif
+                            @if($canMasterMembers)
                             <a class="{{ $link(request()->routeIs('admin.master.members.*')) }}"
                                href="{{ route('admin.master.members.index') }}">Anggota</a>
+                            @endif
+                            @if($canMaster)
                             <a class="{{ $link(request()->routeIs('admin.master.saving_products.*')) }}"
                                href="{{ route('admin.master.saving_products.index') }}">Jenis Simpanan</a>
                             <a class="{{ $link(request()->routeIs('admin.master.loan_products.*')) }}"
                                href="{{ route('admin.master.loan_products.index') }}">Jenis Pinjaman</a>
+                            @endif
                             @endif
 
                             {{-- AUDIT — SUPER_ADMIN only --}}

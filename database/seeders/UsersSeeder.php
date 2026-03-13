@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Team accounts for KSP system.
  *
- * Roles: SUPER_ADMIN, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, FINANCE, PENGAWAS
+ * Roles: SUPER_ADMIN, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, FINANCE, PENGAWAS, LEGAL
  * Run: php artisan db:seed --class=UsersSeeder
  */
 class UsersSeeder extends Seeder
@@ -81,6 +81,14 @@ class UsersSeeder extends Seeder
                 'email'    => 'sri@ksp.local',
                 'password' => Hash::make('Sri@KSP2025'),
                 'role'     => 'PENGAWAS',
+            ],
+
+            // LEGAL — same access as PENGAWAS
+            [
+                'name'     => 'Evin Marsela',
+                'email'    => 'evin@ksp.local',
+                'password' => Hash::make('Evin@KSP2025'),
+                'role'     => 'LEGAL',
             ],
         ];
 

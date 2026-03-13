@@ -16,6 +16,7 @@ class RolesSeeder extends Seeder
             'TREASURY',
             'FINANCE',
             'PENGAWAS',
+            'LEGAL',
         ] as $role) {
             Role::firstOrCreate(['name' => $role]);
         }
