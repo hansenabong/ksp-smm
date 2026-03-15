@@ -54,6 +54,9 @@
     // Master data: Anggota — broader access (no money amounts)
     $canMasterMembers = $u?->hasAnyRole(['SUPER_ADMIN', 'FINANCE', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'PENGAWAS', 'LEGAL']);
 
+    // Legal documents — SUPER_ADMIN + LEGAL only
+    $canLegal      = $u?->hasAnyRole(['SUPER_ADMIN', 'LEGAL']);
+
     // User management — SUPER_ADMIN only
     $canUsers      = $u?->hasRole('SUPER_ADMIN');
 
@@ -209,6 +212,13 @@
                             <a class="{{ $link(request()->routeIs('admin.master.loan_products.*')) }}"
                                href="{{ route('admin.master.loan_products.index') }}">Jenis Pinjaman</a>
                             @endif
+                            @endif
+
+                            {{-- LEGAL — SUPER_ADMIN + LEGAL only --}}
+                            @if($canLegal)
+                            <div class="{{ $section }}">Legal</div>
+                            <a class="{{ $link(request()->routeIs('admin.legal.*')) }}"
+                               href="{{ route('admin.legal.index') }}">Dokumen Legal</a>
                             @endif
 
                             {{-- AUDIT — SUPER_ADMIN only --}}

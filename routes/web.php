@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Collection\CollectionController;
 use App\Http\Controllers\Admin\Collection\CollectionLetterController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\LegalController;
 use App\Http\Controllers\Admin\LoanCollateralController;
 use App\Http\Controllers\Portal\MemberPortalController;
 
@@ -316,6 +317,19 @@ Route::middleware(['auth'])->group(function () {
                     Route::put('/loan-products/{loanProduct}',     [LoanProductController::class,'update'])->name('admin.master.loan_products.update');
                     Route::patch('/loan-products/{loanProduct}/toggle',[LoanProductController::class,'toggle'])->name('admin.master.loan_products.toggle');
                 });
+            });
+
+            // ------------------------------------------------------------------
+            // LEGAL — Document management (SUPER_ADMIN + LEGAL only)
+            // ------------------------------------------------------------------
+            Route::prefix('legal')->middleware('role:SUPER_ADMIN|LEGAL')->group(function () {
+                Route::get('/',                          [LegalController::class, 'index'])->name('admin.legal.index');
+                Route::get('/create',                    [LegalController::class, 'create'])->name('admin.legal.create');
+                Route::post('/',                         [LegalController::class, 'store'])->name('admin.legal.store');
+                Route::get('/{berkas}',                  [LegalController::class, 'show'])->name('admin.legal.show');
+                Route::post('/{berkas}/files',           [LegalController::class, 'addFiles'])->name('admin.legal.addFiles');
+                Route::delete('/{berkas}/files/{document}', [LegalController::class, 'destroyFile'])->name('admin.legal.file.destroy');
+                Route::delete('/{berkas}',               [LegalController::class, 'destroy'])->name('admin.legal.destroy');
             });
 
             // ------------------------------------------------------------------
