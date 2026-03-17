@@ -2,10 +2,12 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Master Data - Anggota</h2>
+            @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE','ADMIN_DATA']))
             <a href="{{ route('admin.master.members.create') }}"
                class="px-4 py-2 bg-indigo-600 text-white rounded">
                 Tambah Anggota
             </a>
+            @endif
         </div>
     </x-slot>
 
@@ -65,6 +67,7 @@
                                         <span class="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700">NONAKTIF</span>
                                     @endif
                                 </td>
+                                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE','ADMIN_DATA']))
                                 <td class="p-3 text-right space-x-2">
                                     <a href="{{ route('admin.master.members.edit', $m) }}"
                                        class="px-3 py-1 bg-indigo-600 text-white rounded text-xs">Edit</a>
@@ -77,6 +80,7 @@
                                         </button>
                                     </form>
                                 </td>
+                                @endif
                             </tr>
                         @empty
                             <tr><td class="p-3" colspan="5">Belum ada data.</td></tr>

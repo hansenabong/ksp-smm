@@ -11,7 +11,9 @@
                         $fdShow = $application->form_data ?? [];
                         $showPkA = !empty($fdShow['no_hak'] ?? $fdShow['lokasi_agunan'] ?? $fdShow['kota_agunan'] ?? null);
                         $showPkB = !empty($fdShow['jenis_kendaraan'] ?? null);
+                        $linkedLoan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
                     @endphp
+                    @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY']))
                     <a href="{{ route('admin.loans.applications.penawaran', $application) }}"
                        target="_blank"
                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition"
@@ -42,6 +44,25 @@
                         </svg>
                         PK B (Kendaraan)
                     </a>
+                    @if($linkedLoan)
+                    <div class="w-px h-6 bg-gray-300"></div>
+                    <a href="{{ route('admin.loans.active.kwitansi.plafon', $linkedLoan) }}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                        Kwitansi Plafon
+                    </a>
+                    <a href="{{ route('admin.loans.active.kwitansi.pencairan', $linkedLoan) }}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                        Kwitansi Pencairan
+                    </a>
+                    <a href="{{ route('admin.loans.active.schedule', $linkedLoan) }}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                        Jadwal Angsuran
+                    </a>
+                    @endif
+                    @endif
                     @if(auth()->user()->hasRole('SUPER_ADMIN'))
                         <a href="{{ route('admin.loans.applications.edit_personal', $application) }}"
                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition">
@@ -53,9 +74,7 @@
                         </a>
                     @endif
                 @endif
-                @if($application->status === 'PENDING' &&
-                    (auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN','MANAGER']) ||
-                     (auth()->user()->hasRole('PETUGAS') && (int)$application->created_by === auth()->id())))
+                @if($application->status === 'PENDING' && auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_DATA']))
                     <a href="{{ route('admin.loans.applications.edit', $application) }}"
                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -777,10 +796,12 @@
                     <h3 class="text-sm font-semibold text-gray-800">Agunan / Jaminan</h3>
                     <p class="text-xs text-gray-400 mt-0.5">Daftar agunan yang diserahkan untuk pengajuan ini</p>
                 </div>
+                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_DATA']))
                 <a href="{{ route('admin.loans.applications.collaterals.index', $application) }}"
                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">
                     Kelola Agunan
                 </a>
+                @endif
             </div>
             @php
                 $collaterals = \Illuminate\Support\Facades\Schema::hasTable('loan_collaterals')

@@ -159,14 +159,16 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/loans/applications/{application}/reject', [LoanApplicationController::class,'reject'])->name('admin.loans.applications.reject');
             });
 
-            // Active loans index — TREASURY included (view-only, for document access)
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|TREASURY|PENGAWAS|LEGAL')->group(function () {
+            // Active loans index
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active', [LoanController::class,'index'])->name('admin.loans.active.index');
             });
 
-            // Active loan show + schedule + subledger — TREASURY included (for document generation)
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|TREASURY|PENGAWAS|LEGAL')->group(function () {
+            // Active loan show + schedule + subledger (TREASURY added for schedule access)
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active/{loan}',                 [LoanController::class,'show'])->name('admin.loans.active.show');
+            });
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|TREASURY|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active/{loan}/schedule',        [LoanController::class,'schedule'])->name('admin.loans.active.schedule');
                 Route::get('/loans/active/{loan}/schedule/pdf',    [LoanController::class,'schedulePdf'])->name('admin.loans.active.schedule.pdf');
                 Route::get('/loans/active/{loan}/subledger/pdf',   [LoanController::class,'subledgerPdf'])->name('admin.loans.active.subledger.pdf');
@@ -174,7 +176,7 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/loans/active/{loan}/settlement/pdf',  [LoanController::class,'settlementPdf'])->name('admin.loans.active.settlement.pdf');
             });
 
-            // Kwitansi & Permohonan Dana — TREASURY only (+ SUPER_ADMIN)
+            // Kwitansi & Permohonan Dana — TREASURY (+ SUPER_ADMIN)
             Route::middleware('role:SUPER_ADMIN|TREASURY')->group(function () {
                 Route::get('/loans/active/{loan}/kwitansi-pencairan', [LoanController::class,'kwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan');
                 Route::post('/loans/active/{loan}/kwitansi-pencairan',[LoanController::class,'saveKwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan.save');

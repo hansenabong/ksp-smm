@@ -2,10 +2,12 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pengajuan Pinjaman</h2>
+            @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_DATA']))
             <a href="{{ route('admin.loans.applications.create') }}"
                class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
                 + Tambah Pengajuan
             </a>
+            @endif
         </div>
     </x-slot>
 

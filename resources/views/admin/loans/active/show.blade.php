@@ -7,7 +7,7 @@
             </div>
             <div class="flex items-center gap-2">
                 {{-- Primary actions (ACTIVE only) --}}
-                @if($loan->status === 'ACTIVE')
+                @if($loan->status === 'ACTIVE' && auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_COLLECTION']))
                 <a href="{{ route('admin.loans.payments.create', $loan) }}"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,7 +18,8 @@
                 <div class="w-px h-6 bg-gray-300"></div>
                 @endif
 
-                {{-- Documents dropdown --}}
+                {{-- Documents dropdown — TREASURY + SUPER_ADMIN only --}}
+                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY']))
                 @php
                     $pkFd    = $loan->application?->form_data ?? [];
                     $loanPkA = $loan->loan_application_id && !empty($pkFd['no_hak'] ?? $pkFd['lokasi_agunan'] ?? $pkFd['kota_agunan'] ?? null);
@@ -84,6 +85,7 @@
                         @endif
                     </div>
                 </div>
+                @endif
 
                 <a href="{{ route('admin.loans.active.index') }}"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition">

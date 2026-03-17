@@ -32,10 +32,10 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 20 | Kwitansi Pencairan — disbursement receipt with 13 editable biaya fields stored as JSON; net dana diterima | ✅ Done |
 | 21 | Permohonan Dana — internal disbursement request form (reuses biaya data, printable) | ✅ Done |
 | 22 | Cetak Semua PDF — bulk print for Pengeluaran and Transfer kas (mirrors existing Pemasukan feature) | ✅ Done |
-| 23 | Role matrix refactor (Finance/Accounting standard) — ADMIN config-only; BENDAHARA approve/void; MANAGER approve loans; PETUGAS entry | ✅ Done |
+| 23 | Role matrix refactor — initial role-based access control with per-route middleware | ✅ Done |
 | 24 | PK B (Kendaraan) loan agreement — vehicle collateral PDF template (Pasal 3 with 11 vehicle spec fields), separate from PK A (Sertipikat) | ✅ Done |
 | 25 | Loan show page UI — "Cetak Dokumen" dropdown consolidates kwitansi + PK + permohonan dana; Bayar Angsuran as primary action | ✅ Done |
-| 26 | New roles — KASIR, ADMIN_DATA, ADMIN_COLLECTION with full route/sidebar/policy integration | ✅ Done |
+| 26 | New roles — ADMIN_DATA, ADMIN_COLLECTION with full route/sidebar/policy integration | ✅ Done |
 | 27 | Subledger PDF denda columns — Hari + Jumlah sub-columns between "Jumlah Angsuran" and "Pembayaran" | ✅ Done |
 | 28 | Settlement PDF angsuran tertunggak — overdue installment breakdown section with per-installment detail and days-late | ✅ Done |
 | 29 | Early repayment rate 5% — updated DemoMasterSeeder to `updateOrCreate` so rates apply to existing DB records | ✅ Done |
@@ -44,7 +44,7 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 32 | **COA Management UI** — CRUD for Chart of Accounts (add/edit/deactivate accounts), restricted to SUPER_ADMIN | ✅ Done |
 | 33 | **Member Savings Balance View** — per-member savings summary across all products, printable passbook-style | ✅ Done |
 | 34 | **Loan Disbursement Posting Fix** — `disbursement_fees` JSON deductions posted as a supplementary journal entry (DR Kas, CR income accounts per fee type) via `postLoanDisbursementFees()` | ✅ Done |
-| 35 | **Notification System** — in-app computed alerts in sidebar badge + notifications page; role-filtered: pending approvals (MANAGER), overdue loans 30d (BENDAHARA/ADMIN_COLLECTION), near-maturity, draft SHU | ✅ Done |
+| 35 | **Notification System** — in-app computed alerts in sidebar badge + notifications page; role-filtered: pending approvals, overdue loans 30d, near-maturity, draft SHU | ✅ Done |
 | 36 | **Member Portal** — MEMBER role + `user_id` link on members; read-only self-service at `/portal` (dashboard, simpanan history, pinjaman & payments); admin links user ↔ member in user management | ✅ Done |
 | 37 | **Collateral Registry** — `loan_collaterals` table per-application; CRUD (type, description, estimated value, document upload); HELD/RELEASED workflow with release note; shown inline on application show page | ✅ Done |
 | 38 | **Bulk Simpanan Wajib** — batch monthly savings entry form: select product + cash account + date, enter amounts per active member with Alpine.js running total; one saving transaction per member in a single DB transaction | ✅ Done |
@@ -52,6 +52,7 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 40 | **Print Statements — Cash Balances** — "Cetak PDF" print button on Saldo Kas page with `window.print()`, print-hidden sidebar, and timestamp watermark | ✅ Done |
 | 43 | **Audit Log** — `audit_logs` table + `AuditLogService`; records void (cash/savings/loan payment) and loan approval/rejection events; browse UI with filter by action/module/user/date + CSV export; sidebar "Log Aktivitas" link; Audit VOID submenus upgraded (project-standard UI, print button, date formatting, type badges, stats banner); void forms upgraded (card layout, textarea reason, JS confirm dialog); removed redundant `abort_unless` MANAGER check from all 3 void controllers | ✅ Done |
 | 44 | **Collection Module Restructure** — Pelunasan, Jadwal Angsuran (Amortisasi), and SubLedger moved from Pinjaman Approved into Admin Collection; new collection-prefixed routes (`/collection/{loan}/schedule`, `/settlement`, `/subledger/pdf`); sidebar "Amortisasi" and "Sub Ledger" dead links removed; "Master Tagihan" sidebar item stays highlighted when on schedule/settlement/subledger pages; views detect context (`routeIs('admin.collection.*')`) for correct breadcrumbs and back-button targets; **Progress Bayar** (color-coded progress bar + %) and **Sisa Tagihan** (outstanding Rp) columns added to Master Tagihan Nasabah table | ✅ Done |
+| 45 | **Role Matrix Revision + Legal Module** — 7-role system (SUPER_ADMIN, FINANCE, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, PENGAWAS, LEGAL); LEGAL role with dedicated Legal Document section (LegalBerkas + LegalDocument models, multi-file upload with Alpine.js); Master Data split (Anggota = broader access, Financial = FINANCE only); button visibility gating across all views; Treasury removed from Pinjaman Approved (kwitansi/schedule accessible via Pengajuan show page) | ✅ Done |
 
 ---
 
@@ -120,12 +121,13 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 ksp/
 ├── app/
 │   ├── Http/Controllers/
-│   │   ├── Admin/               # 33 controllers
+│   │   ├── Admin/               # 34 controllers
 │   │   │   ├── Master/          #   CashAccount, CashCategory, Member, SavingProduct, LoanProduct
 │   │   │   ├── Reports/         #   Cash, Savings, Loans reports (+ CSV export)
 │   │   │   ├── Audit/           #   VoidAuditController, AuditLogController (+ CSV export)
 │   │   │   ├── Accounting/      #   GeneralLedger, JournalEntry, IncomeStatement, BalanceSheet, SHU
 │   │   │   ├── Collection/      #   CollectionController, CollectionLetterController
+│   │   │   ├── LegalController         # Legal document bundles (berkas) CRUD + file management
 │   │   │   ├── AdminHomeController
 │   │   │   ├── UserController
 │   │   │   ├── NotificationController  # computed in-app alerts
@@ -137,7 +139,7 @@ ksp/
 │   │   ├── Portal/              # MemberPortalController (dashboard, savings, loans)
 │   │   ├── Auth/                # 8 Breeze authentication controllers
 │   │   └── Api/V1/              # 1 API controller (loan applications)
-│   ├── Models/                  # 16 Eloquent models
+│   ├── Models/                  # 18 Eloquent models
 │   ├── Services/                # 5 business-logic services
 │   │   ├── Accounting/          #   PostingService, AutoPostingService
 │   │   ├── Cash/                #   CashTransactionService
@@ -155,6 +157,7 @@ ksp/
 │       │                        #   applications/ (index, show, create, edit, edit-personal, agreement PDF, agreement-vehicle PDF, penawaran PDF)
 │       │                        #   payments/ (create, receipt PDF)
 │       │                        #   * also accessible via collection-prefixed routes
+│       ├── legal/               #   index, create, show (document bundles)
 │       ├── collaterals/         #   index, create, release
 │       ├── master/              #   cash_accounts, cash_categories, loan_products, members, saving_products
 │       ├── notifications/       #   index (computed alerts)
@@ -168,7 +171,7 @@ ksp/
 │   └── auth.php                 # Auth routes (public /register disabled)
 ├── database/
 │   ├── migrations/              # 42+ migration files
-│   └── seeders/                 # RolesSeeder (incl. MEMBER role), UsersSeeder, DemoMasterSeeder, AccountingSeeder, CashCategorySeeder, DemoTransactionSeeder, MasterConfigSeeder
+│   └── seeders/                 # RolesSeeder (8 roles incl. MEMBER), UsersSeeder (10 team accounts), DemoMasterSeeder, AccountingSeeder, CashCategorySeeder, DemoTransactionSeeder, MasterConfigSeeder
 └── config/                      # 11 config files
 ```
 
@@ -188,6 +191,8 @@ ksp/
 | `LoanProduct`      | Loan products (interest rate, admin fee, tenor, penalty rates in bp, linked GL accounts) |
 | `CollectionRecord` | One-per-loan collection tracking: petugas, branch, escalation level (0–5), contact dates, is_restruk, property data (NJOP, LT, LB, alamat_tinggal, wilayah) |
 | `CollectionLetter` | Per-loan collection letters issued: type (SP1/SP2/SP3/SOMASI/CESSIE), letter number, date, creator |
+| `LegalBerkas`    | Legal document bundles — title, description, optional member/loan_application link, created_by |
+| `LegalDocument`  | Individual files within a berkas — original_name, file_path, file_size, mime_type |
 
 ### Transaction Entities
 
@@ -295,60 +300,59 @@ Dynamic account linking:
 
 ## Authorization
 
-### Role Matrix (Finance/Accounting Standard)
+### Role Matrix (Active Roles)
 
 | Role               | Responsibility |
 |--------------------|----------------|
-| `SUPER_ADMIN`      | Full system access including user/role management and accounting structure |
-| `ADMIN`            | Configuration only — master data CRUD + user management + reporting view |
-| `MANAGER`          | Operational oversight — approve/reject loans, monitor reports, view accounting |
-| `BENDAHARA`        | Treasury — all transaction entry (kas, simpanan, loan payments), approve/void, reports |
-| `PETUGAS`          | Data entry — create transactions (kas, simpanan, loan payments), submit loan applications |
-| `KASIR`            | Cashier — kas income/expense/transfer entry + loan payment entry; no void, no approval |
-| `ADMIN_DATA`       | Loan administration — create/manage loan applications + master data view |
-| `ADMIN_COLLECTION` | Collection — loan payment entry + collection module (Master Tagihan, Amortisasi, Pelunasan, SubLedger); no void, no approval |
-| `PENGAWAS`         | Supervisor (read-only) — view kas, simpanan, pengajuan pinjaman, collection, laporan; no create/void/approve |
+| `SUPER_ADMIN`      | Full system access including user/role management, accounting, and legal documents |
+| `FINANCE`          | Accounting & finance — kas, simpanan, laporan, master data (all), audit, akuntansi |
+| `ADMIN_DATA`       | Loan administration — create/manage loan applications, master anggota (rw), pinjaman approved (view) |
+| `ADMIN_COLLECTION` | Collection — loan payment entry + collection module (Master Tagihan, Amortisasi, Pelunasan, SubLedger, DHIA), master anggota (ro) |
+| `TREASURY`         | Document management — PK, Penawaran Pembiayaan, Kwitansi (Plafon/Pencairan), Permohonan Dana, Jadwal Angsuran; pengajuan (view), DHIA (view only) |
+| `PENGAWAS`         | Supervisor (read-only) — view pengajuan, pinjaman approved, all collection menus, master anggota |
+| `LEGAL`            | Same access as PENGAWAS + dedicated Legal Document section (upload/manage berkas with multiple files) |
 | `MEMBER`           | Member self-service — access to read-only Member Portal only (no admin area) |
+
+Legacy roles (unused, kept for backward compatibility): ADMIN, MANAGER, BENDAHARA, PETUGAS, KASIR
 
 ### Access Matrix
 
-| Module / Action | SUPER_ADMIN | ADMIN | MANAGER | BENDAHARA | PETUGAS | KASIR | ADMIN_DATA | ADMIN_COLLECTION | PENGAWAS |
-|-----------------|:-----------:|:-----:|:-------:|:---------:|:-------:|:-----:|:----------:|:----------------:|:--------:|
-| **Kas** — input pemasukan/pengeluaran/transfer | ✓ | — | — | ✓ | ✓ | ✓ | — | — | — |
-| **Kas** — lihat (index + saldo) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Kas** — void transaksi | ✓ | — | — | ✓ | — | — | — | — | — |
-| **Simpanan** — setor / tarik | ✓ | — | — | ✓ | ✓ | ✓ | — | — | — |
-| **Simpanan** — lihat (index) | ✓ | — | — | ✓ | ✓ | ✓ | — | — | ✓ |
-| **Simpanan** — void | ✓ | — | — | ✓ | — | — | — | — | — |
-| **Simpanan** — saldo anggota | ✓ | ✓ | ✓ | ✓ | — | — | ✓ | — | ✓ |
-| **Pinjaman** — buat pengajuan | ✓ | — | ✓ | — | ✓ | — | ✓ | — | — |
-| **Pinjaman** — lihat pengajuan | ✓ | — | ✓ | — | ✓ | — | ✓ | — | ✓ |
-| **Pinjaman** — edit pengajuan (PENDING) | ✓ | — | ✓ | — | own only | — | ✓ | — | — |
-| **Pinjaman** — edit data pribadi (APPROVED) | ✓ | — | — | — | — | — | — | — | — |
-| **Pinjaman** — setujui / tolak | ✓ | — | ✓ | — | — | — | — | — | — |
-| **Pinjaman** — bayar angsuran | ✓ | — | — | ✓ | ✓ | ✓ | — | ✓ | — |
-| **Pinjaman** — void angsuran | ✓ | — | — | ✓ | — | — | — | — | — |
-| **Pinjaman** — kwitansi, cetak dokumen | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Penagihan** — lihat (index, show, laporan) | ✓ | ✓ | ✓ | — | — | — | — | ✓ | ✓ |
-| **Penagihan** — update / tambah surat | ✓ | ✓ | ✓ | — | — | — | — | ✓ | — |
-| **Penagihan** — Pelunasan / Jadwal / SubLedger | ✓ | — | — | — | — | — | — | ✓ | — |
-| **Laporan** (kas, simpanan, pinjaman) | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ |
-| **Akuntansi / Audit** | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
-| **SHU** — lihat | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
-| **SHU** — buat / finalisasi | ✓ | — | ✓ | — | — | — | — | — | — |
-| **Master Data** — lihat | ✓ | ✓ | — | — | — | — | ✓ | — | ✓ |
-| **Master Data** — kelola | ✓ | ✓ | — | — | — | — | ✓ | — | — |
-| **Kelola Pengguna** (all roles) | ✓ | — | — | — | — | — | — | — | — |
-| **Kelola Pengguna** (excl. SUPER_ADMIN/ADMIN) | ✓ | ✓ | — | — | — | — | — | — | — |
+| Module / Action | SUPER_ADMIN | FINANCE | ADMIN_DATA | ADMIN_COLL | TREASURY | PENGAWAS | LEGAL |
+|-----------------|:-----------:|:-------:|:----------:|:----------:|:--------:|:--------:|:-----:|
+| **Kas** — input/lihat/void | ✓ | ✓ | — | — | — | — | — |
+| **Simpanan** — setor/tarik/void | ✓ | ✓ | — | — | — | — | — |
+| **Simpanan** — saldo anggota | ✓ | ✓ | — | — | — | — | — |
+| **Pengajuan** — buat | ✓ | — | ✓ | — | — | — | — |
+| **Pengajuan** — lihat | ✓ | — | ✓ | — | ✓ ro | ✓ ro | ✓ ro |
+| **Pengajuan** — edit (PENDING) | ✓ | — | ✓ | — | — | — | — |
+| **Pengajuan** — cetak dokumen (PK, OL, Kwitansi) | ✓ | — | — | — | ✓ | — | — |
+| **Pengajuan** — setujui / tolak | ✓ | — | — | — | — | — | — |
+| **Pengajuan** — kelola agunan | ✓ | — | ✓ | — | — | — | — |
+| **Pinjaman Approved** — lihat | ✓ | — | ✓ ro | ✓ ro | — | ✓ ro | ✓ ro |
+| **Pinjaman Approved** — bayar angsuran | ✓ | — | — | ✓ | — | — | — |
+| **Pinjaman Approved** — cetak dokumen | ✓ | — | — | — | ✓ | — | — |
+| **Penagihan** — lihat (index, show, laporan) | ✓ | — | — | ✓ | — | ✓ | ✓ |
+| **Penagihan** — DHIA | ✓ | — | — | ✓ | ✓ ro | ✓ | ✓ |
+| **Penagihan** — Pelunasan | ✓ | — | — | ✓ | — | — | — |
+| **Penagihan** — Amortisasi / SubLedger | ✓ | — | — | ✓ | — | ✓ ro | ✓ ro |
+| **Laporan** (kas, simpanan, pinjaman) | ✓ | ✓ | — | — | — | — | — |
+| **Akuntansi / Audit** | ✓ | ✓ | — | — | — | — | — |
+| **Master Data — Anggota** — lihat | ✓ | ✓ | ✓ | ✓ ro | — | ✓ ro | ✓ ro |
+| **Master Data — Anggota** — kelola | ✓ | ✓ | ✓ | — | — | — | — |
+| **Master Data — Financial** (Kas, Kategori, Jenis Simpanan/Pinjaman) | ✓ | ✓ | — | — | — | — | — |
+| **Legal** — dokumen legal (upload/manage berkas) | ✓ | — | — | — | — | — | ✓ |
+| **Kelola Pengguna** | ✓ | — | — | — | — | — | — |
 
-Policy rules:
-- `MemberPolicy::viewSensitive` — all roles except BENDAHARA and KASIR
-- `LoanApplicationPolicy::viewSensitiveData` — SUPER_ADMIN/ADMIN/MANAGER/ADMIN_DATA/ADMIN_COLLECTION always; PETUGAS only if `created_by === auth()->id()`
-- `LoanApplicationPolicy::approve` — SUPER_ADMIN/ADMIN/MANAGER
-- Gates in `AppServiceProvider`: `view-sensitive-member-data`, `create-user`
-- Edit PENDING application — SUPER_ADMIN/MANAGER/ADMIN_DATA always; PETUGAS only if `created_by === auth()->id()`
-- Edit APPROVED personal info — SUPER_ADMIN only (financial terms are permanently locked after approval)
-- `UserController::canManage()` — ADMIN cannot edit/delete SUPER_ADMIN or ADMIN users; can manage all other roles
+### Button Visibility
+
+Action buttons are hidden for unauthorized roles (even if they can view the page):
+- **Tambah Pengajuan** — SUPER_ADMIN, ADMIN_DATA only
+- **Edit Pengajuan** — SUPER_ADMIN, ADMIN_DATA only
+- **Kelola Agunan** — SUPER_ADMIN, ADMIN_DATA only
+- **Cetak Dokumen (PK/OL/Kwitansi)** — SUPER_ADMIN, TREASURY only
+- **Bayar Angsuran** — SUPER_ADMIN, ADMIN_COLLECTION only
+- **Pelunasan** — SUPER_ADMIN, ADMIN_COLLECTION only
+- **Tambah/Edit/Toggle Anggota** — SUPER_ADMIN, FINANCE, ADMIN_DATA only
 
 ---
 
@@ -365,7 +369,7 @@ Policy rules:
 ### Loan Lifecycle
 1. **Application** — officer submits `LoanApplication` with form data snapshot, documents, optional notaris deed details
 2. **Edit (PENDING)** — any eligible user can update personal data, loan terms, and attach/delete documents while status is PENDING
-   - PETUGAS can only edit their own applications (`created_by === auth()->id()`)
+   - ADMIN_DATA can edit applications they have access to
 3. **Approval** — manager approves → `LoanService::approveAndDisburse()`
    - Creates cash expense (disbursement)
    - Creates `Loan` record with calculated schedule
@@ -453,9 +457,9 @@ Void operations cascade through linked records (transaction → cash → journal
 | Password hashing | `bcrypt` via Laravel `Hash` facade |
 | XSS prevention | All Blade output uses `{{ }}` (auto-escaped); no `{!! !!}` in admin views |
 | SQL injection prevention | All queries use Eloquent/Query Builder bindings; `selectRaw` calls use hardcoded SQL only |
-| File upload validation | `mimes:jpg,jpeg,png,pdf`, `max:5120` (5 MB); stored on `private` disk (not web-accessible) |
+| File upload validation | `mimes:jpg,jpeg,png,pdf`, `max:5120` (5 MB); loan files on `private` disk, legal docs on `public` disk |
 | Mass assignment protection | All models use explicit `$fillable` arrays |
-| Privilege escalation guard | `UserController::canManage()` — ADMIN cannot edit/delete MANAGER/BENDAHARA/ADMIN users |
+| Privilege escalation guard | `UserController::canManage()` — only SUPER_ADMIN can manage users; admin-assignable roles enforced |
 | Public registration disabled | `/register` route removed in `routes/auth.php` |
 | File ownership check | `deleteFile()` and `downloadFile()` verify `loan_application_id === application->id`; PETUGAS ownership enforced |
 | MIME type integrity | File uploads store MIME from `getMimeType()` (reads actual file content via `finfo`), not client-supplied header |
@@ -516,7 +520,7 @@ Or run individual seeders (must follow this order):
 
 ```bash
 php artisan db:seed --class=RolesSeeder           # 1. Create Spatie roles
-php artisan db:seed --class=UsersSeeder           # 2. Create 21 test + team accounts
+php artisan db:seed --class=UsersSeeder           # 2. Create 10 team accounts
 php artisan db:seed --class=DemoMasterSeeder      # 3. Members, cash accounts, products
 php artisan db:seed --class=AccountingSeeder      # 4. Full COA + ledger auto-linking
 php artisan db:seed --class=CashCategorySeeder    # 5. Cash categories with GL accounts
@@ -527,38 +531,22 @@ php artisan db:seed --class=DemoTransactionSeeder # 6. 6 months of demo transact
 
 ### Demo Accounts
 
-**System / demo accounts:**
+**Team accounts (UAT):**
 
-| Email                      | Password                | Role             |
-|----------------------------|-------------------------|------------------|
-| superadmin@ksp.local       | SuperAdmin@KSP2025      | SUPER_ADMIN      |
-| admin@ksp.local            | Admin@KSP2025           | ADMIN            |
-| admin2@ksp.local           | Admin2@KSP2025          | ADMIN            |
-| manager@ksp.local          | Manager@KSP2025         | MANAGER          |
-| manager2@ksp.local         | Manager2@KSP2025        | MANAGER          |
-| bendahara@ksp.local        | Bendahara@KSP2025       | BENDAHARA        |
-| bendahara2@ksp.local       | Bendahara2@KSP2025      | BENDAHARA        |
-| petugas@ksp.local          | Petugas@KSP2025         | PETUGAS          |
-| petugas2@ksp.local         | Petugas2@KSP2025        | PETUGAS          |
-| petugas3@ksp.local         | Petugas3@KSP2025        | PETUGAS          |
-| kasir@ksp.local            | Kasir@KSP2025           | KASIR            |
-| admindata@ksp.local        | AdminData@KSP2025       | ADMIN_DATA       |
-| admincollection@ksp.local  | AdminCollection@KSP2025 | ADMIN_COLLECTION |
+| Email                | Password             | Role             | Name               |
+|----------------------|----------------------|------------------|--------------------|
+| superadmin@ksp.local | SuperAdmin@KSP2025   | SUPER_ADMIN      | Super Administrator|
+| dilla@ksp.local      | Dilla@KSP2025        | FINANCE          | Dilla              |
+| nadia@ksp.local      | Nadia@KSP2025        | FINANCE          | Nadia              |
+| gio@ksp.local        | Gio@KSP2025          | ADMIN_DATA       | Gio                |
+| adam@ksp.local       | Adam@KSP2025         | ADMIN_DATA       | Adam               |
+| dia@ksp.local        | Dia@KSP2025          | ADMIN_COLLECTION | Dia                |
+| franky@ksp.local     | Franky@KSP2025       | ADMIN_COLLECTION | Franky             |
+| fitri@ksp.local      | Fitri@KSP2025        | TREASURY         | Fitri              |
+| sri@ksp.local        | Sri@KSP2025          | PENGAWAS         | Sri                |
+| evin@ksp.local       | Evin@KSP2025         | LEGAL            | Evin Marsela       |
 
-**Real team accounts (UAT):**
-
-| Email               | Password        | Role             | Name   |
-|---------------------|-----------------|------------------|--------|
-| dilla@ksp.local     | Dilla@KSP2025   | KASIR            | Dilla  |
-| nadia@ksp.local     | Nadia@KSP2025   | KASIR            | Nadia  |
-| gio@ksp.local       | Gio@KSP2025     | ADMIN_DATA       | Gio    |
-| adam@ksp.local      | Adam@KSP2025    | ADMIN_DATA       | Adam   |
-| dia@ksp.local       | Dia@KSP2025     | ADMIN_COLLECTION | Dia    |
-| franky@ksp.local    | Franky@KSP2025  | ADMIN_COLLECTION | Franky |
-| fitri@ksp.local     | Fitri@KSP2025   | BENDAHARA        | Fitri  |
-| sri@ksp.local       | Sri@KSP2025     | PENGAWAS         | Sri    |
-
-> Registrasi publik dinonaktifkan. Akun baru hanya bisa dibuat oleh SUPER_ADMIN atau ADMIN (ADMIN hanya bisa membuat PETUGAS, KASIR, ADMIN_DATA, ADMIN_COLLECTION, PENGAWAS).
+> Registrasi publik dinonaktifkan. Akun baru hanya bisa dibuat oleh SUPER_ADMIN. Admin-assignable roles: FINANCE, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, PENGAWAS, LEGAL.
 
 ### Demo Data (DemoTransactionSeeder)
 
@@ -586,6 +574,7 @@ All migrations are applied in order. Key groups:
 - M36 migration: `2026_03_12_000001_add_user_id_to_members_table` — nullable `user_id` FK for portal access
 - M37 migration: `2026_03_12_000002_create_loan_collaterals_table` — collateral registry (type, value, document, HELD/RELEASED)
 - M43 migration: `2026_03_12_100001_create_audit_logs_table` — system activity log
+- M45 migrations: `legal_berkas` (document bundles) + `legal_documents` (individual files per berkas)
 
 ---
 
