@@ -13,7 +13,7 @@
                         $showPkB = !empty($fdShow['jenis_kendaraan'] ?? null);
                         $linkedLoan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
                     @endphp
-                    @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY','PENGAWAS']))
+                    @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY','LEGAL','PENGAWAS']))
                     <a href="{{ route('admin.loans.applications.penawaran', $application) }}"
                        target="_blank"
                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition"

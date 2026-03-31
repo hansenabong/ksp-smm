@@ -18,8 +18,8 @@
                 <div class="w-px h-6 bg-gray-300"></div>
                 @endif
 
-                {{-- Documents dropdown — TREASURY + PENGAWAS (read-only) + SUPER_ADMIN --}}
-                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY','PENGAWAS']))
+                {{-- Documents dropdown — TREASURY + LEGAL + PENGAWAS (read-only) + SUPER_ADMIN --}}
+                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY','LEGAL','PENGAWAS']))
                 @php
                     $pkFd    = $loan->application?->form_data ?? [];
                     $loanPkA = $loan->loan_application_id && !empty($pkFd['no_hak'] ?? $pkFd['lokasi_agunan'] ?? $pkFd['kota_agunan'] ?? null);
