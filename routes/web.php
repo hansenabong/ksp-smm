@@ -139,9 +139,12 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/loans/applications',        [LoanApplicationController::class,'store'])->name('admin.loans.applications.store');
             });
 
-            // Loan applications — view: ADMIN_DATA + TREASURY (for docs) + PENGAWAS
+            // Loan applications — list: LEGAL can see overview only
             Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL')->group(function () {
-                Route::get('/loans/applications',               [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
+                Route::get('/loans/applications', [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
+            });
+            // Loan applications — detail + docs: LEGAL excluded (no detail, no printing)
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS')->group(function () {
                 Route::get('/loans/applications/{application}', [LoanApplicationController::class,'show'])->name('admin.loans.applications.show');
                 Route::get('/loans/applications/{application}/files/{file}/download',[LoanApplicationController::class,'downloadFile'])->name('admin.loans.applications.files.download');
                 Route::get('/loans/applications/{application}/penawaran-pembiayaan',[LoanApplicationController::class,'penawaranPembiayaan'])->name('admin.loans.applications.penawaran');
@@ -169,11 +172,12 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/loans/active', [LoanController::class,'index'])->name('admin.loans.active.index');
             });
 
-            // Active loan show + schedule + subledger (TREASURY added for schedule access)
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
+            // Active loan show — LEGAL excluded (no detail pages)
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS')->group(function () {
                 Route::get('/loans/active/{loan}',                 [LoanController::class,'show'])->name('admin.loans.active.show');
             });
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|TREASURY|PENGAWAS|LEGAL')->group(function () {
+            // Schedule/subledger/settlement — LEGAL excluded
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|TREASURY|PENGAWAS')->group(function () {
                 Route::get('/loans/active/{loan}/schedule',        [LoanController::class,'schedule'])->name('admin.loans.active.schedule');
                 Route::get('/loans/active/{loan}/schedule/pdf',    [LoanController::class,'schedulePdf'])->name('admin.loans.active.schedule.pdf');
                 Route::get('/loans/active/{loan}/subledger/pdf',   [LoanController::class,'subledgerPdf'])->name('admin.loans.active.subledger.pdf');
@@ -181,13 +185,16 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/loans/active/{loan}/settlement/pdf',  [LoanController::class,'settlementPdf'])->name('admin.loans.active.settlement.pdf');
             });
 
-            // Kwitansi & Permohonan Dana — TREASURY (+ SUPER_ADMIN)
-            Route::middleware('role:SUPER_ADMIN|TREASURY')->group(function () {
+            // Kwitansi & Permohonan Dana — TREASURY view + PENGAWAS (read-only)
+            Route::middleware('role:SUPER_ADMIN|TREASURY|PENGAWAS')->group(function () {
                 Route::get('/loans/active/{loan}/kwitansi-pencairan', [LoanController::class,'kwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan');
-                Route::post('/loans/active/{loan}/kwitansi-pencairan',[LoanController::class,'saveKwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan.save');
                 Route::get('/loans/active/{loan}/kwitansi-plafon',    [LoanController::class,'kwitansiPlafon'])->name('admin.loans.active.kwitansi.plafon');
                 Route::get('/loans/active/{loan}/permohonan-dana',     [LoanController::class,'permohonanDana'])->name('admin.loans.active.permohonan.dana');
                 Route::get('/loans/active/{loan}/permohonan-dana/pdf', [LoanController::class,'permohonanDanaPdf'])->name('admin.loans.active.permohonan.dana.pdf');
+            });
+            // Kwitansi Pencairan save — TREASURY only (write operation)
+            Route::middleware('role:SUPER_ADMIN|TREASURY')->group(function () {
+                Route::post('/loans/active/{loan}/kwitansi-pencairan',[LoanController::class,'saveKwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan.save');
             });
 
             // Loan payments — ADMIN_COLLECTION
@@ -352,12 +359,16 @@ Route::middleware(['auth'])->group(function () {
                     Route::get('/export-dhia',  [CollectionController::class,'exportMasterDhia'])->name('admin.collection.export-dhia');
                 });
 
-                // All other collection routes — ADMIN_COLLECTION + PENGAWAS
+                // Collection overview — LEGAL can see list + laporan only
                 Route::middleware('role:SUPER_ADMIN|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
-                    Route::get('/',                     [CollectionController::class,'index'])->name('admin.collection.index');
-                    Route::get('/export',               [CollectionController::class,'exportIndex'])->name('admin.collection.export');
-                    Route::get('/laporan',              [CollectionController::class,'laporan'])->name('admin.collection.laporan');
-                    Route::get('/export-laporan',       [CollectionController::class,'exportLaporan'])->name('admin.collection.export-laporan');
+                    Route::get('/',               [CollectionController::class,'index'])->name('admin.collection.index');
+                    Route::get('/export',         [CollectionController::class,'exportIndex'])->name('admin.collection.export');
+                    Route::get('/laporan',        [CollectionController::class,'laporan'])->name('admin.collection.laporan');
+                    Route::get('/export-laporan', [CollectionController::class,'exportLaporan'])->name('admin.collection.export-laporan');
+                });
+
+                // Collection detail + write + PDFs — LEGAL excluded
+                Route::middleware('role:SUPER_ADMIN|ADMIN_COLLECTION|PENGAWAS')->group(function () {
                     Route::get('/letters/{letter}/pdf', [CollectionLetterController::class,'pdf'])->name('admin.collection.letters.pdf');
                     Route::get('/{loan}',               [CollectionController::class,'show'])->name('admin.collection.show');
                     Route::patch('/{loan}',             [CollectionController::class,'update'])->name('admin.collection.update');

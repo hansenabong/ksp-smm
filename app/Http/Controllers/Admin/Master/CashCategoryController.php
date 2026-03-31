@@ -13,7 +13,7 @@ class CashCategoryController extends Controller
     private function authorize(): void
     {
         abort_unless(
-            auth()->user()->hasRole('SUPER_ADMIN'),
+            auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']),
             403
         );
     }

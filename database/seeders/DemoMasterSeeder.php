@@ -63,20 +63,20 @@ class DemoMasterSeeder extends Seeder
             [
                 'name'                   => 'Pinjaman Reguler',
                 'method'                 => 'FLAT',
-                'interest_rate_monthly_bp'=> 150,  // 1.5%/bulan
+                'interest_rate_monthly_bp'=> 200,  // 2%/bulan
                 'admin_fee'              => 50000,
                 'max_tenor_months'       => 24,
                 'penalty_daily_rate_bp'  => 30,   // 0.3%/hari
-                'early_repayment_rate_bp'=> 500,  // 5% pelunasan cepat
+                'early_repayment_rate_bp'=> 200,  // 2% pelunasan cepat
             ],
             [
                 'name'                   => 'Pinjaman Mikro',
                 'method'                 => 'FLAT',
-                'interest_rate_monthly_bp'=> 100,  // 1%/bulan
+                'interest_rate_monthly_bp'=> 200,  // 2%/bulan
                 'admin_fee'              => 25000,
                 'max_tenor_months'       => 12,
                 'penalty_daily_rate_bp'  => 20,   // 0.2%/hari
-                'early_repayment_rate_bp'=> 500,  // 5% pelunasan cepat
+                'early_repayment_rate_bp'=> 200,  // 2% pelunasan cepat
             ],
         ];
 

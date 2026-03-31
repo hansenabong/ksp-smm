@@ -99,12 +99,14 @@
                         </div>
                         @endforeach
                     </div>
+                    @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY']))
                     <div class="mt-4 flex justify-end">
                         <button type="submit"
                                 class="px-5 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
                             Simpan Biaya
                         </button>
                     </div>
+                    @endif
                 </form>
             </div>
         </div>

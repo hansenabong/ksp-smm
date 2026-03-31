@@ -537,9 +537,9 @@ class CollectionController extends Controller
         $lastPayment = $loan->payments->first();
         $loan->_realisasi_tgl         = $lastPayment ? Carbon::parse($lastPayment->trx_date)->format('d-M-y') : null;
         $loan->_realisasi_rp          = $lastPayment ? (int) $lastPayment->amount : 0;
-        $loan->_realisasi_tunggakan   = $loan->_tunggakan;
+        $loan->_realisasi_tunggakan   = $loan->_tunggakan + $loan->_realisasi_rp;
         $loan->_sisa_kewajiban        = (int) $loan->outstanding;
-        $loan->_total_bayar           = (int) $loan->outstanding;
+        $loan->_total_bayar           = (int) $loan->total_paid;
 
         // Denda keterlambatan: outstanding × daily rate × days overdue
         $dailyRate = $loan->loanProduct?->penalty_daily_rate_bp ?? 30;
