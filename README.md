@@ -53,6 +53,8 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 43 | **Audit Log** — `audit_logs` table + `AuditLogService`; records void (cash/savings/loan payment) and loan approval/rejection events; browse UI with filter by action/module/user/date + CSV export; sidebar "Log Aktivitas" link; Audit VOID submenus upgraded (project-standard UI, print button, date formatting, type badges, stats banner); void forms upgraded (card layout, textarea reason, JS confirm dialog); removed redundant `abort_unless` MANAGER check from all 3 void controllers | ✅ Done |
 | 44 | **Collection Module Restructure** — Pelunasan, Jadwal Angsuran (Amortisasi), and SubLedger moved from Pinjaman Approved into Admin Collection; new collection-prefixed routes (`/collection/{loan}/schedule`, `/settlement`, `/subledger/pdf`); sidebar "Amortisasi" and "Sub Ledger" dead links removed; "Master Tagihan" sidebar item stays highlighted when on schedule/settlement/subledger pages; views detect context (`routeIs('admin.collection.*')`) for correct breadcrumbs and back-button targets; **Progress Bayar** (color-coded progress bar + %) and **Sisa Tagihan** (outstanding Rp) columns added to Master Tagihan Nasabah table | ✅ Done |
 | 45 | **Role Matrix Revision + Legal Module** — 7-role system (SUPER_ADMIN, FINANCE, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, PENGAWAS, LEGAL); LEGAL role with dedicated Legal Document section (LegalBerkas + LegalDocument models, multi-file upload with Alpine.js); Master Data split (Anggota = broader access, Financial = FINANCE only); button visibility gating across all views; Treasury removed from Pinjaman Approved (kwitansi/schedule accessible via Pengajuan show page) | ✅ Done |
+| 46 | **Card-Based Navigation System** — sidebar removed, replaced with mobile-app-style department card menu on dashboard; 5 department cards (Admin Data, Admin Collection, Treasury, Legal, Finance) + Sistem card (SUPER_ADMIN only); Alpine.js drill-down transitions; role-based card visibility; per-department sub-menu items without cross-department duplication; auto-generated breadcrumbs (`Home > Section > Page`) from route name mapping; persistent Home button in navbar; color-coded role badge in navbar; notification badge integrated into welcome banner; KPI summary (Anggota, Saldo Kas, Simpanan, Piutang) for FINANCE/SUPER_ADMIN below menu cards | ✅ Done |
+| 47 | **Training Guides & Production Setup** — printable per-role training guides (7 roles) at `/admin/guide`; `ProductionSeeder` (roles + COA + cash categories only, no demo data); `ksp:create-superadmin` artisan command for bootstrapping first account; "Panduan" button on dashboard | ✅ Done |
 
 ---
 
@@ -62,41 +64,41 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 
 | # | Milestone | Priority |
 |---|-----------|----------|
-| 45 | **Real-Time Collection Updates (Laravel Echo)** — broadcast `LoanPayment` created/voided events via WebSocket (Laravel Echo + Pusher/Soketi); Master Tagihan Nasabah collection index subscribes to payment channel and updates Progress Bayar and Sisa Tagihan cells live without page refresh | **High** |
-| 41 | **API v1 Expansion** — REST endpoints for loan applications (currently partial), member data, payments; token auth via Laravel Sanctum | Medium |
-| 46 | **Rekening Koran (Account Statement)** — monthly per-member consolidated statement (simpanan + pinjaman) with PDF download and optional email delivery | Medium |
-| 47 | **Restrukturisasi Pinjaman** — restructure active loans: extend tenor, reduce rate, reschedule installments; tracks original vs restructured terms; GL adjustment journal | High |
-| 48 | **Multi-Branch Support** — `branches` table, each member/cash account/loan scoped to a branch; branch-level reporting and dashboards; cross-branch transfer workflow | Medium |
-| 49 | **Approval Workflow Engine** — configurable multi-level approval chains for loans (e.g., PETUGAS → MANAGER → BENDAHARA for amounts > threshold); approval history log with comments | Medium |
-| 50 | **SMS / WhatsApp Notifications** — automated reminders for upcoming installments (H-3), overdue alerts, and approval status changes via Fonnte/Wablas gateway | Medium |
-| 51 | **Simpanan Berjangka (Deposito)** — time-deposit savings product with fixed tenor, maturity date, auto-rollover option, break-penalty, and interest accrual journal | Low |
-| 52 | **Member Document Vault** — centralized per-member file storage (KTP, KK, slip gaji, etc.) with categorization, expiry tracking, and access control | Low |
-| 53 | **Dashboard Analytics v2** — interactive charts (Chart.js / Livewire): monthly trend lines for disbursements, collections, NPL ratio, savings growth; drill-down by product/branch | Low |
-| 54 | **Bulk Loan Payment Import** — CSV/Excel upload for batch angsuran processing (bank auto-debit reconciliation); validation preview before commit | Medium |
+| 48 | **Real-Time Collection Updates (Laravel Echo)** — broadcast `LoanPayment` created/voided events via WebSocket (Laravel Echo + Pusher/Soketi); Master Tagihan Nasabah collection index subscribes to payment channel and updates Progress Bayar and Sisa Tagihan cells live without page refresh | **High** |
+| 48 | **Restrukturisasi Pinjaman** — restructure active loans: extend tenor, reduce rate, reschedule installments; tracks original vs restructured terms; GL adjustment journal | High |
+| 49 | **API v1 Expansion** — REST endpoints for loan applications (currently partial), member data, payments; token auth via Laravel Sanctum | Medium |
+| 50 | **Rekening Koran (Account Statement)** — monthly per-member consolidated statement (simpanan + pinjaman) with PDF download and optional email delivery | Medium |
+| 51 | **Multi-Branch Support** — `branches` table, each member/cash account/loan scoped to a branch; branch-level reporting and dashboards; cross-branch transfer workflow | Medium |
+| 52 | **Approval Workflow Engine** — configurable multi-level approval chains for loans; approval history log with comments | Medium |
+| 53 | **SMS / WhatsApp Notifications** — automated reminders for upcoming installments (H-3), overdue alerts, and approval status changes via Fonnte/Wablas gateway | Medium |
+| 54 | **Simpanan Berjangka (Deposito)** — time-deposit savings product with fixed tenor, maturity date, auto-rollover option, break-penalty, and interest accrual journal | Low |
+| 55 | **Member Document Vault** — centralized per-member file storage (KTP, KK, slip gaji, etc.) with categorization, expiry tracking, and access control | Low |
+| 56 | **Dashboard Analytics v2** — interactive charts (Chart.js / Livewire): monthly trend lines for disbursements, collections, NPL ratio, savings growth; drill-down by product/branch | Low |
+| 57 | **Bulk Loan Payment Import** — CSV/Excel upload for batch angsuran processing (bank auto-debit reconciliation); validation preview before commit | Medium |
 
 ### Hardening
 
 | # | Milestone | Priority |
 |---|-----------|----------|
-| 42 | **2FA / OTP Login** — optional TOTP second factor for SUPER_ADMIN and ADMIN accounts using `pragmarx/google2fa-laravel` | High |
-| 44 | **Automated Test Coverage** — Pest feature tests for critical workflows (loan lifecycle, cash void, SHU finalization, AutoPostingService balance integrity) | High |
-| 55 | **Input Validation Hardening** — centralized Form Request classes for all store/update actions; replace inline `$request->validate()` with dedicated FormRequest objects | High |
-| 56 | **Database Backup & Restore** — scheduled `pg_dump` via Laravel scheduler (daily/weekly); admin UI to list backups, download, and one-click restore; retention policy | High |
-| 57 | **Comprehensive Logging & Monitoring** — extend AuditLog to cover login/logout, data exports, master data changes; structured JSON logs for external SIEM integration | Medium |
-| 58 | **Rate Limiting & Brute Force Protection** — login throttle (5 attempts/15 min lockout), API rate limiting per token, CAPTCHA on repeated failures | Medium |
-| 59 | **Data Encryption at Rest** — encrypt sensitive member fields (NIK, phone, address) using Laravel's `encrypted` cast; key rotation strategy | Low |
-| 60 | **Content Security Policy (CSP)** — strict CSP headers via middleware; nonce-based inline script allowlisting; Subresource Integrity (SRI) for CDN assets | Low |
+| 58 | **2FA / OTP Login** — optional TOTP second factor for SUPER_ADMIN and ADMIN accounts using `pragmarx/google2fa-laravel` | High |
+| 59 | **Automated Test Coverage** — Pest feature tests for critical workflows (loan lifecycle, cash void, SHU finalization, AutoPostingService balance integrity) | High |
+| 60 | **Input Validation Hardening** — centralized Form Request classes for all store/update actions; replace inline `$request->validate()` with dedicated FormRequest objects | High |
+| 61 | **Database Backup & Restore** — scheduled `pg_dump` via Laravel scheduler (daily/weekly); admin UI to list backups, download, and one-click restore; retention policy | High |
+| 62 | **Comprehensive Logging & Monitoring** — extend AuditLog to cover login/logout, data exports, master data changes; structured JSON logs for external SIEM integration | Medium |
+| 63 | **Rate Limiting & Brute Force Protection** — login throttle (5 attempts/15 min lockout), API rate limiting per token, CAPTCHA on repeated failures | Medium |
+| 64 | **Data Encryption at Rest** — encrypt sensitive member fields (NIK, phone, address) using Laravel's `encrypted` cast; key rotation strategy | Low |
+| 65 | **Content Security Policy (CSP)** — strict CSP headers via middleware; nonce-based inline script allowlisting; Subresource Integrity (SRI) for CDN assets | Low |
 
 ### Scaling & Infrastructure
 
 | # | Milestone | Priority |
 |---|-----------|----------|
-| 61 | **Queue-Based Heavy Operations** — move PDF generation, bulk simpanan wajib, CSV exports, and SHU calculation to Laravel queues (Redis/database driver); progress bar UI | High |
-| 62 | **Database Performance Optimization** — add composite indexes on high-query tables (journal_lines, loan_payments, cash_transactions by date/account); query caching for dashboard KPIs; N+1 query audit | High |
-| 63 | **Dockerized Deployment** — `docker-compose.yml` with PHP-FPM, Nginx, PostgreSQL, Redis containers; `.env.docker` template; CI/CD pipeline (GitHub Actions) for build → test → deploy | Medium |
-| 64 | **Read Replica & Connection Pooling** — Laravel database read/write splitting config; PgBouncer for connection pooling; session-based sticky reads for write-after-read consistency | Low |
-| 65 | **Asset & Response Caching** — Vite asset versioning, HTTP cache headers for static files; server-side response caching for report pages (5-min TTL); Redis cache driver | Medium |
-| 66 | **Horizontal Scaling Readiness** — session storage in Redis (replace file driver), centralized file storage (S3-compatible for uploads/documents), stateless app servers behind load balancer | Low |
+| 66 | **Queue-Based Heavy Operations** — move PDF generation, bulk simpanan wajib, CSV exports, and SHU calculation to Laravel queues (Redis/database driver); progress bar UI | High |
+| 67 | **Database Performance Optimization** — add composite indexes on high-query tables (journal_lines, loan_payments, cash_transactions by date/account); query caching for dashboard KPIs; N+1 query audit | High |
+| 68 | **Dockerized Deployment** — `docker-compose.yml` with PHP-FPM, Nginx, PostgreSQL, Redis containers; `.env.docker` template; CI/CD pipeline (GitHub Actions) for build → test → deploy | Medium |
+| 69 | **Read Replica & Connection Pooling** — Laravel database read/write splitting config; PgBouncer for connection pooling; session-based sticky reads for write-after-read consistency | Low |
+| 70 | **Asset & Response Caching** — Vite asset versioning, HTTP cache headers for static files; server-side response caching for report pages (5-min TTL); Redis cache driver | Medium |
+| 71 | **Horizontal Scaling Readiness** — session storage in Redis (replace file driver), centralized file storage (S3-compatible for uploads/documents), stateless app servers behind load balancer | Low |
 
 ---
 
@@ -120,14 +122,16 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 ```
 ksp/
 ├── app/
+│   ├── Console/Commands/        # CreateSuperAdmin (ksp:create-superadmin)
 │   ├── Http/Controllers/
-│   │   ├── Admin/               # 34 controllers
+│   │   ├── Admin/               # 35 controllers
 │   │   │   ├── Master/          #   CashAccount, CashCategory, Member, SavingProduct, LoanProduct
 │   │   │   ├── Reports/         #   Cash, Savings, Loans reports (+ CSV export)
 │   │   │   ├── Audit/           #   VoidAuditController, AuditLogController (+ CSV export)
 │   │   │   ├── Accounting/      #   GeneralLedger, JournalEntry, IncomeStatement, BalanceSheet, SHU
 │   │   │   ├── Collection/      #   CollectionController, CollectionLetterController
 │   │   │   ├── LegalController         # Legal document bundles (berkas) CRUD + file management
+│   │   │   ├── TrainingGuideController # Role-based printable training guides
 │   │   │   ├── AdminHomeController
 │   │   │   ├── UserController
 │   │   │   ├── NotificationController  # computed in-app alerts
@@ -157,6 +161,7 @@ ksp/
 │       │                        #   applications/ (index, show, create, edit, edit-personal, agreement PDF, agreement-vehicle PDF, penawaran PDF)
 │       │                        #   payments/ (create, receipt PDF)
 │       │                        #   * also accessible via collection-prefixed routes
+│       ├── guide/               #   index + 7 role-specific printable training guides
 │       ├── legal/               #   index, create, show (document bundles)
 │       ├── collaterals/         #   index, create, release
 │       ├── master/              #   cash_accounts, cash_categories, loan_products, members, saving_products
@@ -171,7 +176,7 @@ ksp/
 │   └── auth.php                 # Auth routes (public /register disabled)
 ├── database/
 │   ├── migrations/              # 42+ migration files
-│   └── seeders/                 # RolesSeeder (8 roles incl. MEMBER), UsersSeeder (10 team accounts), DemoMasterSeeder, AccountingSeeder, CashCategorySeeder, DemoTransactionSeeder, MasterConfigSeeder
+│   └── seeders/                 # RolesSeeder (8 roles incl. MEMBER), UsersSeeder (10 team accounts), DemoMasterSeeder, AccountingSeeder, CashCategorySeeder, DemoTransactionSeeder, MasterConfigSeeder, ProductionSeeder
 └── config/                      # 11 config files
 ```
 
@@ -509,10 +514,14 @@ composer run test           # Pest test suite
 ### Seed the database
 
 ```bash
-# Option A — Quick setup (master data + config only, no demo transactions)
+# Option A — PRODUCTION (no demo data, clean slate)
+php artisan migrate:fresh --seed --seeder=ProductionSeeder
+php artisan ksp:create-superadmin    # Interactive: creates the first Super Admin account
+
+# Option B — DEVELOPMENT: Quick setup (master data + demo accounts, no transactions)
 php artisan db:seed --class=MasterConfigSeeder
 
-# Option B — Full demo setup (master data + 6 months of transactions)
+# Option C — DEVELOPMENT: Full demo setup (master data + 6 months of transactions)
 php artisan db:seed
 ```
 
@@ -528,6 +537,34 @@ php artisan db:seed --class=DemoTransactionSeeder # 6. 6 months of demo transact
 ```
 
 > All seeders are idempotent — safe to re-run without creating duplicates.
+
+### Production Deployment
+
+```bash
+# 1. Fresh database with system config only (roles, COA, cash categories)
+php artisan migrate:fresh --seed --seeder=ProductionSeeder
+
+# 2. Create the first Super Admin (interactive prompt for name, email, password)
+php artisan ksp:create-superadmin
+
+# 3. Super Admin logs in → Sistem → Manajemen User → creates all staff accounts
+#    (FINANCE, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, PENGAWAS, LEGAL)
+
+# 4. Staff logs in and inputs real data: members, cash accounts, products, etc.
+```
+
+**ProductionSeeder** seeds only:
+1. **RolesSeeder** — 7 system roles
+2. **AccountingSeeder** — full 5-level COA (fixed accounts; dynamic linking runs when products are created)
+3. **CashCategorySeeder** — 15 income/expense/transfer categories with GL links
+
+No demo users, no demo members, no demo transactions.
+
+### Artisan Commands
+
+| Command | Description |
+|---------|-------------|
+| `ksp:create-superadmin` | Interactive command to create a Super Admin user (name, email, password with confirmation) |
 
 ### Demo Accounts
 
@@ -575,6 +612,24 @@ All migrations are applied in order. Key groups:
 - M37 migration: `2026_03_12_000002_create_loan_collaterals_table` — collateral registry (type, value, document, HELD/RELEASED)
 - M43 migration: `2026_03_12_100001_create_audit_logs_table` — system activity log
 - M45 migrations: `legal_berkas` (document bundles) + `legal_documents` (individual files per berkas)
+
+---
+
+## Training Guides
+
+Built-in printable training guides for each role, accessible at `/admin/guide`. Each guide opens as a print-friendly HTML page with a "Cetak / Simpan PDF" button (browser print → Save as PDF).
+
+| Route | Role | Content |
+|-------|------|---------|
+| `/admin/guide/super_admin` | SUPER_ADMIN | User management, loan approval, VOID, COA, SHU, collateral release |
+| `/admin/guide/finance` | FINANCE | Kas (income/expense/transfer), simpanan, laporan, master data, akuntansi, audit |
+| `/admin/guide/admin_data` | ADMIN_DATA | Pengajuan pinjaman, master anggota, agunan |
+| `/admin/guide/admin_collection` | ADMIN_COLLECTION | Master tagihan, bayar angsuran, surat penagihan, DHIA, laporan collection |
+| `/admin/guide/treasury` | TREASURY | Cetak PK (A/B), kwitansi, permohonan dana, jadwal angsuran |
+| `/admin/guide/pengawas` | PENGAWAS | Read-only monitoring: pengajuan, pinjaman, collection, anggota |
+| `/admin/guide/legal` | LEGAL | Dokumen legal, master tagihan, surat penagihan, DHIA |
+
+A "Panduan" button is displayed on the dashboard for all users.
 
 ---
 

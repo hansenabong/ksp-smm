@@ -41,6 +41,7 @@ use App\Http\Controllers\Admin\Collection\CollectionLetterController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\LegalController;
 use App\Http\Controllers\Admin\LoanCollateralController;
+use App\Http\Controllers\Admin\TrainingGuideController;
 use App\Http\Controllers\Portal\MemberPortalController;
 
 Route::get('/', fn() => redirect()->route('login'));
@@ -72,6 +73,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/home', [AdminHomeController::class, 'index'])->name('admin.home');
             Route::get('/password/change', fn() => view('admin.password.change'))->name('admin.password.change');
             Route::get('/notifications', [NotificationController::class,'index'])->name('admin.notifications.index');
+
+            // Training Guides
+            Route::get('/guide', [TrainingGuideController::class, 'index'])->name('admin.guide.index');
+            Route::get('/guide/{role}', [TrainingGuideController::class, 'show'])->name('admin.guide.show');
 
             // ------------------------------------------------------------------
             // KAS — SUPER_ADMIN only

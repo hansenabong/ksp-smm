@@ -342,7 +342,7 @@ class CollectionController extends Controller
         $wilayah = $request->input('wilayah');
         $sortBy  = $request->input('sort_by');
 
-        $query = Loan::with(['member', 'application', 'collectionRecord',
+        $query = Loan::with(['member', 'application', 'collectionRecord', 'loanProduct',
                 'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1)])
             ->where('status', 'ACTIVE')
             ->orderBy('id');
@@ -380,7 +380,7 @@ class CollectionController extends Controller
         $wilayah = $request->input('wilayah');
         $sortBy  = $request->input('sort_by');
 
-        $query = Loan::with(['member', 'application', 'collectionRecord',
+        $query = Loan::with(['member', 'application', 'collectionRecord', 'loanProduct',
                 'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1)])
             ->where('status', 'ACTIVE')
             ->orderBy('id');
@@ -406,7 +406,8 @@ class CollectionController extends Controller
             fputcsv($out, [
                 'No', 'Tgl Pencairan', 'Nama Nasabah', 'Nomor Kontrak', 'Plafond (Rp)',
                 'Tenor', 'Angsuran Ke', 'NJOP', 'LT (m²)', 'LB (m²)',
-                'Angsuran Berjalan (Rp)', 'Tunggakan (Rp)', 'Hari Keterlambatan',
+                'Sisa Pokok Hutang (Rp)', 'Angsuran Berjalan (Rp)', 'Tunggakan (Rp)',
+                'Denda Keterlambatan (Rp)', 'Hari Keterlambatan',
                 'Alamat KTP', 'Alamat Jaminan', 'Alamat Tinggal', 'Wilayah', 'No Telepon', 'Keterangan',
             ], ';');
 
@@ -429,8 +430,10 @@ class CollectionController extends Controller
                     $njopVal ?? '',
                     $rec?->luas_tanah ?? '',
                     $rec?->luas_bangunan ?? '',
+                    $loan->outstanding,
                     $loan->monthly_installment,
                     $loan->_tunggakan < 0 ? abs($loan->_tunggakan) : '',
+                    $loan->_denda > 0 ? $loan->_denda : '',
                     $loan->_days_overdue > 0 ? $loan->_days_overdue : '',
                     $loan->member->address ?? '',
                     $loan->_alamat_jaminan,
@@ -537,6 +540,12 @@ class CollectionController extends Controller
         $loan->_realisasi_tunggakan   = $loan->_tunggakan;
         $loan->_sisa_kewajiban        = (int) $loan->outstanding;
         $loan->_total_bayar           = (int) $loan->outstanding;
+
+        // Denda keterlambatan: outstanding × daily rate × days overdue
+        $dailyRate = $loan->loanProduct?->penalty_daily_rate_bp ?? 30;
+        $loan->_denda = $loan->_days_overdue > 0
+            ? (int) round($loan->outstanding * $dailyRate / 10000 * $loan->_days_overdue)
+            : 0;
         $loan->_kota_jaminan          = $loan->application?->form_data['kota_agunan'] ?? '';
         $loan->_alamat_tinggal        = $loan->collectionRecord?->alamat_tinggal ?: ($loan->member->address ?? '');
         $loan->_alamat_jaminan        = $this->buildAlamatJaminan($loan);

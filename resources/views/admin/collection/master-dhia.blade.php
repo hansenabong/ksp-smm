@@ -85,8 +85,12 @@
                     <th rowspan="2" style="min-width:85px">NJOP</th>
                     <th rowspan="2" style="min-width:40px">LT<br>(m²)</th>
                     <th rowspan="2" style="min-width:40px">LB<br>(m²)</th>
+                    {{-- Sisa Pokok --}}
+                    <th rowspan="2" style="min-width:90px">Sisa Pokok<br>Hutang</th>
                     {{-- Installment --}}
                     <th colspan="2">Angsuran</th>
+                    {{-- Denda --}}
+                    <th rowspan="2" style="min-width:80px">Denda<br>Keterlambatan</th>
                     {{-- Overdue --}}
                     <th rowspan="2" style="min-width:50px">Real Hari<br>Keterlambatan</th>
                     {{-- Addresses --}}
@@ -136,10 +140,16 @@
                     <td style="text-align:right;font-family:monospace">{{ $njopVal ? number_format($njopVal) : '-' }}</td>
                     <td style="text-align:right">{{ $ltVal ?? '-' }}</td>
                     <td style="text-align:right">{{ $lbVal ?? '-' }}</td>
+                    {{-- Sisa Pokok Hutang --}}
+                    <td style="text-align:right;font-family:monospace">{{ number_format($loan->outstanding) }}</td>
                     {{-- Angsuran --}}
                     <td style="text-align:right;font-family:monospace">{{ number_format($loan->monthly_installment) }}</td>
                     <td style="text-align:right;font-family:monospace;{{ $loan->_tunggakan < 0 ? 'color:#dc2626;font-weight:600' : 'color:#9CA3AF' }}">
                         {{ $loan->_tunggakan < 0 ? number_format(abs($loan->_tunggakan)) : '-' }}
+                    </td>
+                    {{-- Denda Keterlambatan --}}
+                    <td style="text-align:right;font-family:monospace;{{ $loan->_denda > 0 ? 'color:#dc2626;font-weight:600' : 'color:#9CA3AF' }}">
+                        {{ $loan->_denda > 0 ? number_format($loan->_denda) : '-' }}
                     </td>
                     {{-- Days overdue --}}
                     <td style="text-align:center;{{ $loan->_days_overdue > 0 ? 'color:#dc2626;font-weight:700' : 'color:#9CA3AF' }}">
@@ -160,7 +170,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="21" style="text-align:center;padding:24px;color:#9CA3AF">Tidak ada data.</td>
+                    <td colspan="23" style="text-align:center;padding:24px;color:#9CA3AF">Tidak ada data.</td>
                 </tr>
                 @endforelse
                 </tbody>
