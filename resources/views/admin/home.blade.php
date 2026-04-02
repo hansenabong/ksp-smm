@@ -11,7 +11,7 @@
     $isPengawas      = $u?->hasRole('PENGAWAS');
 
     // Card visibility
-    $showAdminData   = $isAdminData || $isPengawas;
+    $showAdminData   = $isAdminData || $isPengawas || $isLegal;
     $showCollection  = $isAdminColl || $isPengawas || $u?->hasAnyRole(['SUPER_ADMIN', 'LEGAL']);
     $showTreasury    = $isTreasury || $isLegal || $isPengawas;
     $showLegal       = $isLegal;
