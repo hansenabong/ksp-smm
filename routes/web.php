@@ -143,10 +143,13 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/applications', [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
             });
-            // Loan applications — detail + docs: LEGAL excluded (no detail, no printing)
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS')->group(function () {
+            // Loan applications — detail: LEGAL can view, no PDFs
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/applications/{application}', [LoanApplicationController::class,'show'])->name('admin.loans.applications.show');
                 Route::get('/loans/applications/{application}/files/{file}/download',[LoanApplicationController::class,'downloadFile'])->name('admin.loans.applications.files.download');
+            });
+            // Loan application PDFs — LEGAL excluded
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS')->group(function () {
                 Route::get('/loans/applications/{application}/penawaran-pembiayaan',[LoanApplicationController::class,'penawaranPembiayaan'])->name('admin.loans.applications.penawaran');
                 Route::get('/loans/applications/{application}/agreement',[LoanApplicationController::class,'agreement'])->name('admin.loans.applications.agreement');
                 Route::get('/loans/applications/{application}/agreement-vehicle',[LoanApplicationController::class,'agreementVehicle'])->name('admin.loans.applications.agreement.vehicle');
@@ -172,8 +175,8 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/loans/active', [LoanController::class,'index'])->name('admin.loans.active.index');
             });
 
-            // Active loan show — LEGAL excluded (no detail pages)
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS')->group(function () {
+            // Active loan show — LEGAL can view
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active/{loan}',                 [LoanController::class,'show'])->name('admin.loans.active.show');
             });
             // Schedule/subledger/settlement — LEGAL excluded
