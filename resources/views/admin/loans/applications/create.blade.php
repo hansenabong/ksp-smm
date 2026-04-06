@@ -75,19 +75,19 @@
                             <label class="text-sm">Bunga Flat / bulan (%)</label>
                             <input id="interest_monthly_percent" type="number" step="0.01"
                                 name="interest_monthly_percent" value="{{ old('interest_monthly_percent') }}"
-                                class="w-full border rounded px-3 py-2" min="0">
+                                class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
                             <div class="text-xs text-gray-500 mt-1">Auto dari produk, masih bisa diubah</div>
                         </div>
                         <div>
                             <label class="text-sm">Admin / bulan (Rp)</label>
                             <input id="admin_monthly" type="number" name="admin_monthly"
-                                value="{{ old('admin_monthly') }}" class="w-full border rounded px-3 py-2" min="0">
+                                value="{{ old('admin_monthly') }}" class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
                             <div class="text-xs text-gray-500 mt-1">Auto dari produk, masih bisa diubah</div>
                         </div>
                         <div>
                             <label class="text-sm">Asuransi / bulan (Rp)</label>
                             <input type="number" name="insurance_monthly" value="{{ old('insurance_monthly', 0) }}"
-                                class="w-full border rounded px-3 py-2" min="0">
+                                class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
                         </div>
                     </div>
 
