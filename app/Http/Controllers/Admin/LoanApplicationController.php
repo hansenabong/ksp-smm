@@ -154,10 +154,10 @@ class LoanApplicationController extends Controller
             'form_data.biaya_lain'                   => ['nullable', 'integer', 'min:0'],
 
             // upload dokumen
-            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
             // tetap ada (boleh override), tapi defaultnya diisi dari produk
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'admin_monthly' => ['nullable', 'integer', 'min:0'],
@@ -376,10 +376,10 @@ class LoanApplicationController extends Controller
             'form_data.biaya_hidup'                  => ['nullable', 'integer', 'min:0'],
             'form_data.angsuran_lain'                => ['nullable', 'integer', 'min:0'],
             'form_data.biaya_lain'                   => ['nullable', 'integer', 'min:0'],
-            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'admin_monthly'            => ['nullable', 'integer', 'min:0'],
             'insurance_monthly'        => ['nullable', 'integer', 'min:0'],
@@ -607,10 +607,10 @@ class LoanApplicationController extends Controller
             'notaris_deed_date'   => ['nullable', 'date'],
             'notaris_city'        => ['nullable', 'string', 'max:100'],
             // Additional files
-            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
         ]);
 
         // Only update personal/notaris fields — financial terms are immutable
