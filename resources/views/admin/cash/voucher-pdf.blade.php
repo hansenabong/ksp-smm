@@ -114,8 +114,12 @@
     </div>
 
     {{-- Company + Title --}}
-    <div style="text-align:center; margin-bottom:4pt;">
-        <div class="company">KSP-SMM — Sistem Manajemen Koperasi Simpan Pinjam</div>
+    <div style="display:flex; align-items:center; justify-content:center; gap:8pt; margin-bottom:4pt;">
+        <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:36pt; height:36pt; object-fit:contain;">
+        <div style="text-align:left;">
+            <div class="company">KSP Sarana Mitra Mandiri</div>
+            <div style="font-size:7.5pt; color:#6b7280;">Koperasi Simpan Pinjam</div>
+        </div>
     </div>
 
     <div class="divider-thick"></div>

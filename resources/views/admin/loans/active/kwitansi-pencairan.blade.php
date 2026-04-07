@@ -117,9 +117,12 @@
 
                 {{-- Header --}}
                 <div class="border-b-2 border-gray-800 px-8 py-5 flex items-center justify-between">
-                    <div>
-                        <div class="font-bold text-xl text-gray-800 tracking-wide">{{ config('app.name', 'KSP') }}</div>
-                        <div class="text-xs text-gray-500 mt-0.5">Koperasi Simpan Pinjam</div>
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('images/logo-ksp.jpeg') }}" alt="KSP SMM" class="w-14 h-14 object-contain">
+                        <div>
+                            <div class="font-bold text-xl text-gray-800 tracking-wide">KSP Sarana Mitra Mandiri</div>
+                            <div class="text-xs text-gray-500 mt-0.5">Koperasi Simpan Pinjam</div>
+                        </div>
                     </div>
                     <div class="text-right">
                         <div class="text-xs text-gray-500 uppercase tracking-wide font-semibold">No. Kwitansi</div>

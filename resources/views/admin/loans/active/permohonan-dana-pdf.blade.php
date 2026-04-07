@@ -80,9 +80,12 @@
 <div class="outer-border">
 
     {{-- Title --}}
-    <div class="title-bar">
-        <div class="app">{{ strtoupper($appName) }}</div>
-        <div class="doc">Permohonan Dana</div>
+    <div class="title-bar" style="display:flex; align-items:center; gap:10pt;">
+        <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:40pt; height:40pt; object-fit:contain;">
+        <div>
+            <div class="app">KSP SARANA MITRA MANDIRI</div>
+            <div class="doc">Permohonan Dana</div>
+        </div>
     </div>
 
     {{-- Nasabah + No/Date --}}

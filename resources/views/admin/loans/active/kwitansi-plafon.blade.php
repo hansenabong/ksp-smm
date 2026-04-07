@@ -48,7 +48,7 @@
 
         $noKwt = 'KWL-' . str_pad($loan->id, 5, '0', STR_PAD_LEFT);
 
-        $appName = config('app.name', 'KSP-SMM');
+        $appName = 'KSP SMM';
     @endphp
 
     <div class="space-y-5">
@@ -67,12 +67,8 @@
                              style="writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.15em;">
                             {{ $appName }}
                         </div>
-                        <div class="mt-4 w-12 h-12 rounded-full border-2 border-white/40 flex items-center justify-center">
-                            {{-- Simple icon placeholder for logo --}}
-                            <svg class="w-7 h-7 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                            </svg>
+                        <div class="mt-4 w-14 h-14 flex items-center justify-center">
+                            <img src="{{ asset('images/logo-ksp.jpeg') }}" alt="KSP SMM" class="w-14 h-14 object-contain rounded-full border-2 border-white/40">
                         </div>
                         <div class="mt-3 text-white/60 text-xs text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 9px; letter-spacing: 0.1em;">
                             Koperasi Simpan Pinjam

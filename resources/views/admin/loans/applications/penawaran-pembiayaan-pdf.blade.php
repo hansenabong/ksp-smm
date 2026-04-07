@@ -113,8 +113,15 @@
 
     {{-- ===== KOP SURAT ===== --}}
     <div class="kop">
-        <div class="kop-name">KOPERASI SIMPAN PINJAM SMM</div>
-        <div class="kop-sub">Jl. [Alamat KSP] &nbsp;|&nbsp; Telp. [No. Telp] &nbsp;|&nbsp; Email: [email]</div>
+        <table class="kop-table kop-logo"><tr>
+            <td style="width:60pt; padding-right:10pt;">
+                <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:54pt; height:54pt; object-fit:contain;">
+            </td>
+            <td>
+                <div class="kop-name">KOPERASI SIMPAN PINJAM SARANA MITRA MANDIRI</div>
+                <div class="kop-sub">Koperasi Simpan Pinjam &nbsp;|&nbsp; Jakarta</div>
+            </td>
+        </tr></table>
     </div>
 
     {{-- ===== INFO SURAT ===== --}}

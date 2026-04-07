@@ -41,14 +41,34 @@
         .signature-grid td { width: 33%; vertical-align: top; text-align: center; padding: 0 6pt; }
         .signature-box { margin-top: 60pt; border-top: 1px solid #000; padding-top: 4pt; }
         .footer-note { margin-top: 16pt; font-size: 9pt; color: #444; border-top: 1px solid #aaa; padding-top: 6pt; text-align: center; }
+        .kop { border-bottom: 3px double #000; padding-bottom: 8pt; margin-bottom: 14pt; }
+        .kop-table { width: 100%; border-collapse: collapse; }
+        .kop-logo td { vertical-align: middle; }
+        .kop-name { font-size: 13pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .kop-sub  { font-size: 9pt; color: #444; margin-top: 2pt; }
+        .kop-addr { font-size: 8.5pt; color: #444; margin-top: 1pt; }
     </style>
 </head>
 <body>
 <div class="page">
 
+    {{-- ===== KOP SURAT ===== --}}
+    <div class="kop">
+        <table class="kop-table kop-logo"><tr>
+            <td style="width:60pt; padding-right:10pt;">
+                <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:54pt; height:54pt; object-fit:contain;">
+            </td>
+            <td>
+                <div class="kop-name">Koperasi Simpan Pinjam Sarana Mitra Mandiri</div>
+                <div class="kop-sub">Koperasi Simpan Pinjam</div>
+                <div class="kop-addr">Komplek Duta Mas Fatmawati Blok B1 No 16, Jakarta Selatan 12150</div>
+            </td>
+        </tr></table>
+    </div>
+
     {{-- ===== HEADER ===== --}}
     <div class="header">
-        <h1>Perjanjian Pembiayaan</h1>
+        <h1>PERJANJIAN KREDIT</h1>
         <div class="nomor">Nomor: {{ $nomorPk }}</div>
     </div>
     <div class="divider"></div>
@@ -137,8 +157,9 @@
         <div class="party-num">I.</div>
         <div class="party-content">
             <strong>Koperasi Simpan Pinjam Sarana Mitra Mandiri</strong>, suatu badan usaha berbentuk
-            Koperasi Simpan Pinjam yang berkedudukan di Jakarta, dalam hal ini diwakili oleh Pengurus
-            Koperasi yang berwenang, selanjutnya disebut <strong><em>"Pihak Pertama"</em></strong>.
+            Koperasi Simpan Pinjam berkedudukan di Jakarta, dalam hal ini diwakili oleh
+            <strong>Go Tji Seng</strong>, dalam kedudukannya sebagai <strong>Ketua Koperasi</strong>,
+            sah mewakili Koperasi, selanjutnya disebut <strong><em>"Pihak Pertama (Koperasi)"</em></strong>.
         </div>
     </div>
 
@@ -411,6 +432,45 @@
     </div>
     </div>{{-- /pasal-block --}}
 
+    {{-- ===== PASAL — ASURANSI ===== --}}
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
+    <div class="pasal-title">Asuransi</div>
+    @php $pasalNo++; @endphp
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-text">
+            Selama <em>"Pihak Kedua"</em> masih berhutang kepada <em>"Pihak Pertama"</em>,
+            <em>"Pihak Kedua"</em> diwajibkan mengikuti Asuransi Kematian, Kebakaran, dan lain sebagainya
+            sesuai ketentuan <em>"Pihak Pertama"</em>.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-text">
+            Apabila terjadi klaim, uang ganti rugi dari perusahaan asuransi akan dipergunakan untuk
+            melunasi hutang <em>"Pihak Kedua"</em> kepada <em>"Pihak Pertama"</em> beserta bunga dan
+            biaya-biaya terkait. Kelebihan klaim, jika ada, akan diserahkan kepada <em>"Pihak Kedua"</em>.
+        </div>
+    </div>
+    </div>{{-- /pasal-block --}}
+
+    {{-- ===== PASAL — TEMPAT PEMBAYARAN ===== --}}
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
+    <div class="pasal-title">Tempat Pembayaran</div>
+    @php $pasalNo++; @endphp
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-text">
+            Pembayaran dapat dilakukan di Kantor <em>"Pihak Pertama"</em> yaitu
+            <strong>Koperasi Simpan Pinjam Sarana Mitra Mandiri</strong>,
+            Komplek Duta Mas Fatmawati Blok B1 No 16, Jakarta Selatan 12150,
+            atau di alamat lain yang ditunjuk oleh <em>"Pihak Pertama"</em>.
+        </div>
+    </div>
+    </div>{{-- /pasal-block --}}
+
     {{-- ===== PASAL — PENYERAHAN DOKUMEN (jika ada jaminan) ===== --}}
     @if($hasProperty || $hasVehicle)
     <div class="pasal-block">
@@ -518,11 +578,11 @@
         <table class="signature-grid">
             <tr>
                 <td>
-                    <strong>Pihak Pertama</strong><br>
+                    <strong>Pihak Pertama (Koperasi)</strong><br>
                     KSP Sarana Mitra Mandiri
                     <div class="signature-box">
-                        ( ___________________________ )<br>
-                        <small>Pengurus Koperasi</small>
+                        ( Go Tji Seng / Ricky )<br>
+                        <small>Ketua KSP Sarana Mitra Mandiri</small>
                     </div>
                 </td>
                 <td>
