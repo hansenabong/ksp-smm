@@ -407,6 +407,8 @@ Route::middleware(['auth'])->group(function () {
                     Route::get('/',                      [LoanCollateralController::class,'index'])->name('admin.loans.applications.collaterals.index');
                     Route::get('/create',                [LoanCollateralController::class,'create'])->name('admin.loans.applications.collaterals.create');
                     Route::post('/',                     [LoanCollateralController::class,'store'])->name('admin.loans.applications.collaterals.store');
+                    Route::get('/{collateral}/edit',     [LoanCollateralController::class,'edit'])->name('admin.loans.applications.collaterals.edit');
+                    Route::put('/{collateral}',          [LoanCollateralController::class,'update'])->name('admin.loans.applications.collaterals.update');
                     Route::get('/{collateral}/download', [LoanCollateralController::class,'download'])->name('admin.loans.applications.collaterals.download');
                     Route::middleware('role:SUPER_ADMIN')->group(function () {
                         Route::get('/{collateral}/release',   [LoanCollateralController::class,'releaseForm'])->name('admin.loans.applications.collaterals.release-form');

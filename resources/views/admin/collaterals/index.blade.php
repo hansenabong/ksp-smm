@@ -89,15 +89,15 @@
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-1">
                                     @if($c->status === 'HELD')
+                                        <a href="{{ route('admin.loans.applications.collaterals.edit', [$application, $c]) }}"
+                                           class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition">Edit</a>
                                         <a href="{{ route('admin.loans.applications.collaterals.release-form', [$application, $c]) }}"
                                            class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded transition">Lepas</a>
-                                    @endif
-                                    @if($c->status === 'HELD')
-                                    <form method="POST" action="{{ route('admin.loans.applications.collaterals.destroy', [$application, $c]) }}"
-                                          onsubmit="return confirm('Hapus agunan ini?')">
-                                        @csrf @method('DELETE')
-                                        <button class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition">Hapus</button>
-                                    </form>
+                                        <form method="POST" action="{{ route('admin.loans.applications.collaterals.destroy', [$application, $c]) }}"
+                                              onsubmit="return confirm('Hapus agunan ini?')">
+                                            @csrf @method('DELETE')
+                                            <button class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition">Hapus</button>
+                                        </form>
                                     @endif
                                 </div>
                             </td>

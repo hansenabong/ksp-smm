@@ -54,6 +54,42 @@ class LoanCollateralController extends Controller
             ->with('success', 'Agunan berhasil ditambahkan.');
     }
 
+    public function edit(LoanApplication $application, LoanCollateral $collateral)
+    {
+        abort_if($collateral->loan_application_id !== $application->id, 404);
+        abort_if($collateral->status === 'RELEASED', 422, 'Agunan yang sudah dilepas tidak dapat diedit.');
+        $types = LoanCollateral::types();
+        return view('admin.collaterals.edit', compact('application', 'collateral', 'types'));
+    }
+
+    public function update(Request $request, LoanApplication $application, LoanCollateral $collateral)
+    {
+        abort_if($collateral->loan_application_id !== $application->id, 404);
+        abort_if($collateral->status === 'RELEASED', 422, 'Agunan yang sudah dilepas tidak dapat diedit.');
+
+        $data = $request->validate([
+            'type'            => ['required', 'in:SERTIPIKAT,BPKB,DEPOSITO,LAINNYA'],
+            'description'     => ['nullable', 'string', 'max:500'],
+            'estimated_value' => ['required', 'integer', 'min:0'],
+            'document'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+        ]);
+
+        if ($request->hasFile('document')) {
+            if ($collateral->document_path) {
+                Storage::disk('private')->delete($collateral->document_path);
+            }
+            $file = $request->file('document');
+            $data['document_path'] = $file->store('collaterals', 'private');
+            $data['document_name'] = $file->getClientOriginalName();
+        }
+
+        unset($data['document']);
+        $collateral->update($data);
+
+        return redirect()->route('admin.loans.applications.collaterals.index', $application)
+            ->with('success', 'Agunan berhasil diperbarui.');
+    }
+
     /** Download collateral document. */
     public function download(LoanApplication $application, LoanCollateral $collateral)
     {
