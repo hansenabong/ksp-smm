@@ -10,7 +10,6 @@ class LoanProduct extends Model
         'name',
         'method',
         'interest_rate_monthly_bp',
-        'admin_fee',
         'max_tenor_months',
         'is_active',
         'penalty_daily_rate_bp',

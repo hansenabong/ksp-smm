@@ -67,7 +67,7 @@
         $bungaBp    = $application->interest_rate_monthly_bp ?? ($application->interest_monthly_percent * 100);
         $bungaPct   = $bungaBp / 100;   // % per bulan
         $method     = $application->method ?? 'FLAT';
-        $adminFee   = $application->admin_fee ?? 0;
+        $adminFee   = $application->admin_monthly ?? 0;
         $insurance  = ($application->insurance_monthly ?? 0) * $tenor;
 
         // Angsuran — pakai dari Loan jika sudah ada, fallback hitung manual

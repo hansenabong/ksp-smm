@@ -29,7 +29,7 @@ class LoanCollateralController extends Controller
             'type'            => ['required', 'in:SERTIPIKAT,BPKB,DEPOSITO,LAINNYA'],
             'description'     => ['nullable', 'string', 'max:500'],
             'estimated_value' => ['required', 'integer', 'min:0'],
-            'document'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'document'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
         ]);
 
         $path = null;
@@ -71,7 +71,7 @@ class LoanCollateralController extends Controller
             'type'            => ['required', 'in:SERTIPIKAT,BPKB,DEPOSITO,LAINNYA'],
             'description'     => ['nullable', 'string', 'max:500'],
             'estimated_value' => ['required', 'integer', 'min:0'],
-            'document'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'document'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
         ]);
 
         if ($request->hasFile('document')) {

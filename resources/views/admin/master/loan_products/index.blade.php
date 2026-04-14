@@ -58,7 +58,6 @@
                             <th class="text-left p-3">Nama</th>
                             <th class="text-left p-3">Metode</th>
                             <th class="text-right p-3">Bunga/bln</th>
-                            <th class="text-right p-3">Biaya Admin</th>
                             <th class="text-right p-3">Max Tenor</th>
                             <th class="text-left p-3">Status</th>
                             <th class="text-right p-3">Aksi</th>
@@ -76,10 +75,6 @@
 
                                 <td class="p-3 text-right">
                                     {{ number_format(($lp->interest_rate_monthly_bp ?? 0)/100, 2, ',', '.') }}%
-                                </td>
-
-                                <td class="p-3 text-right">
-                                    Rp {{ number_format($lp->admin_fee ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="p-3 text-right">
@@ -108,7 +103,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td class="p-3" colspan="7">Belum ada data.</td></tr>
+                            <tr><td class="p-3" colspan="6">Belum ada data.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

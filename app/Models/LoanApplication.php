@@ -15,7 +15,7 @@ class LoanApplication extends Model
         'trx_date','member_id','principal','tenor_months','interest_monthly_percent',
         'admin_monthly','insurance_monthly','status','notes','approval_note',
         'approved_by','approved_at','approved_cash_account_id','created_by',
-        'loan_product_id', 'method', 'interest_rate_monthly_bp', 'admin_fee',
+        'loan_product_id', 'method', 'interest_rate_monthly_bp',
         'form_data',
         'notaris_name', 'notaris_deed_number', 'notaris_deed_date', 'notaris_city',
     ];

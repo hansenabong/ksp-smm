@@ -1,11 +1,23 @@
 <x-admin-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div class="shrink-0">
                 <div class="text-xs text-gray-400 mb-0.5">Pinjaman / Pengajuan</div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Detail Pengajuan #{{ $application->id }}</h2>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_DATA','TREASURY','PENGAWAS']))
+                <a href="{{ route('admin.loans.applications.review_pdf', $application) }}"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition"
+                   title="Cetak Lembar Review Pengajuan (PDF internal)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Cetak Review
+                </a>
+                @endif
                 @if($application->status === 'APPROVED')
                     @php
                         $fdShow = $application->form_data ?? [];
@@ -44,21 +56,64 @@
                         </svg>
                         PK B (Kendaraan)
                     </a>
+                    <a href="{{ route('admin.loans.applications.agreement.word', $application) }}"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Download PK A sebagai Word (.docx)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        PK A Word
+                    </a>
+                    <a href="{{ route('admin.loans.applications.agreement.vehicle.word', $application) }}"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Download PK B sebagai Word (.docx)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        PK B Word
+                    </a>
                     @if($linkedLoan)
                     <div class="w-px h-6 bg-gray-300"></div>
+                    <a href="{{ route('admin.loans.active.permohonan.dana', $linkedLoan) }}"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak Dokumen Permohonan Dana">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Permohonan Dana
+                    </a>
                     <a href="{{ route('admin.loans.active.kwitansi.plafon', $linkedLoan) }}"
                        target="_blank"
-                       class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak Kwitansi Plafon">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
                         Kwitansi Plafon
                     </a>
                     <a href="{{ route('admin.loans.active.kwitansi.pencairan', $linkedLoan) }}"
                        target="_blank"
-                       class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak Kwitansi Pencairan">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
                         Kwitansi Pencairan
                     </a>
                     <a href="{{ route('admin.loans.active.schedule', $linkedLoan) }}"
                        target="_blank"
-                       class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak Jadwal Angsuran">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
                         Jadwal Angsuran
                     </a>
                     @endif
@@ -115,10 +170,11 @@
             {{-- ===== HERO / SUMMARY CARD ===== --}}
             @php
                 $statusConfig = match($application->status) {
-                    'PENDING'  => ['bg' => 'bg-yellow-50 text-yellow-700 ring-yellow-200', 'dot' => 'bg-yellow-400'],
-                    'APPROVED' => ['bg' => 'bg-green-50 text-green-700 ring-green-200',  'dot' => 'bg-green-400'],
-                    'REJECTED' => ['bg' => 'bg-red-50 text-red-700 ring-red-200',        'dot' => 'bg-red-400'],
-                    default    => ['bg' => 'bg-gray-50 text-gray-600 ring-gray-200',     'dot' => 'bg-gray-400'],
+                    'PENDING'           => ['bg' => 'bg-yellow-50 text-yellow-700 ring-yellow-200', 'dot' => 'bg-yellow-400'],
+                    'FINANCE_REVIEWED'  => ['bg' => 'bg-blue-50 text-blue-700 ring-blue-200',       'dot' => 'bg-blue-400'],
+                    'APPROVED'          => ['bg' => 'bg-green-50 text-green-700 ring-green-200',    'dot' => 'bg-green-400'],
+                    'REJECTED'          => ['bg' => 'bg-red-50 text-red-700 ring-red-200',          'dot' => 'bg-red-400'],
+                    default             => ['bg' => 'bg-gray-50 text-gray-600 ring-gray-200',       'dot' => 'bg-gray-400'],
                 };
                 $monthly_interest = $application->principal * ($application->interest_monthly_percent / 100);
                 $monthly_pokok    = $application->tenor_months > 0 ? $application->principal / $application->tenor_months : 0;
@@ -161,10 +217,10 @@
                             <div class="text-xs text-gray-400 mt-0.5">{{ $application->tenor_months }} bulan</div>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-3">
-                            <div class="text-xs text-gray-400 mb-1">Bunga Flat</div>
+                            <div class="text-xs text-gray-400 mb-1">Bunga {{ $application->method ?? 'FLAT' }}</div>
                             <div class="font-bold text-gray-800 text-sm">{{ $application->interest_monthly_percent }}%<span class="text-xs font-normal text-gray-400">/bln</span></div>
                             @if($application->admin_monthly)
-                                <div class="text-xs text-gray-400 mt-0.5">Admin: Rp {{ number_format($application->admin_monthly, 0, ',', '.') }}</div>
+                                <div class="text-xs text-gray-400 mt-0.5">Admin: Rp {{ number_format($application->admin_monthly, 0, ',', '.') }}<span class="text-gray-300">/bln</span></div>
                             @endif
                         </div>
                         <div class="bg-indigo-50 rounded-lg p-3">
@@ -270,7 +326,13 @@
                     </div>
                     <div>
                         <div class="text-xs text-gray-400 mb-0.5">KTP Berlaku s/d</div>
-                        <div class="font-semibold text-gray-800">{{ $fd['ktp_berlaku'] ?? '-' }}</div>
+                        <div class="font-semibold text-gray-800">
+                            @if(!empty($fd['ktp_seumur_hidup']))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold ring-1 ring-blue-200">e-KTP · Seumur Hidup</span>
+                            @else
+                                {{ $fd['ktp_berlaku'] ?? '-' }}
+                            @endif
+                        </div>
                     </div>
                     <div>
                         <div class="text-xs text-gray-400 mb-0.5">Status Perkawinan</div>
@@ -329,7 +391,13 @@
                     </div>
                     <div>
                         <div class="text-xs text-gray-400 mb-0.5">KTP Berlaku s/d</div>
-                        <div class="font-semibold text-gray-800">{{ $fd['ktp_berlaku_pasangan'] ?? '-' }}</div>
+                        <div class="font-semibold text-gray-800">
+                            @if(!empty($fd['ktp_seumur_hidup_pasangan']))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold ring-1 ring-blue-200">e-KTP · Seumur Hidup</span>
+                            @else
+                                {{ $fd['ktp_berlaku_pasangan'] ?? '-' }}
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -716,9 +784,47 @@
             @endif
             @endcan
 
-            {{-- ===== APPROVE / REJECT (manager+ only) ===== --}}
+            {{-- ===== FINANCE REVIEW (FINANCE sets interest & method) ===== --}}
+            @if ($application->status === 'PENDING' && auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE']))
+            <div class="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-3.5 bg-blue-50 border-b border-blue-100">
+                    <h3 class="text-sm font-semibold text-blue-800">Review Finance &mdash; Tentukan Bunga &amp; Metode</h3>
+                </div>
+                <div class="p-6">
+                    <form method="POST" action="{{ route('admin.loans.applications.finance-review', $application) }}" class="space-y-4">
+                        @csrf
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Metode Bunga</label>
+                                <select name="method" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="FLAT" @selected(($application->method ?? 'FLAT') === 'FLAT')>FLAT (tetap)</option>
+                                    <option value="EFEKTIF" @selected(($application->method ?? '') === 'EFEKTIF')>EFEKTIF (menurun)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Bunga / bulan (%)</label>
+                                <input type="number" step="0.01" name="interest_monthly_percent"
+                                    value="{{ old('interest_monthly_percent', $application->interest_monthly_percent) }}"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" min="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Catatan Finance</label>
+                                <input type="text" name="finance_note" value="{{ old('finance_note') }}"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" maxlength="255">
+                            </div>
+                        </div>
+                        <button type="submit"
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition">
+                            Submit Review Finance
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endif
+
+            {{-- ===== APPROVE / REJECT (SUPER_ADMIN only, after Finance review) ===== --}}
             @can('approve', $application)
-            @if ($application->status === 'PENDING')
+            @if (in_array($application->status, ['PENDING', 'FINANCE_REVIEWED']))
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 <div class="bg-white rounded-xl border border-green-200 shadow-sm overflow-hidden">

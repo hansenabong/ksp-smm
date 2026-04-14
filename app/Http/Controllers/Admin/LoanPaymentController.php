@@ -67,7 +67,20 @@ class LoanPaymentController extends Controller
             'creator',
         ]);
 
-        return view('admin.loans.payments.receipt', compact('payment'));
+        // Determine which installment slot this payment fills.
+        // Mirrors buildSchedule(): not-voided payments ordered by trx_date, id
+        // are matched 1-to-1 with installment slots.
+        $orderedIds = LoanPayment::where('loan_id', $payment->loan_id)
+            ->where('is_voided', false)
+            ->orderBy('trx_date')
+            ->orderBy('id')
+            ->pluck('id');
+
+        $idx = $orderedIds->search($payment->id);
+        $installmentNo = $idx === false ? null : $idx + 1;
+        $totalTenor    = $payment->loan->tenor_months;
+
+        return view('admin.loans.payments.receipt', compact('payment', 'installmentNo', 'totalTenor'));
     }
 
     /**

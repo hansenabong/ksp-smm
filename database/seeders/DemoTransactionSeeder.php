@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\CashAccount;
 use App\Models\CashCategory;
+use App\Models\CollectionRecord;
 use App\Models\LoanApplication;
 use App\Models\LoanProduct;
 use App\Models\Member;
@@ -303,6 +304,11 @@ class DemoTransactionSeeder extends Seeder
             $member  = $this->members[$idx];
             $product = $prodKey === 'regular' ? $this->prodRegular : $this->prodMikro;
 
+            $demoAdminMonthly = $prodKey === 'regular' ? 50000 : 25000;
+
+            // Derive the member's home city from address ("Jl. ..., Jakarta" → "Jakarta")
+            $kota = trim((string) last(explode(',', (string) $member->address)));
+
             $appData = [
                 'trx_date'                 => $applyDate,
                 'member_id'                => $member->id,
@@ -310,13 +316,16 @@ class DemoTransactionSeeder extends Seeder
                 'principal'                => $principal,
                 'tenor_months'             => $tenor,
                 'interest_monthly_percent' => $product->interest_rate_monthly_bp / 100.0,
-                'admin_monthly'            => $product->admin_fee,
+                'admin_monthly'            => $demoAdminMonthly,
                 'insurance_monthly'        => 0,
                 'method'                   => $product->method,
                 'interest_rate_monthly_bp' => $product->interest_rate_monthly_bp,
-                'admin_fee'                => $product->admin_fee,
                 'status'                   => 'PENDING',
                 'created_by'               => $this->petugasId,
+                'form_data'                => [
+                    'lokasi_agunan' => $member->address,
+                    'kota_agunan'   => $kota,
+                ],
             ];
 
             if (isset($notarisData[$idx])) {
@@ -334,6 +343,16 @@ class DemoTransactionSeeder extends Seeder
                 'from_cash_account_id' => $this->kasTunai->id,
                 'approval_note'        => 'Disetujui — memenuhi syarat',
             ], $managerId);
+
+            // Create a Normal-level collection record so Cabang/branch shows in Master Tagihan
+            CollectionRecord::updateOrCreate(
+                ['loan_id' => $loan->id],
+                [
+                    'branch'           => "Cabang {$kota}",
+                    'escalation_level' => 0,
+                    'is_restruk'       => false,
+                ]
+            );
 
             $disbursedDate = Carbon::parse($approveDate);
 

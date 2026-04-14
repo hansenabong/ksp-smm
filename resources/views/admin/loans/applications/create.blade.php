@@ -47,7 +47,8 @@
                             <option value="">Pilih Produk</option>
                             @foreach ($loanProducts as $lp)
                                 <option value="{{ $lp->id }}" data-max-tenor="{{ $lp->max_tenor_months }}"
-                                    data-rate-bp="{{ $lp->interest_rate_monthly_bp }}" data-admin="{{ $lp->admin_fee }}"
+                                    data-rate-bp="{{ $lp->interest_rate_monthly_bp }}"
+                                    data-method="{{ $lp->method }}"
                                     @selected(old('loan_product_id') == $lp->id)>
                                     {{ $lp->name }} ({{ $lp->method }})
                                 </option>
@@ -59,8 +60,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm">Jumlah yang Dimohon (Rp)</label>
-                            <input type="number" name="principal" value="{{ old('principal') }}"
-                                class="w-full border rounded px-3 py-2" min="1">
+                            <input type="text" data-money name="principal" value="{{ old('principal') }}"
+                                class="w-full border rounded px-3 py-2" placeholder="0">
                         </div>
                         <div>
                             <label class="text-sm">Jangka Waktu (bulan)</label>
@@ -72,22 +73,22 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="text-sm">Bunga Flat / bulan (%)</label>
+                            <label class="text-sm">Bunga / bulan (%)</label>
                             <input id="interest_monthly_percent" type="number" step="0.01"
                                 name="interest_monthly_percent" value="{{ old('interest_monthly_percent') }}"
                                 class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
-                            <div class="text-xs text-gray-500 mt-1">Auto dari produk, masih bisa diubah</div>
+                            <div class="text-xs text-gray-500 mt-1" id="interest_method_hint">Auto dari produk, masih bisa diubah</div>
                         </div>
                         <div>
-                            <label class="text-sm">Admin / bulan (Rp)</label>
-                            <input id="admin_monthly" type="number" name="admin_monthly"
-                                value="{{ old('admin_monthly') }}" class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
-                            <div class="text-xs text-gray-500 mt-1">Auto dari produk, masih bisa diubah</div>
+                            <label class="text-sm">Biaya Admin / bulan (Rp)</label>
+                            <input id="admin_monthly" type="text" data-money name="admin_monthly"
+                                value="{{ old('admin_monthly', 0) }}" class="w-full border rounded px-3 py-2" placeholder="0" onclick="this.select()">
+                            <div class="text-xs text-gray-500 mt-1">Diinput manual sesuai kesepakatan tiap pengajuan</div>
                         </div>
                         <div>
                             <label class="text-sm">Asuransi / bulan (Rp)</label>
-                            <input type="number" name="insurance_monthly" value="{{ old('insurance_monthly', 0) }}"
-                                class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
+                            <input type="text" data-money name="insurance_monthly" value="{{ old('insurance_monthly', 0) }}"
+                                class="w-full border rounded px-3 py-2" placeholder="0" onclick="this.select()">
                         </div>
                     </div>
 
@@ -132,11 +133,18 @@
                                 value="{{ old('form_data.tgl_lahir') }}"
                                 class="w-full border rounded px-3 py-2">
                         </div>
-                        <div>
+                        <div x-data="{ seumurHidup: {{ old('form_data.ktp_seumur_hidup') ? 'true' : 'false' }} }">
                             <label class="text-sm">KTP Berlaku s/d</label>
                             <input type="date" name="form_data[ktp_berlaku]"
-                                value="{{ old('form_data.ktp_berlaku') }}"
+                                :value="seumurHidup ? '' : '{{ old('form_data.ktp_berlaku') }}'"
+                                :disabled="seumurHidup"
+                                :class="seumurHidup ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''"
                                 class="w-full border rounded px-3 py-2">
+                            <label class="flex items-center gap-1.5 mt-1 text-xs text-gray-600 cursor-pointer">
+                                <input type="checkbox" name="form_data[ktp_seumur_hidup]" value="1"
+                                    x-model="seumurHidup" class="rounded border-gray-300">
+                                <span>e-KTP / Seumur Hidup</span>
+                            </label>
                         </div>
                     </div>
 
@@ -175,7 +183,7 @@
                             class="w-full border rounded px-3 py-2">
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <div>
                             <label class="text-sm">RT</label>
                             <input type="text" name="form_data[rt]" value="{{ old('form_data.rt') }}"
@@ -187,14 +195,66 @@
                                 class="w-full border rounded px-3 py-2" maxlength="5">
                         </div>
                         <div>
-                            <label class="text-sm">Kode Pos</label>
-                            <input type="text" name="form_data[kode_pos]" value="{{ old('form_data.kode_pos') }}"
-                                class="w-full border rounded px-3 py-2" maxlength="10">
+                            <label class="text-sm">Kelurahan</label>
+                            <input type="text" name="form_data[kelurahan]" value="{{ old('form_data.kelurahan') }}"
+                                class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm">Kecamatan</label>
+                            <input type="text" name="form_data[kecamatan]" value="{{ old('form_data.kecamatan') }}"
+                                class="w-full border rounded px-3 py-2">
                         </div>
                         <div>
                             <label class="text-sm">Kota</label>
                             <input type="text" name="form_data[kota]" value="{{ old('form_data.kota') }}"
                                 class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm">Kode Pos</label>
+                            <input type="text" name="form_data[kode_pos]" value="{{ old('form_data.kode_pos') }}"
+                                class="w-full border rounded px-3 py-2" maxlength="10">
+                        </div>
+                    </div>
+
+                    {{-- Alamat KTP --}}
+                    <div class="border-t pt-3 mt-2">
+                        <label class="text-sm font-medium text-gray-600">Alamat Sesuai KTP</label>
+                    </div>
+                    <div>
+                        <input type="text" name="form_data[alamat_ktp]"
+                            value="{{ old('form_data.alamat_ktp') }}"
+                            class="w-full border rounded px-3 py-2" placeholder="Alamat lengkap sesuai KTP">
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                        <div>
+                            <label class="text-sm">RT</label>
+                            <input type="text" name="form_data[rt_ktp]" value="{{ old('form_data.rt_ktp') }}"
+                                class="w-full border rounded px-3 py-2" maxlength="5">
+                        </div>
+                        <div>
+                            <label class="text-sm">RW</label>
+                            <input type="text" name="form_data[rw_ktp]" value="{{ old('form_data.rw_ktp') }}"
+                                class="w-full border rounded px-3 py-2" maxlength="5">
+                        </div>
+                        <div>
+                            <label class="text-sm">Kelurahan</label>
+                            <input type="text" name="form_data[kelurahan_ktp]" value="{{ old('form_data.kelurahan_ktp') }}"
+                                class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm">Kecamatan</label>
+                            <input type="text" name="form_data[kecamatan_ktp]" value="{{ old('form_data.kecamatan_ktp') }}"
+                                class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm">Kota</label>
+                            <input type="text" name="form_data[kota_ktp]" value="{{ old('form_data.kota_ktp') }}"
+                                class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm">Kode Pos</label>
+                            <input type="text" name="form_data[kode_pos_ktp]" value="{{ old('form_data.kode_pos_ktp') }}"
+                                class="w-full border rounded px-3 py-2" maxlength="10">
                         </div>
                     </div>
 
@@ -268,11 +328,18 @@
                                 value="{{ old('form_data.tgl_lahir_pasangan') }}"
                                 class="w-full border rounded px-3 py-2">
                         </div>
-                        <div>
+                        <div x-data="{ seumurHidup: {{ old('form_data.ktp_seumur_hidup_pasangan') ? 'true' : 'false' }} }">
                             <label class="text-sm">KTP Berlaku s/d</label>
                             <input type="date" name="form_data[ktp_berlaku_pasangan]"
-                                value="{{ old('form_data.ktp_berlaku_pasangan') }}"
+                                :value="seumurHidup ? '' : '{{ old('form_data.ktp_berlaku_pasangan') }}'"
+                                :disabled="seumurHidup"
+                                :class="seumurHidup ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''"
                                 class="w-full border rounded px-3 py-2">
+                            <label class="flex items-center gap-1.5 mt-1 text-xs text-gray-600 cursor-pointer">
+                                <input type="checkbox" name="form_data[ktp_seumur_hidup_pasangan]" value="1"
+                                    x-model="seumurHidup" class="rounded border-gray-300">
+                                <span>e-KTP / Seumur Hidup</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -533,9 +600,9 @@
                             </div>
                             <div>
                                 <label class="text-sm">Nilai / Harga (NJOP) Rp</label>
-                                <input type="number" name="form_data[nilai_agunan]"
+                                <input type="text" data-money name="form_data[nilai_agunan]"
                                     value="{{ old('form_data.nilai_agunan') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                         </div>
 
@@ -630,21 +697,21 @@
                             <div class="text-sm font-medium text-gray-600">Sumber Pendapatan / Bulan</div>
                             <div>
                                 <label class="text-sm">1. Penghasilan Pemohon (Rp)</label>
-                                <input type="number" name="form_data[penghasilan_pemohon]"
+                                <input type="text" data-money name="form_data[penghasilan_pemohon]"
                                     value="{{ old('form_data.penghasilan_pemohon') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                             <div>
                                 <label class="text-sm">2. Penghasilan Istri / Suami (Rp)</label>
-                                <input type="number" name="form_data[penghasilan_pasangan]"
+                                <input type="text" data-money name="form_data[penghasilan_pasangan]"
                                     value="{{ old('form_data.penghasilan_pasangan') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                             <div>
                                 <label class="text-sm">3. Penghasilan Lain-lain (Rp)</label>
-                                <input type="number" name="form_data[penghasilan_lain]"
+                                <input type="text" data-money name="form_data[penghasilan_lain]"
                                     value="{{ old('form_data.penghasilan_lain') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                         </div>
 
@@ -652,27 +719,27 @@
                             <div class="text-sm font-medium text-gray-600">Sumber Pengeluaran / Bulan</div>
                             <div>
                                 <label class="text-sm">1. Biaya Sewa (Rp)</label>
-                                <input type="number" name="form_data[biaya_sewa]"
+                                <input type="text" data-money name="form_data[biaya_sewa]"
                                     value="{{ old('form_data.biaya_sewa') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                             <div>
                                 <label class="text-sm">2. Biaya Hidup (Rp)</label>
-                                <input type="number" name="form_data[biaya_hidup]"
+                                <input type="text" data-money name="form_data[biaya_hidup]"
                                     value="{{ old('form_data.biaya_hidup') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                             <div>
                                 <label class="text-sm">3. Angsuran Pinjaman Lain (Rp)</label>
-                                <input type="number" name="form_data[angsuran_lain]"
+                                <input type="text" data-money name="form_data[angsuran_lain]"
                                     value="{{ old('form_data.angsuran_lain') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                             <div>
                                 <label class="text-sm">4. Biaya Lain-lain (Rp)</label>
-                                <input type="number" name="form_data[biaya_lain]"
+                                <input type="text" data-money name="form_data[biaya_lain]"
                                     value="{{ old('form_data.biaya_lain') }}"
-                                    class="w-full border rounded px-3 py-2" min="0">
+                                    class="w-full border rounded px-3 py-2" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -761,15 +828,13 @@
         (function() {
             const sel = document.getElementById('loan_product_id');
             const hint = document.getElementById('loan_product_hint');
+            const methodHint = document.getElementById('interest_method_hint');
             const tenor = document.getElementById('tenor_months');
             const rate = document.getElementById('interest_monthly_percent');
-            const admin = document.getElementById('admin_monthly');
 
             let rateTouched = false;
-            let adminTouched = false;
 
             rate.addEventListener('input', () => rateTouched = true);
-            admin.addEventListener('input', () => adminTouched = true);
 
             function applyProduct(force = false) {
                 const opt = sel.options[sel.selectedIndex];
@@ -777,14 +842,15 @@
 
                 const maxTenor = parseInt(opt.dataset.maxTenor || '0', 10);
                 const rateBp = parseInt(opt.dataset.rateBp || '0', 10);
-                const adminFee = parseInt(opt.dataset.admin || '0', 10);
+                const method = opt.dataset.method || 'FLAT';
                 const ratePercent = (rateBp / 100).toFixed(2);
 
+                const methodLabel = method === 'EFEKTIF' ? 'Efektif (menurun)' : 'Flat (tetap)';
                 hint.textContent =
-                    `Default: bunga ${ratePercent}%/bln, admin Rp ${adminFee.toLocaleString('id-ID')}/bln, max tenor ${maxTenor} bln`;
+                    `Default: bunga ${ratePercent}%/bln, max tenor ${maxTenor} bln. Biaya admin diinput manual.`;
+                if (methodHint) methodHint.textContent = `Metode: ${methodLabel}. Auto dari produk, masih bisa diubah.`;
 
                 if (force || !rateTouched) rate.value = ratePercent;
-                if (force || !adminTouched) admin.value = adminFee;
 
                 if (maxTenor > 0) {
                     tenor.max = String(maxTenor);

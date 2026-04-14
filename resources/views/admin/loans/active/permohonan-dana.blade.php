@@ -79,7 +79,71 @@
 
         $cashName = $loan->disbursedCashAccount?->name ?? '-';
         $cashType = $loan->disbursedCashAccount?->type ?? 'CASH'; // CASH or BANK
+
+        // Prefer manual bank entry over cash-account fallback
+        $bankName = $bank['bank_name'] ?? ($cashType === 'BANK' ? $cashName : '');
+        $bankAcNo = $bank['ac_no']     ?? '';
+        $bankAtas = $bank['atas_nama'] ?? ($member?->name ?? '');
     @endphp
+
+    @if(session('success'))
+        <div class="max-w-3xl mx-auto mb-4 flex items-center gap-2 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm print:hidden">
+            <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    {{-- ── Editable form (Treasury) — non-print ── --}}
+    @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY']))
+    <div class="max-w-3xl mx-auto mb-5 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden print:hidden">
+        <div class="px-5 py-3.5 border-b border-gray-100">
+            <span class="text-sm font-semibold text-gray-700">Isi Data Bank & Hold Angsuran</span>
+            <span class="text-xs text-gray-400 ml-2">(manual input oleh Treasury)</span>
+        </div>
+        <div class="p-5">
+            <form method="POST" action="{{ route('admin.loans.active.permohonan.dana.save', $loan) }}">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Bank</label>
+                        <input type="text" name="bank_name" value="{{ old('bank_name', $bank['bank_name'] ?? '') }}"
+                               placeholder="contoh: Bank BRI"
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">A/C No.</label>
+                        <input type="text" name="ac_no" value="{{ old('ac_no', $bank['ac_no'] ?? '') }}"
+                               placeholder="nomor rekening"
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Atas Nama</label>
+                        <input type="text" name="atas_nama" value="{{ old('atas_nama', $bank['atas_nama'] ?? '') }}"
+                               placeholder="nama pemilik rekening"
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Hold Angsuran</label>
+                        <input type="text" name="hold_angsuran"
+                               value="{{ old('hold_angsuran', isset($fees['hold_angsuran']) ? number_format($fees['hold_angsuran'], 0, ',', '.') : '') }}"
+                               placeholder="0"
+                               x-data
+                               @input="$el.value = $el.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button type="submit"
+                            class="px-5 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 
     <div id="form-area" class="max-w-3xl mx-auto">
         <div class="bg-white border border-gray-800 text-sm" style="font-family: Arial, sans-serif;">
@@ -143,19 +207,19 @@
                                 <div class="flex items-center gap-2">
                                     <span class="w-20 shrink-0">Bank</span>
                                     <span>:</span>
-                                    <span>{{ $cashType === 'BANK' ? $cashName : '-' }}</span>
+                                    <span>{{ $bankName !== '' ? $bankName : '-' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="w-20 shrink-0">A/C No.</span>
                                     <span>:</span>
                                     <span class="border border-gray-600 px-2 py-0.5 font-mono min-w-[100px]">
-                                        {{ $cashType === 'BANK' ? $cashName : '' }}
+                                        {{ $bankAcNo }}
                                     </span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="w-20 shrink-0">Atas Nama</span>
                                     <span>:</span>
-                                    <span>{{ $member?->name ?? '-' }}</span>
+                                    <span>{{ $bankAtas !== '' ? $bankAtas : '-' }}</span>
                                 </div>
                             </div>
                         </div>

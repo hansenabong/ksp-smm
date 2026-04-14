@@ -36,9 +36,6 @@
 
     @php
         $member  = $loan->member;
-        $tgl     = $loan->disbursed_date instanceof \Carbon\Carbon
-                    ? $loan->disbursed_date
-                    : \Carbon\Carbon::parse($loan->disbursed_date);
 
         $feeLabels = [
             'biaya_administrasi' => 'Biaya Administrasi',
@@ -51,17 +48,12 @@
             'pnpb'               => 'PNPB',
             'hold_imb'           => 'Hold IMB',
             'hold_pbb'           => 'Hold PBB',
-            'hold_angsuran'      => 'Hold Angsuran',
             'bphtb'              => 'BPHTB',
             'pph'                => 'PPh',
         ];
 
         $jumlahBiaya = collect($fees)->sum();
-        $netPencairan = (int)$loan->principal - $jumlahBiaya;
         $noKwt = 'KWP-' . str_pad($loan->id, 5, '0', STR_PAD_LEFT);
-
-        $words = ucwords(terbilang((int)$loan->principal));
-        $wordsNet = ucwords(terbilang(max(0, $netPencairan)));
     @endphp
 
     <div class="space-y-5">
@@ -146,44 +138,6 @@
                             <span class="text-gray-400 shrink-0">:</span>
                             <span class="font-semibold text-gray-800">{{ $member?->name ?? '-' }}</span>
                         </div>
-                        <div class="flex gap-3">
-                            <span class="w-44 text-gray-500 shrink-0">No. Anggota</span>
-                            <span class="text-gray-400 shrink-0">:</span>
-                            <span class="font-medium text-gray-700">{{ $member?->member_no ?? '-' }}</span>
-                        </div>
-                        <div class="flex gap-3">
-                            <span class="w-44 text-gray-500 shrink-0">Produk Pinjaman</span>
-                            <span class="text-gray-400 shrink-0">:</span>
-                            <span class="font-medium text-gray-700">{{ $loan->loanProduct?->name ?? '-' }}</span>
-                        </div>
-                        <div class="flex gap-3">
-                            <span class="w-44 text-gray-500 shrink-0">Plafon Pinjaman</span>
-                            <span class="text-gray-400 shrink-0">:</span>
-                            <span class="font-semibold text-gray-800">
-                                Rp {{ number_format($loan->principal, 0, ',', '.') }}
-                                <span class="text-xs font-normal text-gray-400 block mt-0.5">
-                                    ({{ $words }} Rupiah)
-                                </span>
-                            </span>
-                        </div>
-                        <div class="flex gap-3">
-                            <span class="w-44 text-gray-500 shrink-0">Tenor / Angsuran</span>
-                            <span class="text-gray-400 shrink-0">:</span>
-                            <span class="font-medium text-gray-700">
-                                {{ $loan->tenor_months }} Bulan &nbsp;&middot;&nbsp;
-                                Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}/bln
-                            </span>
-                        </div>
-                        <div class="flex gap-3">
-                            <span class="w-44 text-gray-500 shrink-0">Tanggal Pencairan</span>
-                            <span class="text-gray-400 shrink-0">:</span>
-                            <span class="font-medium text-gray-700">{{ $tgl->translatedFormat('d F Y') }}</span>
-                        </div>
-                        <div class="flex gap-3">
-                            <span class="w-44 text-gray-500 shrink-0">Kas Pencairan</span>
-                            <span class="text-gray-400 shrink-0">:</span>
-                            <span class="font-medium text-gray-700">{{ $loan->disbursedCashAccount?->name ?? '-' }}</span>
-                        </div>
                     </div>
 
                     {{-- Biaya-Biaya Lainnya --}}
@@ -194,8 +148,8 @@
                         <div class="p-4">
                             <div class="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
                                 @php
-                                    $leftKeys  = ['biaya_administrasi','biaya_provisi','biaya_notaris','asuransi','pengecekan','ploting','roya','pnpb','hold_imb','hold_pbb'];
-                                    $rightKeys = ['hold_angsuran','bphtb','pph'];
+                                    $leftKeys  = ['biaya_administrasi','biaya_provisi','biaya_notaris','asuransi','pengecekan','ploting','roya'];
+                                    $rightKeys = ['pnpb','hold_imb','hold_pbb','bphtb','pph'];
                                 @endphp
 
                                 <div class="space-y-1.5">
@@ -229,21 +183,6 @@
                                 </span>
                             </div>
                         </div>
-                    </div>
-
-                    {{-- Net disbursement box --}}
-                    <div class="border-2 border-gray-800 rounded-lg px-5 py-3 flex items-center justify-between bg-gray-50">
-                        <div>
-                            <div class="text-sm font-semibold text-gray-700">Dana Yang Diterima</div>
-                            @if($jumlahBiaya > 0)
-                            <div class="text-xs text-gray-400 mt-0.5">
-                                ({{ $wordsNet }} Rupiah)
-                            </div>
-                            @endif
-                        </div>
-                        <span class="text-2xl font-bold text-gray-800 tabular-nums">
-                            Rp {{ number_format(max(0, $netPencairan), 0, ',', '.') }}
-                        </span>
                     </div>
 
                     {{-- Signatures --}}

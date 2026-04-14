@@ -28,6 +28,10 @@
         $crumbs = [['Simpanan', null], ['Saldo Anggota', null]];
     } elseif (str_starts_with($routeName, 'admin.savings.bulk_wajib')) {
         $crumbs = [['Simpanan', null], ['Bulk Simpanan Wajib', null]];
+    } elseif (str_starts_with($routeName, 'admin.deposito')) {
+        $page = str_contains($routeName, 'create') ? 'Buka Deposito' :
+               (str_contains($routeName, 'show') ? 'Detail Deposito' : 'Deposito');
+        $crumbs = [['Simpanan', null], [$page, null]];
     }
     // ── Pinjaman ──
     elseif (str_starts_with($routeName, 'admin.loans.applications')) {

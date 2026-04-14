@@ -23,27 +23,43 @@ class LoanService
 
             $app = LoanApplication::lockForUpdate()->findOrFail($applicationId);
 
-            if ($app->status !== 'PENDING') {
+            if (! in_array($app->status, ['PENDING', 'FINANCE_REVIEWED'])) {
                 throw ValidationException::withMessages(['status' => 'Pengajuan sudah diproses.']);
             }
 
-            // hitung komponen (flat)
             $principal = (int) $app->principal;
             $tenor = (int) $app->tenor_months;
             $rate = (float) $app->interest_monthly_percent;
+            $method = $app->method ?? 'FLAT';
 
             // pokok per bulan (rata, sisa dibebankan di angsuran terakhir)
             $principalMonthly = intdiv($principal, $tenor);
-
-            $interestMonthly = (int) round($principal * ($rate / 100.0));
             $adminMonthly = (int) $app->admin_monthly;
             $insuranceMonthly = (int) $app->insurance_monthly;
-
-            $monthlyInstallment = $principalMonthly + $interestMonthly + $adminMonthly + $insuranceMonthly;
-            // total = (n-1 angsuran biasa) + (angsuran terakhir dengan sisa pokok)
             $lastPrincipal = $principal - ($principalMonthly * ($tenor - 1));
-            $totalPayable = ($monthlyInstallment * ($tenor - 1))
-                          + ($lastPrincipal + $interestMonthly + $adminMonthly + $insuranceMonthly);
+
+            if ($method === 'EFEKTIF') {
+                // Efektif: bunga dihitung dari sisa pokok setiap bulan (menurun)
+                $totalPayable = 0;
+                $remaining = $principal;
+                $firstInterest = null;
+                for ($i = 1; $i <= $tenor; $i++) {
+                    $pkok = ($i === $tenor) ? $lastPrincipal : $principalMonthly;
+                    $bungaBulan = (int) round($remaining * ($rate / 100.0));
+                    if ($firstInterest === null) $firstInterest = $bungaBulan;
+                    $totalPayable += $pkok + $bungaBulan + $adminMonthly + $insuranceMonthly;
+                    $remaining -= $pkok;
+                }
+                $interestMonthly = $firstInterest ?? 0;
+                // Angsuran bulan pertama (terbesar karena bunga menurun)
+                $monthlyInstallment = $principalMonthly + $interestMonthly + $adminMonthly + $insuranceMonthly;
+            } else {
+                // FLAT: bunga tetap dari pokok awal
+                $interestMonthly = (int) round($principal * ($rate / 100.0));
+                $monthlyInstallment = $principalMonthly + $interestMonthly + $adminMonthly + $insuranceMonthly;
+                $totalPayable = ($monthlyInstallment * ($tenor - 1))
+                              + ($lastPrincipal + $interestMonthly + $adminMonthly + $insuranceMonthly);
+            }
             $fromCashId = (int) $data['from_cash_account_id'];
 
             // cek saldo kas real-time
@@ -83,6 +99,7 @@ class LoanService
                 'disbursed_date' => $data['trx_date'],
                 'principal' => $principal,
                 'tenor_months' => $tenor,
+                'method' => $method,
                 'interest_monthly_percent' => $rate,
                 'principal_monthly' => $principalMonthly,
                 'interest_monthly' => $interestMonthly,
@@ -111,7 +128,7 @@ class LoanService
         DB::transaction(function () use ($applicationId, $note, $userId) {
             $app = LoanApplication::lockForUpdate()->findOrFail($applicationId);
 
-            if ($app->status !== 'PENDING') {
+            if (! in_array($app->status, ['PENDING', 'FINANCE_REVIEWED'])) {
                 throw ValidationException::withMessages(['status' => 'Pengajuan sudah diproses.']);
             }
 

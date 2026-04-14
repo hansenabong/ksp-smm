@@ -77,7 +77,7 @@ class CollectionController extends Controller
             'angsuran_berjalan' => $allActive->sum('monthly_installment'),
             'tunggakan'         => $allActive->sum(fn($l) => $this->computeArrears($l, $today)),
             'total_tagihan'     => (int) $allActive->sum(fn($l) => $this->computeTotalKewajiban($l, $today)),
-            'target'            => (int) ($allActive->sum(fn($l) => $this->computeTotalKewajiban($l, $today)) * 0.65),
+            'target'            => (int) $allActive->sum(fn($l) => $this->computeTotalKewajiban($l, $today)),
             'total_realisasi'   => $allActive->sum(fn($l) => optional($l->payments->first())->amount ?? 0),
         ];
 
@@ -417,7 +417,6 @@ class CollectionController extends Controller
                       ?: ('PK-KSP/' . str_pad($loan->id, 5, '0', STR_PAD_LEFT) . '/' . date('Y', strtotime($loan->disbursed_date)));
 
                 $alamatTinggal = $rec?->alamat_tinggal ?: ($loan->_alamat_tinggal ?? $loan->member->address ?? '');
-                $njopVal = $rec?->njop ?: ($loan->application?->form_data['njop_agunan'] ?? null);
 
                 fputcsv($out, [
                     $i + 1,
@@ -427,9 +426,9 @@ class CollectionController extends Controller
                     $loan->principal,
                     $loan->tenor_months,
                     $loan->_ke,
-                    $njopVal ?? '',
-                    $rec?->luas_tanah ?? '',
-                    $rec?->luas_bangunan ?? '',
+                    $loan->_dhia_njop ?? '',
+                    $loan->_dhia_lt   ?? '',
+                    $loan->_dhia_lb   ?? '',
                     $loan->outstanding,
                     $loan->monthly_installment,
                     $loan->_tunggakan < 0 ? abs($loan->_tunggakan) : '',
@@ -463,6 +462,14 @@ class CollectionController extends Controller
         $arrears    = $this->computeArrears($loan, $today);
         $monthsLate = $this->computeMonthsLate($loan, $today);
 
+        // DHIA defaults pulled from loan application's collateral data
+        $fd = $loan->application?->form_data ?? [];
+        $dhiaDefaults = [
+            'njop'          => $fd['nilai_agunan']  ?? null,
+            'luas_tanah'    => $fd['luas_tanah']    ?? null,
+            'luas_bangunan' => $fd['luas_bangunan'] ?? null,
+        ];
+
         $petugasList = User::whereHas('roles', fn($q) => $q->whereIn('name',
                 ['ADMIN_COLLECTION', 'SUPER_ADMIN']))
             ->orderBy('name')->get();
@@ -474,7 +481,7 @@ class CollectionController extends Controller
         }
 
         return view('admin.collection.show', compact(
-            'loan', 'record', 'letters', 'arrears', 'monthsLate', 'petugasList', 'nextNumbers'
+            'loan', 'record', 'letters', 'arrears', 'monthsLate', 'petugasList', 'nextNumbers', 'dhiaDefaults'
         ));
     }
 
@@ -549,6 +556,13 @@ class CollectionController extends Controller
         $loan->_kota_jaminan          = $loan->application?->form_data['kota_agunan'] ?? '';
         $loan->_alamat_tinggal        = $loan->collectionRecord?->alamat_tinggal ?: ($loan->member->address ?? '');
         $loan->_alamat_jaminan        = $this->buildAlamatJaminan($loan);
+
+        // DHIA property fields: collection_record override → fallback to loan application form_data
+        $fd = $loan->application?->form_data ?? [];
+        $rec = $loan->collectionRecord;
+        $loan->_dhia_njop = $rec?->njop ?: ($fd['nilai_agunan'] ?? null);
+        $loan->_dhia_lt   = $rec?->luas_tanah ?: ($fd['luas_tanah'] ?? null);
+        $loan->_dhia_lb   = $rec?->luas_bangunan ?: ($fd['luas_bangunan'] ?? null);
 
         return $loan;
     }

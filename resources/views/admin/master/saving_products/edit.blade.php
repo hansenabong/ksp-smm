@@ -27,7 +27,9 @@
                 <div class="text-xs text-gray-400 mt-0.5"><span class="text-red-500">*</span> Wajib diisi</div>
             </div>
 
-            <form method="POST" action="{{ route('admin.master.saving_products.update', $savingProduct) }}" class="px-5 py-5 space-y-4">
+            <form method="POST" action="{{ route('admin.master.saving_products.update', $savingProduct) }}"
+                  class="px-5 py-5 space-y-4"
+                  x-data="{ isDeposito: {{ old('is_deposito', $savingProduct->is_deposito) ? 'true' : 'false' }} }">
                 @csrf
                 @method('PUT')
 
@@ -58,8 +60,50 @@
                     @error('ledger_account_id') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 
-                <input type="hidden" name="is_withdrawable" value="0">
+                <input type="hidden" name="is_deposito" value="0">
                 <div class="flex items-center gap-2">
+                    <input type="checkbox" id="is_deposito" name="is_deposito" value="1"
+                           x-model="isDeposito"
+                           class="rounded border-gray-300">
+                    <label for="is_deposito" class="text-sm text-gray-700">Deposito (jangka waktu &amp; bunga tetap)</label>
+                </div>
+
+                <div x-show="isDeposito" x-cloak class="space-y-4 p-4 bg-indigo-50/50 border border-indigo-100 rounded-lg">
+                    <div class="text-xs text-indigo-700 font-semibold uppercase tracking-wide">Konfigurasi Deposito</div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                Bunga / tahun (%) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" step="0.01" min="0" max="100"
+                                   name="default_interest_rate_pct"
+                                   value="{{ old('default_interest_rate_pct', $savingProduct->default_interest_rate_pct) }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                   placeholder="cth: 6.50">
+                            @error('default_interest_rate_pct') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                Jangka waktu (bulan) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" min="1" max="240"
+                                   name="default_term_months"
+                                   value="{{ old('default_term_months', $savingProduct->default_term_months) }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                   placeholder="cth: 12">
+                            @error('default_term_months') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-gray-500">
+                        Tanggal mulai &amp; tanggal jatuh tempo dicatat per kontrak saat anggota membuka deposito (bukan di master).
+                        Penarikan otomatis dikunci sampai tanggal jatuh tempo.
+                    </p>
+                </div>
+
+                <input type="hidden" name="is_withdrawable" value="0">
+                <div class="flex items-center gap-2" x-show="!isDeposito" x-cloak>
                     <input type="checkbox" id="is_withdrawable" name="is_withdrawable" value="1"
                            @checked(old('is_withdrawable', $savingProduct->is_withdrawable))
                            class="rounded border-gray-300">

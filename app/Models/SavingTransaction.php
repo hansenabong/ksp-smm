@@ -17,6 +17,7 @@ class SavingTransaction extends Model
         'amount',
         'member_id',
         'saving_product_id',
+        'deposito_account_id',
         'cash_account_id',
         'cash_transaction_id',
         'description',
@@ -30,6 +31,10 @@ class SavingTransaction extends Model
     public function savingProduct()
     {
         return $this->belongsTo(SavingProduct::class);
+    }
+    public function depositoAccount()
+    {
+        return $this->belongsTo(DepositoAccount::class);
     }
     public function cashAccount()
     {

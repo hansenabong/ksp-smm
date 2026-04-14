@@ -116,7 +116,12 @@
                             <span class="w-40 text-gray-500 shrink-0">Untuk Pembayaran</span>
                             <span class="text-gray-400 shrink-0">:</span>
                             <div class="text-gray-700">
-                                <div>Angsuran Pinjaman No. #{{ $loan->id }}</div>
+                                <div>
+                                    Angsuran Pinjaman No. #{{ $loan->id }}
+                                    @if($installmentNo)
+                                        <span class="text-gray-500">— Pembayaran ke-{{ $installmentNo }} dari {{ $totalTenor }}</span>
+                                    @endif
+                                </div>
                                 <div class="text-xs text-gray-400 mt-0.5">
                                     {{ $loan->loanProduct?->name ?? '-' }}
                                     &middot; Plafond Rp {{ number_format($loan->principal, 0, ',', '.') }}

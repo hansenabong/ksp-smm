@@ -42,7 +42,7 @@ class LegalController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'member_id'   => ['nullable', 'exists:members,id'],
             'files'       => ['required', 'array', 'min:1'],
-            'files.*'     => ['required', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx', 'max:10240'],
+            'files.*'     => ['required', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx', 'max:102400'],
         ]);
 
         $berkas = LegalBerkas::create([
@@ -78,7 +78,7 @@ class LegalController extends Controller
     {
         $request->validate([
             'files'   => ['required', 'array', 'min:1'],
-            'files.*' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx', 'max:10240'],
+            'files.*' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx', 'max:102400'],
         ]);
 
         foreach ($request->file('files') as $file) {

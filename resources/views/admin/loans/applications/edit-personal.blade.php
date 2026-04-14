@@ -95,11 +95,18 @@
                         value="{{ old('form_data.tgl_lahir', $fd['tgl_lahir'] ?? '') }}"
                         class="w-full border rounded px-3 py-2">
                 </div>
-                <div>
+                <div x-data="{ seumurHidup: {{ old('form_data.ktp_seumur_hidup', $fd['ktp_seumur_hidup'] ?? false) ? 'true' : 'false' }} }">
                     <label class="text-sm">KTP Berlaku s/d</label>
                     <input type="date" name="form_data[ktp_berlaku]"
-                        value="{{ old('form_data.ktp_berlaku', $fd['ktp_berlaku'] ?? '') }}"
+                        :value="seumurHidup ? '' : '{{ old('form_data.ktp_berlaku', $fd['ktp_berlaku'] ?? '') }}'"
+                        :disabled="seumurHidup"
+                        :class="seumurHidup ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''"
                         class="w-full border rounded px-3 py-2">
+                    <label class="flex items-center gap-1.5 mt-1 text-xs text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="form_data[ktp_seumur_hidup]" value="1"
+                            x-model="seumurHidup" class="rounded border-gray-300">
+                        <span>e-KTP / Seumur Hidup</span>
+                    </label>
                 </div>
             </div>
 
@@ -237,11 +244,18 @@
                         value="{{ old('form_data.tgl_lahir_pasangan', $fd['tgl_lahir_pasangan'] ?? '') }}"
                         class="w-full border rounded px-3 py-2">
                 </div>
-                <div>
+                <div x-data="{ seumurHidup: {{ old('form_data.ktp_seumur_hidup_pasangan', $fd['ktp_seumur_hidup_pasangan'] ?? false) ? 'true' : 'false' }} }">
                     <label class="text-sm">KTP Berlaku s/d</label>
                     <input type="date" name="form_data[ktp_berlaku_pasangan]"
-                        value="{{ old('form_data.ktp_berlaku_pasangan', $fd['ktp_berlaku_pasangan'] ?? '') }}"
+                        :value="seumurHidup ? '' : '{{ old('form_data.ktp_berlaku_pasangan', $fd['ktp_berlaku_pasangan'] ?? '') }}'"
+                        :disabled="seumurHidup"
+                        :class="seumurHidup ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''"
                         class="w-full border rounded px-3 py-2">
+                    <label class="flex items-center gap-1.5 mt-1 text-xs text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="form_data[ktp_seumur_hidup_pasangan]" value="1"
+                            x-model="seumurHidup" class="rounded border-gray-300">
+                        <span>e-KTP / Seumur Hidup</span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -490,9 +504,9 @@
                     </div>
                     <div>
                         <label class="text-sm">Nilai / Harga (NJOP) Rp</label>
-                        <input type="number" name="form_data[nilai_agunan]"
+                        <input type="text" data-money name="form_data[nilai_agunan]"
                             value="{{ old('form_data.nilai_agunan', $fd['nilai_agunan'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -708,48 +722,48 @@
                     <div class="text-sm font-medium text-gray-600">Sumber Pendapatan / Bulan</div>
                     <div>
                         <label class="text-sm">1. Penghasilan Pemohon (Rp)</label>
-                        <input type="number" name="form_data[penghasilan_pemohon]"
+                        <input type="text" data-money name="form_data[penghasilan_pemohon]"
                             value="{{ old('form_data.penghasilan_pemohon', $fd['penghasilan_pemohon'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                     <div>
                         <label class="text-sm">2. Penghasilan Istri / Suami (Rp)</label>
-                        <input type="number" name="form_data[penghasilan_pasangan]"
+                        <input type="text" data-money name="form_data[penghasilan_pasangan]"
                             value="{{ old('form_data.penghasilan_pasangan', $fd['penghasilan_pasangan'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                     <div>
                         <label class="text-sm">3. Penghasilan Lain-lain (Rp)</label>
-                        <input type="number" name="form_data[penghasilan_lain]"
+                        <input type="text" data-money name="form_data[penghasilan_lain]"
                             value="{{ old('form_data.penghasilan_lain', $fd['penghasilan_lain'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                 </div>
                 <div class="space-y-3">
                     <div class="text-sm font-medium text-gray-600">Sumber Pengeluaran / Bulan</div>
                     <div>
                         <label class="text-sm">1. Biaya Sewa (Rp)</label>
-                        <input type="number" name="form_data[biaya_sewa]"
+                        <input type="text" data-money name="form_data[biaya_sewa]"
                             value="{{ old('form_data.biaya_sewa', $fd['biaya_sewa'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                     <div>
                         <label class="text-sm">2. Biaya Hidup (Rp)</label>
-                        <input type="number" name="form_data[biaya_hidup]"
+                        <input type="text" data-money name="form_data[biaya_hidup]"
                             value="{{ old('form_data.biaya_hidup', $fd['biaya_hidup'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                     <div>
                         <label class="text-sm">3. Angsuran Pinjaman Lain (Rp)</label>
-                        <input type="number" name="form_data[angsuran_lain]"
+                        <input type="text" data-money name="form_data[angsuran_lain]"
                             value="{{ old('form_data.angsuran_lain', $fd['angsuran_lain'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                     <div>
                         <label class="text-sm">4. Biaya Lain-lain (Rp)</label>
-                        <input type="number" name="form_data[biaya_lain]"
+                        <input type="text" data-money name="form_data[biaya_lain]"
                             value="{{ old('form_data.biaya_lain', $fd['biaya_lain'] ?? '') }}"
-                            class="w-full border rounded px-3 py-2" min="0">
+                            class="w-full border rounded px-3 py-2" placeholder="0">
                     </div>
                 </div>
             </div>

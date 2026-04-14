@@ -55,14 +55,25 @@ class LoanApplicationController extends Controller
             'form_data.no_ktp'                       => ['nullable', 'string', 'max:20'],
             'form_data.tgl_lahir'                    => ['nullable', 'date'],
             'form_data.ktp_berlaku'                  => ['nullable', 'date'],
+            'form_data.ktp_seumur_hidup'             => ['nullable', 'boolean'],
             'form_data.status_perkawinan'            => ['nullable', 'in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati'],
             'form_data.pendidikan'                   => ['nullable', 'string', 'max:20'],
             'form_data.nama_ibu_kandung'             => ['nullable', 'string', 'max:100'],
             'form_data.alamat'                       => ['nullable', 'string', 'max:255'],
             'form_data.rt'                           => ['nullable', 'string', 'max:5'],
             'form_data.rw'                           => ['nullable', 'string', 'max:5'],
+            'form_data.kelurahan'                    => ['nullable', 'string', 'max:100'],
+            'form_data.kecamatan'                    => ['nullable', 'string', 'max:100'],
             'form_data.kota'                         => ['nullable', 'string', 'max:100'],
             'form_data.kode_pos'                     => ['nullable', 'string', 'max:10'],
+            // Alamat KTP
+            'form_data.alamat_ktp'                   => ['nullable', 'string', 'max:255'],
+            'form_data.rt_ktp'                       => ['nullable', 'string', 'max:5'],
+            'form_data.rw_ktp'                       => ['nullable', 'string', 'max:5'],
+            'form_data.kelurahan_ktp'                => ['nullable', 'string', 'max:100'],
+            'form_data.kecamatan_ktp'                => ['nullable', 'string', 'max:100'],
+            'form_data.kota_ktp'                     => ['nullable', 'string', 'max:100'],
+            'form_data.kode_pos_ktp'                 => ['nullable', 'string', 'max:10'],
             'form_data.telp_rumah'                   => ['nullable', 'string', 'max:20'],
             'form_data.hp'                           => ['nullable', 'string', 'max:20'],
             'form_data.kepemilikan_rumah'            => ['nullable', 'string', 'max:50'],
@@ -74,6 +85,7 @@ class LoanApplicationController extends Controller
             'form_data.no_ktp_pasangan'              => ['nullable', 'string', 'max:20'],
             'form_data.tgl_lahir_pasangan'           => ['nullable', 'date'],
             'form_data.ktp_berlaku_pasangan'         => ['nullable', 'date'],
+            'form_data.ktp_seumur_hidup_pasangan'    => ['nullable', 'boolean'],
             // Kontak Darurat
             'form_data.nama_darurat'                 => ['nullable', 'string', 'max:100'],
             'form_data.telp_darurat'                 => ['nullable', 'string', 'max:20'],
@@ -154,10 +166,10 @@ class LoanApplicationController extends Controller
             'form_data.biaya_lain'                   => ['nullable', 'integer', 'min:0'],
 
             // upload dokumen
-            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
             // tetap ada (boleh override), tapi defaultnya diisi dari produk
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'admin_monthly' => ['nullable', 'integer', 'min:0'],
@@ -171,6 +183,7 @@ class LoanApplicationController extends Controller
             'notaris_city'        => ['nullable', 'string', 'max:100'],
         ]);
         $formData = $request->input('form_data', []);
+        $formData = $this->normalizeKtpFlags($formData);
         $product = LoanProduct::where('is_active', true)->findOrFail($data['loan_product_id']);
 
         if ((int)$data['tenor_months'] > (int)$product->max_tenor_months) {
@@ -182,16 +195,12 @@ class LoanApplicationController extends Controller
         // default dari produk (basis points -> persen)
         $defaultInterestPercent = ($product->interest_rate_monthly_bp ?? 0) / 100.0;
 
-        // NOTE: admin_fee di product kita treat sebagai admin per bulan (biar kompatibel dengan loan logic kamu sekarang)
-        $defaultAdminMonthly = (int)($product->admin_fee ?? 0);
-
         $interestPercent = array_key_exists('interest_monthly_percent', $data) && $data['interest_monthly_percent'] !== null
             ? (float)$data['interest_monthly_percent']
             : (float)$defaultInterestPercent;
 
-        $adminMonthly = array_key_exists('admin_monthly', $data) && $data['admin_monthly'] !== null
-            ? (int)$data['admin_monthly']
-            : (int)$defaultAdminMonthly;
+        // Biaya admin diinput manual per pengajuan (tidak lagi diambil dari master jenis pinjaman)
+        $adminMonthly = (int)($data['admin_monthly'] ?? 0);
 
         $insuranceMonthly = (int)($data['insurance_monthly'] ?? 0);
 
@@ -213,7 +222,6 @@ class LoanApplicationController extends Controller
             'loan_product_id' => $product->id,
             'method' => $product->method,
             'interest_rate_monthly_bp' => (int)$product->interest_rate_monthly_bp,
-            'admin_fee' => (int)$product->admin_fee,
 
             'status' => 'PENDING',
             'created_by' => auth()->id(),
@@ -255,8 +263,8 @@ class LoanApplicationController extends Controller
                 $saveOne($f, 'LAINNYA');
             }
         }
-        return redirect()->route('admin.loans.applications.index')
-            ->with('success', 'Pengajuan pinjaman berhasil dibuat.');
+        return redirect()->route('admin.loans.applications.show', $app)
+            ->with('success', 'Pengajuan pinjaman berhasil dibuat. Silakan periksa kembali data di bawah dan cetak review jika perlu.');
     }
 
     public function edit(LoanApplication $application)
@@ -300,14 +308,24 @@ class LoanApplicationController extends Controller
             'form_data.no_ktp'                       => ['nullable', 'string', 'max:20'],
             'form_data.tgl_lahir'                    => ['nullable', 'date'],
             'form_data.ktp_berlaku'                  => ['nullable', 'date'],
+            'form_data.ktp_seumur_hidup'             => ['nullable', 'boolean'],
             'form_data.status_perkawinan'            => ['nullable', 'in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati'],
             'form_data.pendidikan'                   => ['nullable', 'string', 'max:20'],
             'form_data.nama_ibu_kandung'             => ['nullable', 'string', 'max:100'],
             'form_data.alamat'                       => ['nullable', 'string', 'max:255'],
             'form_data.rt'                           => ['nullable', 'string', 'max:5'],
             'form_data.rw'                           => ['nullable', 'string', 'max:5'],
+            'form_data.kelurahan'                    => ['nullable', 'string', 'max:100'],
+            'form_data.kecamatan'                    => ['nullable', 'string', 'max:100'],
             'form_data.kota'                         => ['nullable', 'string', 'max:100'],
             'form_data.kode_pos'                     => ['nullable', 'string', 'max:10'],
+            'form_data.alamat_ktp'                   => ['nullable', 'string', 'max:255'],
+            'form_data.rt_ktp'                       => ['nullable', 'string', 'max:5'],
+            'form_data.rw_ktp'                       => ['nullable', 'string', 'max:5'],
+            'form_data.kelurahan_ktp'                => ['nullable', 'string', 'max:100'],
+            'form_data.kecamatan_ktp'                => ['nullable', 'string', 'max:100'],
+            'form_data.kota_ktp'                     => ['nullable', 'string', 'max:100'],
+            'form_data.kode_pos_ktp'                 => ['nullable', 'string', 'max:10'],
             'form_data.telp_rumah'                   => ['nullable', 'string', 'max:20'],
             'form_data.hp'                           => ['nullable', 'string', 'max:20'],
             'form_data.kepemilikan_rumah'            => ['nullable', 'string', 'max:50'],
@@ -318,6 +336,7 @@ class LoanApplicationController extends Controller
             'form_data.no_ktp_pasangan'              => ['nullable', 'string', 'max:20'],
             'form_data.tgl_lahir_pasangan'           => ['nullable', 'date'],
             'form_data.ktp_berlaku_pasangan'         => ['nullable', 'date'],
+            'form_data.ktp_seumur_hidup_pasangan'    => ['nullable', 'boolean'],
             'form_data.nama_darurat'                 => ['nullable', 'string', 'max:100'],
             'form_data.telp_darurat'                 => ['nullable', 'string', 'max:20'],
             'form_data.alamat_darurat'               => ['nullable', 'string', 'max:255'],
@@ -376,10 +395,10 @@ class LoanApplicationController extends Controller
             'form_data.biaya_hidup'                  => ['nullable', 'integer', 'min:0'],
             'form_data.angsuran_lain'                => ['nullable', 'integer', 'min:0'],
             'form_data.biaya_lain'                   => ['nullable', 'integer', 'min:0'],
-            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'admin_monthly'            => ['nullable', 'integer', 'min:0'],
             'insurance_monthly'        => ['nullable', 'integer', 'min:0'],
@@ -399,15 +418,13 @@ class LoanApplicationController extends Controller
         }
 
         $defaultInterestPercent = ($product->interest_rate_monthly_bp ?? 0) / 100.0;
-        $defaultAdminMonthly    = (int)($product->admin_fee ?? 0);
 
         $interestPercent = array_key_exists('interest_monthly_percent', $data) && $data['interest_monthly_percent'] !== null
             ? (float)$data['interest_monthly_percent']
             : (float)$defaultInterestPercent;
 
-        $adminMonthly    = array_key_exists('admin_monthly', $data) && $data['admin_monthly'] !== null
-            ? (int)$data['admin_monthly']
-            : (int)$defaultAdminMonthly;
+        // Biaya admin diinput manual per pengajuan (tidak lagi diambil dari master jenis pinjaman)
+        $adminMonthly = (int)($data['admin_monthly'] ?? 0);
 
         $insuranceMonthly = (int)($data['insurance_monthly'] ?? 0);
 
@@ -416,7 +433,7 @@ class LoanApplicationController extends Controller
             'member_id'                => $data['member_id'],
             'principal'                => (int)$data['principal'],
             'tenor_months'             => (int)$data['tenor_months'],
-            'form_data'                => $request->input('form_data', []),
+            'form_data'                => $this->normalizeKtpFlags($request->input('form_data', [])),
             'interest_monthly_percent' => $interestPercent,
             'admin_monthly'            => $adminMonthly,
             'insurance_monthly'        => $insuranceMonthly,
@@ -424,7 +441,6 @@ class LoanApplicationController extends Controller
             'loan_product_id'          => $product->id,
             'method'                   => $product->method,
             'interest_rate_monthly_bp' => (int)$product->interest_rate_monthly_bp,
-            'admin_fee'                => (int)$product->admin_fee,
             'notaris_name'             => $data['notaris_name'] ?? null,
             'notaris_deed_number'      => $data['notaris_deed_number'] ?? null,
             'notaris_deed_date'        => $data['notaris_deed_date'] ?? null,
@@ -525,14 +541,24 @@ class LoanApplicationController extends Controller
             'form_data.no_ktp'                       => ['nullable', 'string', 'max:20'],
             'form_data.tgl_lahir'                    => ['nullable', 'date'],
             'form_data.ktp_berlaku'                  => ['nullable', 'date'],
+            'form_data.ktp_seumur_hidup'             => ['nullable', 'boolean'],
             'form_data.status_perkawinan'            => ['nullable', 'in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati'],
             'form_data.pendidikan'                   => ['nullable', 'string', 'max:20'],
             'form_data.nama_ibu_kandung'             => ['nullable', 'string', 'max:100'],
             'form_data.alamat'                       => ['nullable', 'string', 'max:255'],
             'form_data.rt'                           => ['nullable', 'string', 'max:5'],
             'form_data.rw'                           => ['nullable', 'string', 'max:5'],
+            'form_data.kelurahan'                    => ['nullable', 'string', 'max:100'],
+            'form_data.kecamatan'                    => ['nullable', 'string', 'max:100'],
             'form_data.kota'                         => ['nullable', 'string', 'max:100'],
             'form_data.kode_pos'                     => ['nullable', 'string', 'max:10'],
+            'form_data.alamat_ktp'                   => ['nullable', 'string', 'max:255'],
+            'form_data.rt_ktp'                       => ['nullable', 'string', 'max:5'],
+            'form_data.rw_ktp'                       => ['nullable', 'string', 'max:5'],
+            'form_data.kelurahan_ktp'                => ['nullable', 'string', 'max:100'],
+            'form_data.kecamatan_ktp'                => ['nullable', 'string', 'max:100'],
+            'form_data.kota_ktp'                     => ['nullable', 'string', 'max:100'],
+            'form_data.kode_pos_ktp'                 => ['nullable', 'string', 'max:10'],
             'form_data.telp_rumah'                   => ['nullable', 'string', 'max:20'],
             'form_data.hp'                           => ['nullable', 'string', 'max:20'],
             'form_data.kepemilikan_rumah'            => ['nullable', 'string', 'max:50'],
@@ -543,6 +569,7 @@ class LoanApplicationController extends Controller
             'form_data.no_ktp_pasangan'              => ['nullable', 'string', 'max:20'],
             'form_data.tgl_lahir_pasangan'           => ['nullable', 'date'],
             'form_data.ktp_berlaku_pasangan'         => ['nullable', 'date'],
+            'form_data.ktp_seumur_hidup_pasangan'    => ['nullable', 'boolean'],
             'form_data.nama_darurat'                 => ['nullable', 'string', 'max:100'],
             'form_data.telp_darurat'                 => ['nullable', 'string', 'max:20'],
             'form_data.alamat_darurat'               => ['nullable', 'string', 'max:255'],
@@ -607,15 +634,15 @@ class LoanApplicationController extends Controller
             'notaris_deed_date'   => ['nullable', 'date'],
             'notaris_city'        => ['nullable', 'string', 'max:100'],
             // Additional files
-            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
-            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:20480'],
+            'doc_ktp'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_kk'        => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
+            'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
         ]);
 
         // Only update personal/notaris fields — financial terms are immutable
         $application->update([
-            'form_data'           => $request->input('form_data', $application->form_data ?? []),
+            'form_data'           => $this->normalizeKtpFlags($request->input('form_data', $application->form_data ?? [])),
             'notaris_name'        => $data['notaris_name'] ?? null,
             'notaris_deed_number' => $data['notaris_deed_number'] ?? null,
             'notaris_deed_date'   => $data['notaris_deed_date'] ?? null,
@@ -656,6 +683,33 @@ class LoanApplicationController extends Controller
             ->with('success', 'Data pribadi pengajuan berhasil diperbarui.');
     }
 
+    public function financeReview(Request $request, LoanApplication $application, AuditLogService $audit)
+    {
+        abort_unless($application->status === 'PENDING', 403, 'Hanya pengajuan PENDING yang bisa di-review Finance.');
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
+
+        $data = $request->validate([
+            'method'                   => ['required', 'in:FLAT,EFEKTIF'],
+            'interest_monthly_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'finance_note'             => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $application->update([
+            'method'                   => $data['method'],
+            'interest_monthly_percent' => (float) $data['interest_monthly_percent'],
+            'status'                   => 'FINANCE_REVIEWED',
+            'approval_note'            => $data['finance_note'] ?? $application->approval_note,
+        ]);
+
+        $audit->record('finance_review', 'LoanApplication', $application->id,
+            "Finance review pengajuan #{$application->id}: {$data['method']} {$data['interest_monthly_percent']}%/bln",
+            ['method' => $data['method'], 'rate' => $data['interest_monthly_percent']]
+        );
+
+        return redirect()->route('admin.loans.applications.show', $application)
+            ->with('success', 'Review Finance berhasil. Bunga ' . $data['method'] . ' ' . $data['interest_monthly_percent'] . '%/bln telah di-set.');
+    }
+
     public function approve(Request $request, LoanApplication $application, LoanService $service, AuditLogService $audit)
     {
         $validated = $request->validate([
@@ -693,6 +747,48 @@ class LoanApplicationController extends Controller
 
         return redirect()->route('admin.loans.applications.index')->with('success', 'Pengajuan ditolak.');
     }
+    /**
+     * Cast e-KTP "seumur hidup" checkboxes to clean booleans.
+     * When seumur hidup is on, the corresponding ktp_berlaku date is wiped
+     * so the JSON has a single source of truth.
+     */
+    private function normalizeKtpFlags(array $formData): array
+    {
+        $seumur = !empty($formData['ktp_seumur_hidup']);
+        $formData['ktp_seumur_hidup'] = $seumur;
+        if ($seumur) {
+            $formData['ktp_berlaku'] = null;
+        }
+
+        $seumurPas = !empty($formData['ktp_seumur_hidup_pasangan']);
+        $formData['ktp_seumur_hidup_pasangan'] = $seumurPas;
+        if ($seumurPas) {
+            $formData['ktp_berlaku_pasangan'] = null;
+        }
+
+        return $formData;
+    }
+
+    public function reviewPdf(LoanApplication $application)
+    {
+        // ADMIN_DATA only sees their own; others (SUPER_ADMIN, TREASURY, PENGAWAS) see all
+        if (auth()->user()->hasRole('ADMIN_DATA') && (int)$application->created_by !== auth()->id()) {
+            abort(403);
+        }
+
+        $application->load(['member', 'loanProduct', 'creator', 'approver', 'files']);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'admin.loans.applications.review-pdf',
+            compact('application')
+        );
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'review-pengajuan-' . str_pad($application->id, 5, '0', STR_PAD_LEFT) . '.pdf';
+
+        return $pdf->stream($filename);
+    }
+
     public function penawaranPembiayaan(LoanApplication $application)
     {
         abort_unless($application->status === 'APPROVED', 404);
@@ -748,6 +844,113 @@ class LoanApplicationController extends Controller
         $filename = 'perjanjian-kendaraan-' . str_replace('/', '-', $nomorPk) . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    public function agreementWord(LoanApplication $application)
+    {
+        abort_unless($application->status === 'APPROVED', 404);
+
+        $application->load(['member', 'loanProduct', 'approver']);
+        $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
+        $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+
+        $html = view('admin.loans.applications.agreement-pdf', compact('application', 'loan', 'nomorPk'))->render();
+        $filename = 'perjanjian-' . str_replace('/', '-', $nomorPk) . '.docx';
+
+        return $this->buildWordFromHtml($html, $filename);
+    }
+
+    public function agreementVehicleWord(LoanApplication $application)
+    {
+        abort_unless($application->status === 'APPROVED', 404);
+
+        $application->load(['member', 'loanProduct', 'approver']);
+        $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
+        $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+
+        $html = view('admin.loans.applications.agreement-vehicle-pdf', compact('application', 'loan', 'nomorPk'))->render();
+        $filename = 'perjanjian-kendaraan-' . str_replace('/', '-', $nomorPk) . '.docx';
+
+        return $this->buildWordFromHtml($html, $filename);
+    }
+
+    /**
+     * Convert rendered Blade HTML into a Word .docx download.
+     * PhpWord's Html parser expects body-only XHTML fragments — strip
+     * the full-document wrapper and convert HTML entities to UTF-8.
+     */
+    private function buildWordFromHtml(string $rawHtml, string $filename)
+    {
+        // 1. Inline CSS classes → inline styles (before stripping <style>)
+        $cssInliner = new \TijsVerkoyen\CssToInlineStyles\CssToInlineStyles();
+        $rawHtml = $cssInliner->convert($rawHtml);
+
+        // 2. Extract only the <body> content
+        $body = $rawHtml;
+        if (preg_match('/<body[^>]*>(.*)<\/body>/is', $rawHtml, $m)) {
+            $body = $m[1];
+        }
+
+        // 3. Strip <style> blocks (no longer needed after inlining)
+        $body = preg_replace('/<style[^>]*>.*?<\/style>/is', '', $body);
+
+        // 4. Remove <img> tags (not supported well in PhpWord HTML parser)
+        $body = preg_replace('/<img[^>]*\/?>/i', '', $body);
+
+        // 5. Convert float-based numbered layouts to inline text
+        //    e.g. <div style="float:left;...">1.</div><div style="margin-left:...">text</div>
+        //    → <span>1. </span>  (PhpWord doesn't support CSS float)
+        $body = preg_replace('/<div[^>]*float\s*:\s*left[^>]*>(.*?)<\/div>\s*/is', '<span>$1 </span>', $body);
+
+        // 6. Apply text-transform:uppercase — PhpWord ignores this CSS property
+        $body = preg_replace_callback(
+            '/<([a-z][a-z0-9]*)\b([^>]*text-transform\s*:\s*uppercase[^>]*)>(.*?)<\/\1>/is',
+            fn($m) => '<' . $m[1] . $m[2] . '>' . mb_strtoupper($m[3]) . '</' . $m[1] . '>',
+            $body
+        );
+
+        // 7. Convert self-closing void tags to XHTML format for XML parser
+        $body = preg_replace('/<(br|hr|input)\b([^>]*?)\/?\s*>/i', '<$1$2 />', $body);
+
+        // 8. Decode HTML entities to UTF-8 characters (PhpWord needs XML-safe text)
+        $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // 9. Re-encode stray ampersands that aren't part of valid XML entities
+        $body = preg_replace('/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)/', '&amp;', $body);
+
+        // 10. Strip HTML comments
+        $body = preg_replace('/<!--.*?-->/s', '', $body);
+
+        // 11. Wrap in a minimal div so PhpWord gets a single root element
+        $body = '<div>' . trim($body) . '</div>';
+
+        $phpWord = new \PhpOffice\PhpWord\PhpWord();
+        $phpWord->setDefaultFontName('Times New Roman');
+        $phpWord->setDefaultFontSize(11);
+
+        $section = $phpWord->addSection([
+            'pageSizeW'   => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(21),
+            'pageSizeH'   => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(29.7),
+            'marginTop'   => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2),
+            'marginBottom'=> \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2),
+            'marginLeft'  => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2.5),
+            'marginRight' => \PhpOffice\PhpWord\Shared\Converter::cmToTwip(2.5),
+        ]);
+
+        \PhpOffice\PhpWord\Shared\Html::addHtml($section, $body, false, false);
+
+        $temp = storage_path('app/temp/' . $filename);
+
+        if (!is_dir(dirname($temp))) {
+            mkdir(dirname($temp), 0755, true);
+        }
+
+        $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+        $writer->save($temp);
+
+        return response()->download($temp, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
     }
 
     public function downloadFile(\App\Models\LoanApplication $application, \App\Models\LoanApplicationFile $file)

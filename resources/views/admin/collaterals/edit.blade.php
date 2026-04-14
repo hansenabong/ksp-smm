@@ -65,10 +65,10 @@
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Nilai Taksiran (Rp) <span class="text-red-500">*</span>
                     </label>
-                    <input type="number" name="estimated_value"
+                    <input type="text" data-money name="estimated_value"
                            value="{{ old('estimated_value', $collateral->estimated_value) }}"
                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                           min="0" required onclick="this.select()">
+                           placeholder="0" required onclick="this.select()">
                     @error('estimated_value') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                 </div>
 

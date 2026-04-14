@@ -59,9 +59,19 @@
     <tr>
         <td class="col-label">Di</td>
         <td class="col-sep">:</td>
-        <td class="col-val">{{ $member->address ?? 'Tempat' }}</td>
+        <td class="col-val">{{ $alamatTinggal }}</td>
     </tr>
 </table>
+
+@if($alamatJaminan)
+<table class="meta-table" style="margin-top:-8pt;">
+    <tr>
+        <td class="col-label">Alamat Jaminan{{ $statusAgunan ? ' ('.$statusAgunan.')' : '' }}</td>
+        <td class="col-sep">:</td>
+        <td class="col-val">{{ $alamatJaminan }}</td>
+    </tr>
+</table>
+@endif
 
 <div class="subject">PERINGATAN 1 (PERTAMA)</div>
 

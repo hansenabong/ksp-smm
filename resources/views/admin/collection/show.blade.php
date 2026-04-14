@@ -154,27 +154,47 @@
                     </div>
 
                     {{-- Property / Agunan fields (for Data Master DHIA) --}}
-                    <details class="border border-gray-200 rounded-lg">
+                    <details class="border border-gray-200 rounded-lg" open>
                         <summary class="px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide cursor-pointer select-none">
                             Data Agunan &amp; Alamat (DHIA)
                         </summary>
                         <div class="px-3 pb-3 pt-2 space-y-3">
+                            @php
+                                $njopDefault = $record->njop ?: ($dhiaDefaults['njop'] ?? null);
+                                $ltDefault   = $record->luas_tanah ?: ($dhiaDefaults['luas_tanah'] ?? null);
+                                $lbDefault   = $record->luas_bangunan ?: ($dhiaDefaults['luas_bangunan'] ?? null);
+                                $hasFormDataLink = ($dhiaDefaults['njop'] ?? null) || ($dhiaDefaults['luas_tanah'] ?? null) || ($dhiaDefaults['luas_bangunan'] ?? null);
+                            @endphp
+                            @if($hasFormDataLink)
+                            <p class="text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-2 py-1.5">
+                                Nilai NJOP / LT / LB diambil otomatis dari Data Agunan pengajuan pinjaman. Anda dapat menimpa nilai tersebut di sini.
+                            </p>
+                            @endif
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NJOP (Rp)</label>
-                                    <input type="number" name="njop" value="{{ $record->njop }}" min="0"
+                                    <input type="text" data-money name="njop" value="{{ $njopDefault }}"
                                         placeholder="0"
                                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                    @if(($dhiaDefaults['njop'] ?? null) && !$record->njop)
+                                    <p class="text-[10px] text-gray-400 mt-0.5">↳ dari pengajuan pinjaman</p>
+                                    @endif
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Luas Tanah (m²)</label>
-                                    <input type="number" name="luas_tanah" value="{{ $record->luas_tanah }}" min="0"
+                                    <input type="number" name="luas_tanah" value="{{ $ltDefault }}" min="0"
                                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                    @if(($dhiaDefaults['luas_tanah'] ?? null) && !$record->luas_tanah)
+                                    <p class="text-[10px] text-gray-400 mt-0.5">↳ dari pengajuan pinjaman</p>
+                                    @endif
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Luas Bangunan (m²)</label>
-                                    <input type="number" name="luas_bangunan" value="{{ $record->luas_bangunan }}" min="0"
+                                    <input type="number" name="luas_bangunan" value="{{ $lbDefault }}" min="0"
                                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                    @if(($dhiaDefaults['luas_bangunan'] ?? null) && !$record->luas_bangunan)
+                                    <p class="text-[10px] text-gray-400 mt-0.5">↳ dari pengajuan pinjaman</p>
+                                    @endif
                                 </div>
                             </div>
                             <div>

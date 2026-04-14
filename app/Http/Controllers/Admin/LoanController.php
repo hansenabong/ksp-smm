@@ -66,15 +66,46 @@ class LoanController extends Controller
     {
         $loan->load(['member', 'loanProduct', 'application', 'disbursedCashAccount', 'creator']);
         $fees = $loan->disbursement_fees ?? [];
-        return view('admin.loans.active.permohonan-dana', compact('loan', 'fees'));
+        $bank = $loan->disbursement_bank ?? [];
+        return view('admin.loans.active.permohonan-dana', compact('loan', 'fees', 'bank'));
+    }
+
+    public function savePermohonanDana(Loan $loan, Request $request)
+    {
+        // Bank details (manual entry by treasury)
+        $bank = [
+            'bank_name' => trim((string) $request->input('bank_name', '')),
+            'ac_no'     => trim((string) $request->input('ac_no', '')),
+            'atas_nama' => trim((string) $request->input('atas_nama', '')),
+        ];
+        $hasBank = (bool) array_filter($bank, fn ($v) => $v !== '');
+
+        // Merge hold_angsuran into existing fees (other fees preserved)
+        $fees = $loan->disbursement_fees ?? [];
+        $ha = (int) preg_replace('/[^0-9]/', '', (string) $request->input('hold_angsuran', ''));
+        if ($ha > 0) {
+            $fees['hold_angsuran'] = $ha;
+        } else {
+            unset($fees['hold_angsuran']);
+        }
+
+        $loan->update([
+            'disbursement_fees' => $fees ?: null,
+            'disbursement_bank' => $hasBank ? $bank : null,
+        ]);
+
+        return redirect()
+            ->route('admin.loans.active.permohonan.dana', $loan)
+            ->with('success', 'Data permohonan dana berhasil disimpan.');
     }
 
     public function permohonanDanaPdf(Loan $loan)
     {
         $loan->load(['member', 'loanProduct', 'application', 'disbursedCashAccount', 'creator']);
         $fees = $loan->disbursement_fees ?? [];
+        $bank = $loan->disbursement_bank ?? [];
 
-        $pdf = Pdf::loadView('admin.loans.active.permohonan-dana-pdf', compact('loan', 'fees'))
+        $pdf = Pdf::loadView('admin.loans.active.permohonan-dana-pdf', compact('loan', 'fees', 'bank'))
             ->setPaper('a4', 'portrait');
 
         return $pdf->download('permohonan-dana-' . $loan->id . '.pdf');
@@ -97,7 +128,7 @@ class LoanController extends Controller
     private const FEE_FIELDS = [
         'biaya_administrasi', 'biaya_provisi', 'biaya_notaris', 'asuransi',
         'pengecekan', 'ploting', 'roya', 'pnpb', 'hold_imb', 'hold_pbb',
-        'hold_angsuran', 'bphtb', 'pph',
+        'bphtb', 'pph',
     ];
 
     public function kwitansiPencairan(Loan $loan)
@@ -109,7 +140,12 @@ class LoanController extends Controller
 
     public function saveKwitansiPencairan(Loan $loan, Request $request)
     {
+        // Preserve hold_angsuran (managed from Permohonan Dana form)
+        $existing = $loan->disbursement_fees ?? [];
         $fees = [];
+        if (isset($existing['hold_angsuran'])) {
+            $fees['hold_angsuran'] = $existing['hold_angsuran'];
+        }
         foreach (self::FEE_FIELDS as $field) {
             $raw = preg_replace('/[^0-9]/', '', $request->input($field, ''));
             $val = (int) $raw;
@@ -128,6 +164,31 @@ class LoanController extends Controller
         return redirect()
             ->route('admin.loans.active.kwitansi.pencairan', $loan)
             ->with('success', 'Biaya pencairan berhasil disimpan.');
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  KWITANSI BIAYA-BIAYA — Manual Fee Receipt
+    // ─────────────────────────────────────────────────────────────
+
+    public function kwitansiBiaya(Loan $loan)
+    {
+        $loan->load(['member', 'application']);
+        $items = session('kwitansi_biaya_items', []);
+        return view('admin.loans.active.kwitansi-biaya', compact('loan', 'items'));
+    }
+
+    public function kwitansiBiayaPrint(Loan $loan, Request $request)
+    {
+        $loan->load(['member', 'application']);
+
+        $data = $request->validate([
+            'items'             => ['required', 'array', 'min:1'],
+            'items.*.deskripsi' => ['required', 'string', 'max:200'],
+            'items.*.jumlah'    => ['required', 'integer', 'min:1'],
+        ]);
+
+        $items = $data['items'];
+        return view('admin.loans.active.kwitansi-biaya', compact('loan', 'items'));
     }
 
     // ─────────────────────────────────────────────────────────────

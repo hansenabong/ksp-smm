@@ -321,12 +321,13 @@
                                 <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                                     Jumlah Bayar (Rp) <span class="text-red-500">*</span>
                                 </label>
-                                <input type="number" name="amount"
-                                       x-model="amount"
+                                <input type="text" inputmode="numeric" data-money-alpine name="amount"
+                                       :value="window.formatRupiah(amount)"
+                                       @input="amount = parseInt(window.parseRupiah($event.target.value)) || 0"
                                        :readonly="isEarlyRepayment"
                                        :class="isEarlyRepayment ? 'bg-gray-50 text-gray-500' : ''"
                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                                       min="1">
+                                       placeholder="0">
                                 <div class="text-xs text-gray-400 mt-1" x-show="!isEarlyRepayment">Default = angsuran/bln, dapat diubah</div>
                                 <div class="text-xs text-orange-500 mt-1" x-show="isEarlyRepayment">Otomatis diisi dengan sisa tagihan</div>
                                 @error('amount') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
@@ -352,9 +353,10 @@
                                     </div>
                                     <div>
                                         <label class="block text-xs text-gray-600 mb-1">Denda Keterlambatan (Rp)</label>
-                                        <input type="number" name="penalty_amount"
-                                               x-model="penaltyAmount"
-                                               min="0"
+                                        <input type="text" inputmode="numeric" data-money-alpine name="penalty_amount"
+                                               :value="window.formatRupiah(penaltyAmount)"
+                                               @input="penaltyAmount = parseInt(window.parseRupiah($event.target.value)) || 0"
+                                               placeholder="0"
                                                class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
                                         <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
                                     </div>
@@ -368,9 +370,10 @@
                                             Denda Pelunasan Dipercepat (Rp)
                                             <span class="text-gray-400">({{ $earlyRepaymentRateBp / 100 }}% dari sisa)</span>
                                         </label>
-                                        <input type="number" name="early_repayment_penalty"
-                                               x-model="earlyPenalty"
-                                               min="0"
+                                        <input type="text" inputmode="numeric" data-money-alpine name="early_repayment_penalty"
+                                               :value="window.formatRupiah(earlyPenalty)"
+                                               @input="earlyPenalty = parseInt(window.parseRupiah($event.target.value)) || 0"
+                                               placeholder="0"
                                                class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
                                         <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
                                     </div>

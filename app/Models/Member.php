@@ -6,10 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Member extends Model
 {
-    protected $fillable = ['member_no', 'name', 'phone', 'address', 'is_active', 'user_id'];
+    protected $fillable = [
+        'member_no', 'name', 'gender', 'ktp_no', 'birth_date', 'ktp_expiry',
+        'marital_status', 'phone', 'address', 'city', 'is_active', 'user_id',
+    ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'  => 'boolean',
+        'birth_date' => 'date',
+        'ktp_expiry' => 'date',
     ];
 
     public function scopeActive($q)

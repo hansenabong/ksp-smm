@@ -21,23 +21,27 @@
         defaultAmount: 0,
         applyDefault() {
             document.querySelectorAll('.amount-input').forEach(el => {
-                if (!el.value || el.value == '0') el.value = this.defaultAmount;
+                const cur = window.parseRupiah(el.value);
+                if (!cur || cur === '0') el.value = window.formatRupiah(this.defaultAmount);
             });
+            this.recalc();
         },
         fillAll() {
             document.querySelectorAll('.amount-input').forEach(el => {
-                el.value = this.defaultAmount;
+                el.value = window.formatRupiah(this.defaultAmount);
             });
+            this.recalc();
         },
         clearAll() {
             document.querySelectorAll('.amount-input').forEach(el => el.value = '');
+            this.recalc();
         },
         total: 0,
         count: 0,
         recalc() {
             let t = 0, c = 0;
             document.querySelectorAll('.amount-input').forEach(el => {
-                const v = parseInt(el.value) || 0;
+                const v = parseInt(window.parseRupiah(el.value)) || 0;
                 if (v > 0) { t += v; c++; }
             });
             this.total = t;
@@ -98,7 +102,9 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-3 mb-3 flex flex-wrap items-center gap-3">
             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Isi cepat:</span>
             <div class="flex items-center gap-2">
-                <input type="number" x-model.number="defaultAmount" min="0" placeholder="Jumlah default"
+                <input type="text" inputmode="numeric" placeholder="Jumlah default"
+                       :value="window.formatRupiah(defaultAmount)"
+                       @input="defaultAmount = parseInt(window.parseRupiah($event.target.value)) || 0"
                        class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-gray-300">
                 <button type="button" @click="fillAll()"
                         class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">
@@ -136,10 +142,9 @@
                             <td class="px-4 py-2 text-gray-600 text-xs font-mono">{{ $m->member_no }}</td>
                             <td class="px-4 py-2 text-gray-800 font-medium">{{ $m->name }}</td>
                             <td class="px-4 py-2">
-                                <input type="number"
+                                <input type="text" data-money
                                        name="amounts[{{ $m->id }}]"
                                        value="{{ old("amounts.{$m->id}", '') }}"
-                                       min="0"
                                        placeholder="0"
                                        class="amount-input w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-300">
                             </td>

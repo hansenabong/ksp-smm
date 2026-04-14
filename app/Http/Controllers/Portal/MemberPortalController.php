@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\DepositoAccount;
 use App\Models\Member;
 use App\Models\SavingProduct;
 use App\Models\SavingTransaction;
@@ -88,6 +89,20 @@ class MemberPortalController extends Controller
         })->filter(fn($r) => $r['transactions']->isNotEmpty());
 
         return view('portal.savings', compact('member', 'byProduct'));
+    }
+
+    public function deposito()
+    {
+        $member = $this->getMember();
+        if ($member instanceof \Illuminate\Http\RedirectResponse) return $member;
+
+        $depositos = DepositoAccount::where('member_id', $member->id)
+            ->with('savingProduct')
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('portal.deposito', compact('member', 'depositos'));
     }
 
     public function loans()

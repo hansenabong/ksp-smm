@@ -68,17 +68,6 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-                        Biaya Admin (Rp) <span class="text-xs text-gray-400 font-normal">(opsional)</span>
-                    </label>
-                    <input type="number" name="admin_fee"
-                           value="{{ old('admin_fee', $loanProduct->admin_fee) }}"
-                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-                           min="0">
-                    @error('admin_fee') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Maks Tenor (bulan) <span class="text-red-500">*</span>
                     </label>
                     <input type="number" name="max_tenor_months"

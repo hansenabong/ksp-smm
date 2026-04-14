@@ -163,8 +163,8 @@
                     </td>
                     <td class="col-kontrak text-gray-600">{{ $noPk }}</td>
                     <td class="col-cabang">{{ $rec?->branch ?? '-' }}</td>
-                    {{-- Kota Tempat Tinggal (last word of address as rough city) --}}
-                    <td class="col-kota">{{ $loan->member->address ? last(explode(' ', trim($loan->member->address))) : '-' }}</td>
+                    {{-- Kota Tempat Tinggal --}}
+                    <td class="col-kota">{{ $loan->member->city ?: '-' }}</td>
                     <td class="col-kota">{{ $loan->_kota_jaminan ?: '-' }}</td>
                     <td class="col-num">{{ number_format($loan->principal) }}</td>
                     {{-- JW --}}
@@ -274,7 +274,7 @@
                 <tbody class="divide-y divide-amber-100">
                     @php
                         $ttRp  = $totals['total_tagihan'];
-                        $tgRp  = $totals['target'];       // 65%
+                        $tgRp  = $totals['target'];       // 100%
                         $abRp  = $totals['angsuran_berjalan'];
                         $tnRp  = -$totals['tunggakan'];   // negative
                         $rlRp  = $totals['total_realisasi'];
@@ -287,10 +287,10 @@
                         <td class="px-4 py-1.5 text-right text-gray-400"></td>
                     </tr>
                     <tr>
-                        <td class="px-4 py-1.5 text-gray-700 font-medium">Target (65%)</td>
+                        <td class="px-4 py-1.5 text-gray-700 font-medium">Target (100%)</td>
                         <td class="px-4 py-1.5 text-right font-mono text-red-600 font-semibold">{{ number_format($tgRp) }}</td>
                         <td class="px-4 py-1.5 text-right font-mono text-gray-400"></td>
-                        <td class="px-4 py-1.5 text-right font-bold text-amber-600">65%</td>
+                        <td class="px-4 py-1.5 text-right font-bold text-amber-600">100%</td>
                     </tr>
                     <tr>
                         <td class="px-4 py-1.5 text-gray-700 font-medium">Angsuran Berjalan</td>

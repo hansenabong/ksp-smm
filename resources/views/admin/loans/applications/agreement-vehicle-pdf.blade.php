@@ -98,7 +98,7 @@
         $prepayPct    = number_format($prepayBp  / 100, 0);
         $penaltyMonth = number_format($penaltyBp / 100 * 30, 0);
 
-        $adminFee = $application->admin_fee ?? $application->admin_monthly ?? 0;
+        $adminFee = $application->admin_monthly ?? 0;
         $tujuan   = $fd['tujuan_pembiayaan'] ?? $application->notes ?? null;
 
         // Vehicle collateral

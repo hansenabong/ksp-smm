@@ -13,7 +13,7 @@ class LoanApplicationPolicy
      */
     public function viewSensitiveData(User $user, LoanApplication $application): bool
     {
-        if ($user->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY'])) {
+        if ($user->hasAnyRole(['SUPER_ADMIN', 'ADMIN_DATA', 'ADMIN_COLLECTION', 'TREASURY', 'FINANCE'])) {
             return true;
         }
 

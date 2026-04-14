@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CashBalanceController;
 use App\Http\Controllers\Admin\CashTransferController;
 use App\Http\Controllers\Admin\SavingDepositController;
 use App\Http\Controllers\Admin\SavingWithdrawController;
+use App\Http\Controllers\Admin\DepositoController;
 use App\Http\Controllers\Admin\LoanApplicationController;
 use App\Http\Controllers\Admin\LoanController;
 use App\Http\Controllers\Admin\LoanPaymentController;
@@ -130,6 +131,18 @@ Route::middleware(['auth'])->group(function () {
                 });
 
             // ------------------------------------------------------------------
+            // DEPOSITO — SUPER_ADMIN + FINANCE
+            // Static routes (create) BEFORE parameterized ({deposito}) routes.
+            // ------------------------------------------------------------------
+            Route::prefix('deposito')->middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
+                Route::get('/',                 [DepositoController::class, 'index'])->name('admin.deposito.index');
+                Route::get('/create',           [DepositoController::class, 'create'])->name('admin.deposito.create');
+                Route::post('/',                [DepositoController::class, 'store'])->name('admin.deposito.store');
+                Route::get('/{deposito}',       [DepositoController::class, 'show'])->name('admin.deposito.show');
+                Route::post('/{deposito}/cair', [DepositoController::class, 'cair'])->name('admin.deposito.cair');
+            });
+
+            // ------------------------------------------------------------------
             // PINJAMAN
             // ------------------------------------------------------------------
 
@@ -139,20 +152,23 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/loans/applications',        [LoanApplicationController::class,'store'])->name('admin.loans.applications.store');
             });
 
-            // Loan applications — list: LEGAL can see overview only
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL')->group(function () {
+            // Loan applications — list: LEGAL + FINANCE can see overview
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL|FINANCE')->group(function () {
                 Route::get('/loans/applications', [LoanApplicationController::class,'index'])->name('admin.loans.applications.index');
             });
-            // Loan applications — detail: LEGAL can view, no PDFs
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL')->group(function () {
+            // Loan applications — detail: LEGAL + FINANCE can view
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS|LEGAL|FINANCE')->group(function () {
                 Route::get('/loans/applications/{application}', [LoanApplicationController::class,'show'])->name('admin.loans.applications.show');
                 Route::get('/loans/applications/{application}/files/{file}/download',[LoanApplicationController::class,'downloadFile'])->name('admin.loans.applications.files.download');
             });
             // Loan application PDFs — LEGAL excluded
             Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|TREASURY|PENGAWAS')->group(function () {
+                Route::get('/loans/applications/{application}/review-pdf',[LoanApplicationController::class,'reviewPdf'])->name('admin.loans.applications.review_pdf');
                 Route::get('/loans/applications/{application}/penawaran-pembiayaan',[LoanApplicationController::class,'penawaranPembiayaan'])->name('admin.loans.applications.penawaran');
                 Route::get('/loans/applications/{application}/agreement',[LoanApplicationController::class,'agreement'])->name('admin.loans.applications.agreement');
                 Route::get('/loans/applications/{application}/agreement-vehicle',[LoanApplicationController::class,'agreementVehicle'])->name('admin.loans.applications.agreement.vehicle');
+                Route::get('/loans/applications/{application}/agreement-word',[LoanApplicationController::class,'agreementWord'])->name('admin.loans.applications.agreement.word');
+                Route::get('/loans/applications/{application}/agreement-vehicle-word',[LoanApplicationController::class,'agreementVehicleWord'])->name('admin.loans.applications.agreement.vehicle.word');
             });
 
             // Loan applications — write: ADMIN_DATA only
@@ -160,6 +176,11 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/loans/applications/{application}/edit', [LoanApplicationController::class,'edit'])->name('admin.loans.applications.edit');
                 Route::put('/loans/applications/{application}',      [LoanApplicationController::class,'update'])->name('admin.loans.applications.update');
                 Route::delete('/loans/applications/{application}/files/{file}', [LoanApplicationController::class,'deleteFile'])->name('admin.loans.applications.files.delete');
+            });
+
+            // Finance review — FINANCE sets interest/method before approval
+            Route::middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
+                Route::post('/loans/applications/{application}/finance-review', [LoanApplicationController::class,'financeReview'])->name('admin.loans.applications.finance-review');
             });
 
             // Edit personal info & approve/reject — SUPER_ADMIN only
@@ -192,12 +213,15 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware('role:SUPER_ADMIN|TREASURY|LEGAL|PENGAWAS')->group(function () {
                 Route::get('/loans/active/{loan}/kwitansi-pencairan', [LoanController::class,'kwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan');
                 Route::get('/loans/active/{loan}/kwitansi-plafon',    [LoanController::class,'kwitansiPlafon'])->name('admin.loans.active.kwitansi.plafon');
+                Route::get('/loans/active/{loan}/kwitansi-biaya',     [LoanController::class,'kwitansiBiaya'])->name('admin.loans.active.kwitansi.biaya');
                 Route::get('/loans/active/{loan}/permohonan-dana',     [LoanController::class,'permohonanDana'])->name('admin.loans.active.permohonan.dana');
                 Route::get('/loans/active/{loan}/permohonan-dana/pdf', [LoanController::class,'permohonanDanaPdf'])->name('admin.loans.active.permohonan.dana.pdf');
             });
-            // Kwitansi Pencairan save — TREASURY only (write operation)
+            // Kwitansi Pencairan & Permohonan Dana save — TREASURY only (write operation)
             Route::middleware('role:SUPER_ADMIN|TREASURY')->group(function () {
                 Route::post('/loans/active/{loan}/kwitansi-pencairan',[LoanController::class,'saveKwitansiPencairan'])->name('admin.loans.active.kwitansi.pencairan.save');
+                Route::post('/loans/active/{loan}/kwitansi-biaya',    [LoanController::class,'kwitansiBiayaPrint'])->name('admin.loans.active.kwitansi.biaya.print');
+                Route::post('/loans/active/{loan}/permohonan-dana',   [LoanController::class,'savePermohonanDana'])->name('admin.loans.active.permohonan.dana.save');
             });
 
             // Loan payments — ADMIN_COLLECTION
@@ -426,6 +450,7 @@ Route::middleware(['auth'])->group(function () {
         ->group(function () {
             Route::get('/',           [MemberPortalController::class,'dashboard'])->name('portal.dashboard');
             Route::get('/savings',    [MemberPortalController::class,'savings'])->name('portal.savings');
+            Route::get('/deposito',   [MemberPortalController::class,'deposito'])->name('portal.deposito');
             Route::get('/loans',      [MemberPortalController::class,'loans'])->name('portal.loans');
             Route::get('/not-linked', [MemberPortalController::class,'notLinked'])->name('portal.not-linked');
         });

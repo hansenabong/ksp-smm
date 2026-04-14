@@ -67,10 +67,11 @@
                                     <td class="px-5 py-3.5 text-center">
                                         @php
                                             [$bg, $dot] = match($app->status) {
-                                                'PENDING'  => ['bg-yellow-50 text-yellow-700 ring-yellow-200', 'bg-yellow-400'],
-                                                'APPROVED' => ['bg-green-50 text-green-700 ring-green-200', 'bg-green-400'],
-                                                'REJECTED' => ['bg-red-50 text-red-700 ring-red-200', 'bg-red-400'],
-                                                default    => ['bg-gray-50 text-gray-600 ring-gray-200', 'bg-gray-400'],
+                                                'PENDING'           => ['bg-yellow-50 text-yellow-700 ring-yellow-200', 'bg-yellow-400'],
+                                                'FINANCE_REVIEWED'  => ['bg-blue-50 text-blue-700 ring-blue-200', 'bg-blue-400'],
+                                                'APPROVED'          => ['bg-green-50 text-green-700 ring-green-200', 'bg-green-400'],
+                                                'REJECTED'          => ['bg-red-50 text-red-700 ring-red-200', 'bg-red-400'],
+                                                default             => ['bg-gray-50 text-gray-600 ring-gray-200', 'bg-gray-400'],
                                             };
                                         @endphp
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset {{ $bg }}">

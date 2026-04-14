@@ -64,9 +64,9 @@
         </form>
     </div>
 
-    {{-- Hint about wilayah dropdown --}}
+    {{-- Hint about data sources --}}
     <div class="text-xs text-gray-400 mb-2 print:hidden">
-        💡 Kolom <strong>Wilayah</strong> dan <strong>Alamat Tinggal</strong> diisi melalui halaman Detail nasabah.
+        💡 Kolom <strong>NJOP, LT, LB</strong> otomatis diambil dari Data Agunan saat pengajuan pinjaman; <strong>Wilayah</strong> dan <strong>Alamat Tinggal</strong> diisi melalui halaman Detail nasabah.
     </div>
 
     <div class="bg-white border border-amber-300 rounded-xl shadow-sm overflow-hidden">
@@ -120,10 +120,10 @@
                     $alamatTinggal = $rec?->alamat_tinggal ?: ($loan->_alamat_tinggal ?? $loan->member->address ?? '');
                     $wilayahVal    = $rec?->wilayah ?: '';
 
-                    // NJOP: prefer collection_record value, fallback to form_data
-                    $njopVal = $rec?->njop ?: ($loan->application?->form_data['njop_agunan'] ?? null);
-                    $ltVal   = $rec?->luas_tanah ?: null;
-                    $lbVal   = $rec?->luas_bangunan ?: null;
+                    // NJOP / LT / LB: collection_record override → fallback to loan application collateral data
+                    $njopVal = $loan->_dhia_njop ?? null;
+                    $ltVal   = $loan->_dhia_lt   ?? null;
+                    $lbVal   = $loan->_dhia_lb   ?? null;
                     $rowNo   = method_exists($loans, 'firstItem') ? $loans->firstItem() + $i : $loop->iteration;
                 @endphp
                 <tr>
@@ -185,8 +185,9 @@
     </div>
 
     <p class="text-xs text-gray-400 mt-2 print:hidden">
-        Kolom <em>NJOP, LT, LB, Alamat Tinggal, Wilayah</em> dapat diisi/diperbarui melalui halaman
+        Kolom <em>NJOP, LT, LB</em> diambil dari Data Agunan pengajuan pinjaman dan dapat ditimpa melalui halaman
         <a href="{{ route('admin.collection.index') }}" class="underline">Master Tagihan</a> → Detail nasabah → Catatan Penagihan.
+        Kolom <em>Alamat Tinggal</em> dan <em>Wilayah</em> diisi pada halaman yang sama.
     </p>
 
 </x-admin-layout>

@@ -37,17 +37,27 @@ class SavingProductController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'               => ['required', 'string', 'max:120', 'unique:saving_products,name'],
-            'is_active'          => ['nullable', 'boolean'],
-            'is_withdrawable'    => ['nullable', 'boolean'],
-            'ledger_account_id'  => ['nullable', 'exists:accounts,id'],
+            'name'                      => ['required', 'string', 'max:120', 'unique:saving_products,name'],
+            'is_active'                 => ['nullable', 'boolean'],
+            'is_withdrawable'           => ['nullable', 'boolean'],
+            'is_deposito'               => ['nullable', 'boolean'],
+            'default_interest_rate_pct' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:is_deposito,1'],
+            'default_term_months'       => ['nullable', 'integer', 'min:1', 'max:240', 'required_if:is_deposito,1'],
+            'ledger_account_id'         => ['nullable', 'exists:accounts,id'],
         ]);
 
+        $isDeposito = $request->boolean('is_deposito');
+
         SavingProduct::create([
-            'name'              => $data['name'],
-            'is_active'         => $request->boolean('is_active'),
-            'is_withdrawable'   => $request->boolean('is_withdrawable'),
-            'ledger_account_id' => $data['ledger_account_id'] ?? null,
+            'name'                      => $data['name'],
+            'is_active'                 => $request->boolean('is_active'),
+            // Deposito withdrawals only flow through the maturity-checked deposito mechanism,
+            // so the regular ad-hoc withdraw form must be off.
+            'is_withdrawable'           => $isDeposito ? false : $request->boolean('is_withdrawable'),
+            'is_deposito'               => $isDeposito,
+            'default_interest_rate_pct' => $isDeposito ? $data['default_interest_rate_pct'] : null,
+            'default_term_months'       => $isDeposito ? $data['default_term_months'] : null,
+            'ledger_account_id'         => $data['ledger_account_id'] ?? null,
         ]);
 
         return redirect()->route('admin.master.saving_products.index')
@@ -64,17 +74,25 @@ class SavingProductController extends Controller
     public function update(Request $request, SavingProduct $savingProduct)
     {
         $data = $request->validate([
-            'name'               => ['required', 'string', 'max:120', Rule::unique('saving_products', 'name')->ignore($savingProduct->id)],
-            'is_active'          => ['nullable', 'boolean'],
-            'is_withdrawable'    => ['nullable', 'boolean'],
-            'ledger_account_id'  => ['nullable', 'exists:accounts,id'],
+            'name'                      => ['required', 'string', 'max:120', Rule::unique('saving_products', 'name')->ignore($savingProduct->id)],
+            'is_active'                 => ['nullable', 'boolean'],
+            'is_withdrawable'           => ['nullable', 'boolean'],
+            'is_deposito'               => ['nullable', 'boolean'],
+            'default_interest_rate_pct' => ['nullable', 'numeric', 'min:0', 'max:100', 'required_if:is_deposito,1'],
+            'default_term_months'       => ['nullable', 'integer', 'min:1', 'max:240', 'required_if:is_deposito,1'],
+            'ledger_account_id'         => ['nullable', 'exists:accounts,id'],
         ]);
 
+        $isDeposito = $request->boolean('is_deposito');
+
         $savingProduct->update([
-            'name'              => $data['name'],
-            'is_active'         => $request->boolean('is_active'),
-            'is_withdrawable'   => $request->boolean('is_withdrawable'),
-            'ledger_account_id' => $data['ledger_account_id'] ?? $savingProduct->ledger_account_id,
+            'name'                      => $data['name'],
+            'is_active'                 => $request->boolean('is_active'),
+            'is_withdrawable'           => $isDeposito ? false : $request->boolean('is_withdrawable'),
+            'is_deposito'               => $isDeposito,
+            'default_interest_rate_pct' => $isDeposito ? $data['default_interest_rate_pct'] : null,
+            'default_term_months'       => $isDeposito ? $data['default_term_months'] : null,
+            'ledger_account_id'         => $data['ledger_account_id'] ?? $savingProduct->ledger_account_id,
         ]);
 
         return redirect()->route('admin.master.saving_products.index')

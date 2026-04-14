@@ -55,6 +55,18 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 45 | **Role Matrix Revision + Legal Module** — 7-role system (SUPER_ADMIN, FINANCE, ADMIN_DATA, ADMIN_COLLECTION, TREASURY, PENGAWAS, LEGAL); LEGAL role with dedicated Legal Document section (LegalBerkas + LegalDocument models, multi-file upload with Alpine.js); Master Data split (Anggota = broader access, Financial = FINANCE only); button visibility gating across all views; Treasury removed from Pinjaman Approved (kwitansi/schedule accessible via Pengajuan show page) | ✅ Done |
 | 46 | **Card-Based Navigation System** — sidebar removed, replaced with mobile-app-style department card menu on dashboard; 5 department cards (Admin Data, Admin Collection, Treasury, Legal, Finance) + Sistem card (SUPER_ADMIN only); Alpine.js drill-down transitions; role-based card visibility; per-department sub-menu items without cross-department duplication; auto-generated breadcrumbs (`Home > Section > Page`) from route name mapping; persistent Home button in navbar; color-coded role badge in navbar; notification badge integrated into welcome banner; KPI summary (Anggota, Saldo Kas, Simpanan, Piutang) for FINANCE/SUPER_ADMIN below menu cards | ✅ Done |
 | 47 | **Training Guides & Production Setup** — printable per-role training guides (7 roles) at `/admin/guide`; `ProductionSeeder` (roles + COA + cash categories only, no demo data); `ksp:create-superadmin` artisan command for bootstrapping first account; "Panduan" button on dashboard | ✅ Done |
+| 48 | **Cash & Savings Voucher PDFs** — DomPDF voucher templates for individual cash and savings transactions; `CashTransactionController::voucher()` (Receipt/Payment/Transfer Voucher) and `SavingTransactionController::voucher()`; A4 portrait, company header, ref/code/amount block, line items table; routes `/cash/transactions/{tx}/voucher` and `/savings/transactions/{tx}/voucher` | ✅ Done |
+| 49 | **Loan Application Review PDF** — printable application review document (`LoanApplicationController::reviewPdf()`); route `/loans/applications/{application}/review-pdf`; ADMIN_DATA scoped to own records, SUPER_ADMIN/TREASURY/PENGAWAS see all (LEGAL excluded) | ✅ Done |
+| 50 | **Collateral Edit** — `LoanCollateralController::edit()`/`update()` and `admin/collaterals/edit.blade.php`; replace document file (deletes old), update type/description/value while status = HELD; RELEASED collaterals are immutable; "Edit" button added to collateral index table | ✅ Done |
+| 51 | **Member City Field** — new nullable `city` column on `members` table (migration `2026_04_08_110000_add_city_to_members_table`); added to `Member::$fillable`, MemberController validation, and create/edit forms | ✅ Done |
+| 52 | **Drop Admin Fee from Loan Tables** — migration `2026_04_08_100000_drop_admin_fee_from_loan_tables` removes `admin_fee` column from `loan_products` and `loan_applications`; admin fees are now sourced exclusively from the `disbursement_fees` JSON on the loan record (cleaner single source of truth). `admin_income_account_id` GL link is preserved for posting | ✅ Done |
+| 53 | **Collection Denda Column** — Master DHIA table now displays per-loan late penalty (`_denda` = outstanding × `penalty_daily_rate_bp` × `_days_overdue`) and Days Overdue, computed in `CollectionController::enrichLoan()` from the first unpaid installment date | ✅ Done |
+| 54 | **Alamat KTP Fields** — separate KTP address section on loan application create/edit forms (alamat_ktp, rt_ktp, rw_ktp, kelurahan_ktp, kecamatan_ktp, kota_ktp, kode_pos_ktp); stored in `form_data` JSON; kelurahan + kecamatan also added to domicile address section | ✅ Done |
+| 55 | **Pinjaman Efektif (Decreasing Interest)** — EFEKTIF interest method alongside FLAT; bunga dihitung dari sisa pokok; `LoanService::approveAndDisburse()` computes declining schedule; `method` column on `loans` table; loan product dropdown auto-selects method; ANNUITY→EFEKTIF data migration; DemoMasterSeeder adds "Pinjaman Efektif" product (3%/month) | ✅ Done |
+| 56 | **Finance Review Workflow** — new status `FINANCE_REVIEWED` between PENDING→APPROVED; FINANCE role sets interest rate + method before SUPER_ADMIN approves; `financeReview()` action on LoanApplicationController; Finance can view all loan applications (read-only list + detail); blue badge for FINANCE_REVIEWED status | ✅ Done |
+| 57 | **Collection Letter Address Enhancement** — SP1–SP3, Somasi, and Cessie PDF letters now display full alamat tinggal (from `form_data` fields: alamat, rt, rw, kelurahan, kecamatan, kota, kode_pos) and alamat jaminan (property collateral address with status agunan) instead of short `member->address` | ✅ Done |
+| 58 | **PK Word Export** — download PK A (Sertipikat) and PK B (Kendaraan) agreement documents as `.docx` Word files; CSS-to-inline-styles conversion for PhpWord compatibility; HTML entity/XHTML sanitization; float-to-inline conversion for numbered layouts; buttons on application show page | ⚠️ Partial — formatting not fully matching PDF (PhpWord HTML parser limitations) |
+| 59 | **Kwitansi Biaya-Biaya** — standalone manual fee receipt for active loans; Alpine.js dynamic form (add/remove rows with description + amount); printable kwitansi with KSP letterhead, fee table, total, and dual-signature block; route from active loan show page dropdown | ✅ Done |
 
 ---
 
@@ -112,6 +124,7 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | Bundler    | Vite 7                                               |
 | Auth/RBAC  | Laravel Breeze + Spatie Permission 7                  |
 | PDF        | barryvdh/laravel-dompdf 3                            |
+| Word       | phpoffice/phpword 1.x (PK agreement .docx export)    |
 | Testing    | Pest 4                                               |
 | Real-time  | Laravel Echo + WebSocket broadcasting *(planned M45)* |
 
@@ -175,7 +188,7 @@ ksp/
 │   ├── web.php                  # All admin routes (role-gated per finance matrix) + portal routes
 │   └── auth.php                 # Auth routes (public /register disabled)
 ├── database/
-│   ├── migrations/              # 42+ migration files
+│   ├── migrations/              # 44+ migration files
 │   └── seeders/                 # RolesSeeder (8 roles incl. MEMBER), UsersSeeder (10 team accounts), DemoMasterSeeder, AccountingSeeder, CashCategorySeeder, DemoTransactionSeeder, MasterConfigSeeder, ProductionSeeder
 └── config/                      # 11 config files
 ```
@@ -189,7 +202,7 @@ ksp/
 | Model              | Purpose                                                             |
 |--------------------|---------------------------------------------------------------------|
 | `User`             | System users with Spatie roles                                      |
-| `Member`           | Cooperative members (member_no, name, phone, NIK, address, active, user_id for portal) |
+| `Member`           | Cooperative members (member_no, name, phone, NIK, address, city, active, user_id for portal) |
 | `CashAccount`      | Cash accounts (name, type CASH/BANK/CHECK/GIRO, ledger auto-linked, active) |
 | `CashCategory`     | Cash transaction categories (type INCOME/EXPENSE/TRANSFER, linked GL account) |
 | `SavingProduct`    | Savings product definitions (interest rate, withdrawable flag)      |
@@ -207,7 +220,7 @@ ksp/
 | `SavingTransaction`  | Member savings deposits/withdrawals with void tracking               |
 | `LoanApplication`    | Loan applications with approval workflow, form data snapshot, notaris details, file attachments |
 | `LoanApplicationFile`| Document attachments for loan applications (type, path, filename)   |
-| `Loan`               | Approved/active loans with payment schedule, outstanding balance, and `disbursement_fees` JSON |
+| `Loan`               | Approved/active loans with payment schedule, outstanding balance, `disbursement_fees` JSON, and `method` (FLAT/EFEKTIF) |
 | `LoanPayment`        | Installment payments with penalty fields and void tracking           |
 | `LoanCollateral`     | Collateral assets per loan application: type, value, document, HELD/RELEASED status |
 
@@ -410,9 +423,12 @@ Void operations cascade through linked records (transaction → cash → journal
 | SP III — Surat Peringatan III | `/collection/letters/{id}/pdf` | DomPDF |
 | Somasi | `/collection/letters/{id}/pdf` | DomPDF |
 | Pra-Cessie (Pengalihan Piutang) | `/collection/letters/{id}/pdf` | DomPDF |
+| Loan Application Review | `/loans/applications/{id}/review-pdf` | DomPDF |
 | Loan Agreement PK A (Sertipikat) | `/loans/applications/{id}/agreement` | DomPDF |
 | Loan Agreement PK B (Kendaraan) | `/loans/applications/{id}/agreement-vehicle` | DomPDF |
 | Penawaran Pembiayaan | `/loans/applications/{id}/penawaran` | DomPDF |
+| Cash Voucher (RV/PV/TV) | `/cash/transactions/{tx}/voucher` | DomPDF |
+| Savings Voucher | `/savings/transactions/{tx}/voucher` | DomPDF |
 | Payment Receipt | `/loans/payments/{id}/receipt` | DomPDF |
 | Loan Schedule (from Loans) | `/loans/active/{id}/schedule/pdf` | DomPDF |
 | Loan Schedule (from Collection) | `/collection/{id}/schedule/pdf` | DomPDF |
@@ -612,6 +628,8 @@ All migrations are applied in order. Key groups:
 - M37 migration: `2026_03_12_000002_create_loan_collaterals_table` — collateral registry (type, value, document, HELD/RELEASED)
 - M43 migration: `2026_03_12_100001_create_audit_logs_table` — system activity log
 - M45 migrations: `legal_berkas` (document bundles) + `legal_documents` (individual files per berkas)
+- M51 migration: `2026_04_08_110000_add_city_to_members_table` — adds nullable `city` column to members
+- M52 migration: `2026_04_08_100000_drop_admin_fee_from_loan_tables` — removes `admin_fee` from `loan_products` and `loan_applications` (admin fees now sourced from `disbursement_fees` JSON)
 
 ---
 

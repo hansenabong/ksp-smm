@@ -40,6 +40,11 @@
                   {{ request()->routeIs('portal.savings') ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100' }}">
             Simpanan
         </a>
+        <a href="{{ route('portal.deposito') }}"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition
+                  {{ request()->routeIs('portal.deposito') ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100' }}">
+            Deposito
+        </a>
         <a href="{{ route('portal.loans') }}"
            class="px-3 py-1.5 rounded-lg text-sm font-medium transition
                   {{ request()->routeIs('portal.loans') ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100' }}">

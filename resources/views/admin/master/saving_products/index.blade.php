@@ -46,6 +46,8 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="text-left p-3">Nama</th>
+                            <th class="text-left p-3">Tipe</th>
+                            <th class="text-left p-3">Bunga / Tenor</th>
                             <th class="text-left p-3">Withdrawable</th>
                             <th class="text-left p-3">Status</th>
                             <th class="text-right p-3">Aksi</th>
@@ -55,6 +57,22 @@
                         @forelse($savingProducts as $sp)
                             <tr class="border-t">
                                 <td class="p-3 font-medium">{{ $sp->name }}</td>
+
+                                <td class="p-3">
+                                    @if($sp->is_deposito)
+                                        <span class="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-800">DEPOSITO</span>
+                                    @else
+                                        <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">REGULER</span>
+                                    @endif
+                                </td>
+
+                                <td class="p-3 text-xs text-gray-600">
+                                    @if($sp->is_deposito)
+                                        {{ rtrim(rtrim(number_format((float)$sp->default_interest_rate_pct, 2, ',', '.'), '0'), ',') }}% / {{ $sp->default_term_months }} bln
+                                    @else
+                                        <span class="text-gray-400">—</span>
+                                    @endif
+                                </td>
 
                                 <td class="p-3">
                                     @if($sp->is_withdrawable)
@@ -86,7 +104,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td class="p-3" colspan="4">Belum ada data.</td></tr>
+                            <tr><td class="p-3" colspan="6">Belum ada data.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

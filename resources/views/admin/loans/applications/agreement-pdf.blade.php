@@ -125,7 +125,7 @@
         $netDisbursed = (int)$principal - $totalFees;
         $hasFees      = !empty($disbFees) && $totalFees > 0;
 
-        $adminFee = $application->admin_fee ?? $application->admin_monthly ?? 0;
+        $adminFee = $application->admin_monthly ?? 0;
         $tujuan   = $fd['tujuan_pembiayaan'] ?? $application->notes ?? null;
 
         $hasProperty = !empty($fd['no_hak'] ?? $fd['lokasi_agunan'] ?? $fd['kota_agunan'] ?? null);

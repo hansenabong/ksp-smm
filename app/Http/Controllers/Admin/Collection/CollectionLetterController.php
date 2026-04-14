@@ -73,7 +73,36 @@ class CollectionLetterController extends Controller
         $noPk = $loan->application?->notaris_deed_number
              ?: ('PK-KSP/' . str_pad($loan->id, 5, '0', STR_PAD_LEFT) . '/' . \Carbon\Carbon::parse($loan->disbursed_date)->format('Y'));
 
-        $pdf = Pdf::loadView($view, compact('letter', 'loan', 'member', 'noPk'))
+        // Build detailed addresses from application form_data
+        $fd = $loan->application?->form_data ?? [];
+
+        // Alamat tinggal (current residence)
+        $alamatTinggal = collect([
+            $fd['alamat'] ?? null,
+            isset($fd['rt']) ? 'RT ' . $fd['rt'] : null,
+            isset($fd['rw']) ? 'RW ' . $fd['rw'] : null,
+            $fd['kelurahan'] ?? null,
+            $fd['kecamatan'] ?? null,
+            $fd['kota'] ?? null,
+            $fd['kode_pos'] ?? null,
+        ])->filter()->implode(', ') ?: ($member->address ?? 'Tempat');
+
+        // Alamat jaminan/agunan (collateral address)
+        $alamatJaminan = collect([
+            $fd['komplek_agunan'] ?? null,
+            $fd['jalan_agunan'] ?? null,
+            isset($fd['blok_agunan']) ? 'Blok ' . $fd['blok_agunan'] : null,
+            isset($fd['no_agunan']) ? 'No. ' . $fd['no_agunan'] : null,
+            isset($fd['rt_agunan']) ? 'RT ' . $fd['rt_agunan'] : null,
+            isset($fd['rw_agunan']) ? 'RW ' . $fd['rw_agunan'] : null,
+            $fd['kelurahan_agunan'] ?? null,
+            $fd['kecamatan_agunan'] ?? null,
+            $fd['kota_agunan'] ?? null,
+        ])->filter()->implode(', ');
+
+        $statusAgunan = $fd['status_agunan'] ?? null;
+
+        $pdf = Pdf::loadView($view, compact('letter', 'loan', 'member', 'noPk', 'alamatTinggal', 'alamatJaminan', 'statusAgunan', 'fd'))
             ->setPaper('a4', 'portrait');
 
         $filename = strtolower($letter->letter_type) . '-' . $loan->id . '-' . $letter->letter_date->format('Ymd') . '.pdf';

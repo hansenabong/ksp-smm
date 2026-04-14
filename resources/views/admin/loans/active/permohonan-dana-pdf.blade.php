@@ -75,6 +75,12 @@
 
     $cashName = $loan->disbursedCashAccount?->name ?? '-';
     $cashType = $loan->disbursedCashAccount?->type ?? 'CASH';
+
+    // Prefer manual bank entry over cash-account fallback
+    $bank = $bank ?? [];
+    $bankName = $bank['bank_name'] ?? ($cashType === 'BANK' ? $cashName : '');
+    $bankAcNo = $bank['ac_no']     ?? '';
+    $bankAtas = $bank['atas_nama'] ?? ($member?->name ?? '');
 @endphp
 
 <div class="outer-border">
@@ -141,17 +147,17 @@
                                 <tr>
                                     <td style="width:35%;">Bank</td>
                                     <td style="width:5%;">:</td>
-                                    <td>{{ $cashType === 'BANK' ? $cashName : '-' }}</td>
+                                    <td>{{ $bankName !== '' ? $bankName : '-' }}</td>
                                 </tr>
                                 <tr>
                                     <td>A/C No.</td>
                                     <td>:</td>
-                                    <td style="border:1pt solid #555; padding:2pt 4pt;" class="mono">{{ $cashType === 'BANK' ? $cashName : '' }}</td>
+                                    <td style="border:1pt solid #555; padding:2pt 4pt;" class="mono">{{ $bankAcNo }}</td>
                                 </tr>
                                 <tr>
                                     <td>Atas Nama</td>
                                     <td>:</td>
-                                    <td>{{ $member?->name ?? '-' }}</td>
+                                    <td>{{ $bankAtas !== '' ? $bankAtas : '-' }}</td>
                                 </tr>
                             </table>
                         </td>

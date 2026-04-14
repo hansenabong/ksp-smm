@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 
 class LoanProductController extends Controller
 {
-    private array $methods = ['FLAT', 'ANNUITY'];
+    private array $methods = ['FLAT', 'EFEKTIF'];
 
     public function index(Request $request)
     {
@@ -49,7 +49,6 @@ class LoanProductController extends Controller
             'name'                       => ['required', 'string', 'max:120', 'unique:loan_products,name'],
             'method'                     => ['required', Rule::in($this->methods)],
             'interest_rate_monthly_bp'   => ['required', 'integer', 'min:0', 'max:100000'],
-            'admin_fee'                  => ['nullable', 'integer', 'min:0'],
             'max_tenor_months'           => ['required', 'integer', 'min:1', 'max:360'],
             'penalty_daily_rate_bp'      => ['nullable', 'integer', 'min:0', 'max:10000'],
             'early_repayment_rate_bp'    => ['nullable', 'integer', 'min:0', 'max:10000'],
@@ -64,7 +63,6 @@ class LoanProductController extends Controller
             'name'                        => $data['name'],
             'method'                      => $data['method'],
             'interest_rate_monthly_bp'    => (int)$data['interest_rate_monthly_bp'],
-            'admin_fee'                   => (int)($data['admin_fee'] ?? 0),
             'max_tenor_months'            => (int)$data['max_tenor_months'],
             'penalty_daily_rate_bp'       => (int)($data['penalty_daily_rate_bp'] ?? 30),
             'early_repayment_rate_bp'     => (int)($data['early_repayment_rate_bp'] ?? 500),
@@ -94,7 +92,6 @@ class LoanProductController extends Controller
             'name'                        => ['required', 'string', 'max:120', Rule::unique('loan_products', 'name')->ignore($loanProduct->id)],
             'method'                      => ['required', Rule::in($this->methods)],
             'interest_rate_monthly_bp'    => ['required', 'integer', 'min:0', 'max:100000'],
-            'admin_fee'                   => ['nullable', 'integer', 'min:0'],
             'max_tenor_months'            => ['required', 'integer', 'min:1', 'max:360'],
             'penalty_daily_rate_bp'       => ['nullable', 'integer', 'min:0', 'max:10000'],
             'early_repayment_rate_bp'     => ['nullable', 'integer', 'min:0', 'max:10000'],
@@ -109,7 +106,6 @@ class LoanProductController extends Controller
             'name'                        => $data['name'],
             'method'                      => $data['method'],
             'interest_rate_monthly_bp'    => (int)$data['interest_rate_monthly_bp'],
-            'admin_fee'                   => (int)($data['admin_fee'] ?? 0),
             'max_tenor_months'            => (int)$data['max_tenor_months'],
             'penalty_daily_rate_bp'       => (int)($data['penalty_daily_rate_bp'] ?? $loanProduct->penalty_daily_rate_bp),
             'early_repayment_rate_bp'     => (int)($data['early_repayment_rate_bp'] ?? $loanProduct->early_repayment_rate_bp),
