@@ -1,8 +1,10 @@
+@php
+    $returnUrl = request('return') ?? route('admin.loans.active.show', $payment->loan_id);
+@endphp
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">VOID Pembayaran Angsuran</h2>
-            @php($returnUrl = request('return') ?? route('admin.loans.active.show', $payment->loan_id))
             <a href="{{ $returnUrl }}"
                class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition">
                 ← Kembali

@@ -1,8 +1,13 @@
+@php
+    $returnUrl = request('return') ?? route($transaction->type === 'DEPOSIT' ? 'admin.savings.deposit.index' : 'admin.savings.withdraw.index');
+    $badge = $transaction->type === 'DEPOSIT'
+        ? 'bg-green-100 text-green-700'
+        : 'bg-orange-100 text-orange-700';
+@endphp
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">VOID Transaksi Simpanan</h2>
-            @php($returnUrl = request('return') ?? route($transaction->type === 'DEPOSIT' ? 'admin.savings.deposit.index' : 'admin.savings.withdraw.index'))
             <a href="{{ $returnUrl }}"
                class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition">
                 ← Kembali
@@ -39,11 +44,6 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Tipe</span>
-                        @php
-                            $badge = $transaction->type === 'DEPOSIT'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-orange-100 text-orange-700';
-                        @endphp
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $badge }}">{{ $transaction->type }}</span>
                     </div>
                     <div class="flex justify-between">

@@ -1,8 +1,16 @@
+@php
+    $returnUrl = request('return') ?? route('admin.cash.income.index');
+    $badge = match($tx->type) {
+        'INCOME'   => 'bg-green-100 text-green-700',
+        'EXPENSE'  => 'bg-red-100 text-red-700',
+        'TRANSFER' => 'bg-blue-100 text-blue-700',
+        default    => 'bg-gray-100 text-gray-600',
+    };
+@endphp
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">VOID Transaksi Kas</h2>
-            @php($returnUrl = request('return') ?? route('admin.cash.income.index'))
             <a href="{{ $returnUrl }}"
                class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition">
                 ← Kembali
@@ -43,14 +51,6 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Tipe</span>
-                        @php
-                            $badge = match($tx->type) {
-                                'INCOME'   => 'bg-green-100 text-green-700',
-                                'EXPENSE'  => 'bg-red-100 text-red-700',
-                                'TRANSFER' => 'bg-blue-100 text-blue-700',
-                                default    => 'bg-gray-100 text-gray-600',
-                            };
-                        @endphp
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $badge }}">{{ $tx->type }}</span>
                     </div>
                     @if($tx->type === 'INCOME')
