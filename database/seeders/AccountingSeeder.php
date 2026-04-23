@@ -38,10 +38,11 @@ class AccountingSeeder extends Seeder
         // =====================================================================
         // LEVEL 2 — SUB-GROUPS
         // =====================================================================
-        $grpKas      = $this->upsert('1110', 'Kas',               'ASSET',     'D', $asetLancar->id);
-        $grpBank     = $this->upsert('1120', 'Rekening Bank',     'ASSET',     'D', $asetLancar->id);
-        $grpPiutang  = $this->upsert('1130', 'Piutang Pinjaman',  'ASSET',     'D', $asetLancar->id);
-        $grpPiutLain = $this->upsert('1140', 'Piutang Lain-lain', 'ASSET',     'D', $asetLancar->id);
+        $grpKas      = $this->upsert('1110', 'Kas',                 'ASSET',     'D', $asetLancar->id);
+        $grpBank     = $this->upsert('1120', 'Rekening Bank',       'ASSET',     'D', $asetLancar->id);
+        $grpPiutang  = $this->upsert('1130', 'Piutang Pinjaman',    'ASSET',     'D', $asetLancar->id);
+        $grpPiutLain = $this->upsert('1140', 'Piutang Lain-lain',   'ASSET',     'D', $asetLancar->id);
+        $grpDeposito = $this->upsert('1160', 'Penempatan Deposito', 'ASSET',     'D', $asetLancar->id);
         $grpSimpan   = $this->upsert('2110', 'Simpanan Anggota',  'LIABILITY', 'C', $kewJPendek->id);
         $grpKewLain  = $this->upsert('2120', 'Kewajiban Lain-lain','LIABILITY','C', $kewJPendek->id);
 
@@ -97,16 +98,21 @@ class AccountingSeeder extends Seeder
         $this->upsert('5213', 'Beban Lain-lain',                     'EXPENSE',   'D', $bebNonOps->id);
 
         // =====================================================================
-        // DYNAMIC: CashAccount → leaf under 1110 (CASH) or 1120 (BANK)
-        // Codes: CASH type → 1111, 1112, ...  BANK type → 1121, 1122, ...
+        // DYNAMIC: CashAccount → leaf under 1110 (CASH) / 1120 (BANK) / 1160 (DEPOSITO)
+        // Codes: CASH → 1111, 1112, ...  BANK → 1121, ...  DEPOSITO → 1161, ...
         // =====================================================================
-        $cashIdx = ['CASH' => 1, 'BANK' => 1];
+        $cashIdx     = ['CASH' => 1, 'BANK' => 1, 'DEPOSITO' => 1];
+        $cashPrefix  = ['CASH' => '111', 'BANK' => '112', 'DEPOSITO' => '116'];
+        $cashParent  = ['CASH' => $grpKas, 'BANK' => $grpBank, 'DEPOSITO' => $grpDeposito];
 
         foreach (CashAccount::orderBy('id')->get() as $ca) {
-            $isCash = ($ca->type !== 'BANK');
-            $key    = $isCash ? 'CASH' : 'BANK';
-            $prefix = $isCash ? '111' : '112';
-            $parent = $isCash ? $grpKas : $grpBank;
+            $key = match ($ca->type) {
+                'BANK'     => 'BANK',
+                'DEPOSITO' => 'DEPOSITO',
+                default    => 'CASH', // CASH, CHECK, GIRO share the Kas bucket (existing behavior)
+            };
+            $prefix = $cashPrefix[$key];
+            $parent = $cashParent[$key];
 
             if ($ca->ledger_account_id !== null) {
                 // Already linked — advance counter past this account's existing code

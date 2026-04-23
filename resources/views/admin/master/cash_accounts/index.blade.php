@@ -83,10 +83,11 @@
                                 <td class="px-5 py-3.5">
                                     @php
                                         $typeBadge = match($acc->type) {
-                                            'BANK'  => 'bg-blue-50 text-blue-700',
-                                            'CHECK' => 'bg-purple-50 text-purple-700',
-                                            'GIRO'  => 'bg-teal-50 text-teal-700',
-                                            default => 'bg-amber-50 text-amber-700',
+                                            'BANK'     => 'bg-blue-50 text-blue-700',
+                                            'CHECK'    => 'bg-purple-50 text-purple-700',
+                                            'GIRO'     => 'bg-teal-50 text-teal-700',
+                                            'DEPOSITO' => 'bg-orange-50 text-orange-700',
+                                            default    => 'bg-amber-50 text-amber-700',
                                         };
                                         $typeLabel = $typeLabels[$acc->type] ?? $acc->type;
                                     @endphp

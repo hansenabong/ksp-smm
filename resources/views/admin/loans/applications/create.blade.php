@@ -71,19 +71,13 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm">Bunga / bulan (%)</label>
                             <input id="interest_monthly_percent" type="number" step="0.01"
                                 name="interest_monthly_percent" value="{{ old('interest_monthly_percent') }}"
                                 class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
                             <div class="text-xs text-gray-500 mt-1" id="interest_method_hint">Auto dari produk, masih bisa diubah</div>
-                        </div>
-                        <div>
-                            <label class="text-sm">Biaya Admin / bulan (Rp)</label>
-                            <input id="admin_monthly" type="text" data-money name="admin_monthly"
-                                value="{{ old('admin_monthly', 0) }}" class="w-full border rounded px-3 py-2" placeholder="0" onclick="this.select()">
-                            <div class="text-xs text-gray-500 mt-1">Diinput manual sesuai kesepakatan tiap pengajuan</div>
                         </div>
                         <div>
                             <label class="text-sm">Asuransi / bulan (Rp)</label>

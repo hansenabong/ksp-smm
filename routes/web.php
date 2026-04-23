@@ -135,11 +135,15 @@ Route::middleware(['auth'])->group(function () {
             // Static routes (create) BEFORE parameterized ({deposito}) routes.
             // ------------------------------------------------------------------
             Route::prefix('deposito')->middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
-                Route::get('/',                 [DepositoController::class, 'index'])->name('admin.deposito.index');
-                Route::get('/create',           [DepositoController::class, 'create'])->name('admin.deposito.create');
-                Route::post('/',                [DepositoController::class, 'store'])->name('admin.deposito.store');
-                Route::get('/{deposito}',       [DepositoController::class, 'show'])->name('admin.deposito.show');
-                Route::post('/{deposito}/cair', [DepositoController::class, 'cair'])->name('admin.deposito.cair');
+                Route::get('/',                  [DepositoController::class, 'index'])->name('admin.deposito.index');
+                Route::get('/create',            [DepositoController::class, 'create'])->name('admin.deposito.create');
+                Route::get('/print',             [DepositoController::class, 'printIndex'])->name('admin.deposito.print.index');
+                Route::post('/',                 [DepositoController::class, 'store'])->name('admin.deposito.store');
+                Route::get('/{deposito}',        [DepositoController::class, 'show'])->name('admin.deposito.show');
+                Route::get('/{deposito}/edit',   [DepositoController::class, 'edit'])->name('admin.deposito.edit');
+                Route::put('/{deposito}',        [DepositoController::class, 'update'])->name('admin.deposito.update');
+                Route::get('/{deposito}/print',  [DepositoController::class, 'printShow'])->name('admin.deposito.print.show');
+                Route::post('/{deposito}/cair',  [DepositoController::class, 'cair'])->name('admin.deposito.cair');
             });
 
             // ------------------------------------------------------------------
@@ -224,8 +228,8 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/loans/active/{loan}/permohonan-dana',   [LoanController::class,'savePermohonanDana'])->name('admin.loans.active.permohonan.dana.save');
             });
 
-            // Loan payments — ADMIN_COLLECTION
-            Route::middleware('role:SUPER_ADMIN|ADMIN_COLLECTION')->group(function () {
+            // Loan payments — FINANCE
+            Route::middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
                 Route::get('/loans/active/{loan}/payments/create',[LoanPaymentController::class,'create'])->name('admin.loans.payments.create');
                 Route::post('/loans/active/{loan}/payments',      [LoanPaymentController::class,'store'])->name('admin.loans.payments.store');
                 Route::get('/loans/payments/{payment}/receipt',   [LoanPaymentController::class,'receipt'])->name('admin.loans.payments.receipt');
@@ -380,8 +384,8 @@ Route::middleware(['auth'])->group(function () {
             // ------------------------------------------------------------------
             Route::prefix('collection')->group(function () {
 
-                // DHIA — TREASURY + PENGAWAS + LEGAL read-only view
-                Route::middleware('role:SUPER_ADMIN|ADMIN_COLLECTION|LEGAL|TREASURY|PENGAWAS')->group(function () {
+                // DHIA — TREASURY + PENGAWAS + LEGAL + ADMIN_DATA read-only view
+                Route::middleware('role:SUPER_ADMIN|ADMIN_COLLECTION|ADMIN_DATA|LEGAL|TREASURY|PENGAWAS')->group(function () {
                     Route::get('/master-dhia',  [CollectionController::class,'masterDhia'])->name('admin.collection.master-dhia');
                     Route::get('/export-dhia',  [CollectionController::class,'exportMasterDhia'])->name('admin.collection.export-dhia');
                 });

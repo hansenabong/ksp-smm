@@ -34,7 +34,6 @@ class LoanService
 
             // pokok per bulan (rata, sisa dibebankan di angsuran terakhir)
             $principalMonthly = intdiv($principal, $tenor);
-            $adminMonthly = (int) $app->admin_monthly;
             $insuranceMonthly = (int) $app->insurance_monthly;
             $lastPrincipal = $principal - ($principalMonthly * ($tenor - 1));
 
@@ -47,18 +46,18 @@ class LoanService
                     $pkok = ($i === $tenor) ? $lastPrincipal : $principalMonthly;
                     $bungaBulan = (int) round($remaining * ($rate / 100.0));
                     if ($firstInterest === null) $firstInterest = $bungaBulan;
-                    $totalPayable += $pkok + $bungaBulan + $adminMonthly + $insuranceMonthly;
+                    $totalPayable += $pkok + $bungaBulan + $insuranceMonthly;
                     $remaining -= $pkok;
                 }
                 $interestMonthly = $firstInterest ?? 0;
                 // Angsuran bulan pertama (terbesar karena bunga menurun)
-                $monthlyInstallment = $principalMonthly + $interestMonthly + $adminMonthly + $insuranceMonthly;
+                $monthlyInstallment = $principalMonthly + $interestMonthly + $insuranceMonthly;
             } else {
                 // FLAT: bunga tetap dari pokok awal
                 $interestMonthly = (int) round($principal * ($rate / 100.0));
-                $monthlyInstallment = $principalMonthly + $interestMonthly + $adminMonthly + $insuranceMonthly;
+                $monthlyInstallment = $principalMonthly + $interestMonthly + $insuranceMonthly;
                 $totalPayable = ($monthlyInstallment * ($tenor - 1))
-                              + ($lastPrincipal + $interestMonthly + $adminMonthly + $insuranceMonthly);
+                              + ($lastPrincipal + $interestMonthly + $insuranceMonthly);
             }
             $fromCashId = (int) $data['from_cash_account_id'];
 
@@ -103,7 +102,6 @@ class LoanService
                 'interest_monthly_percent' => $rate,
                 'principal_monthly' => $principalMonthly,
                 'interest_monthly' => $interestMonthly,
-                'admin_monthly' => $adminMonthly,
                 'insurance_monthly' => $insuranceMonthly,
                 'monthly_installment' => $monthlyInstallment,
                 'total_payable' => $totalPayable,
@@ -161,26 +159,17 @@ class LoanService
             }
 
             // --- Penalty calculation ---
-            $penaltyDays            = (int) ($data['penalty_days'] ?? 0);
-            $penaltyAmount          = (int) ($data['penalty_amount'] ?? 0);
-            $earlyRepaymentPenalty  = (int) ($data['early_repayment_penalty'] ?? 0);
+            // Denda akumulasi keterlambatan dapat dibayar kapan saja (regular atau pelunasan).
+            // Denda pelunasan dipercepat hanya saat early repayment.
+            $penaltyDays           = (int) ($data['penalty_days']   ?? 0);
+            $penaltyAmount         = (int) ($data['penalty_amount']  ?? 0);
+            $earlyRepaymentPenalty = 0;
 
-            // Auto-compute penalty if not overridden by form
-            $product = $loan->loanProduct;
-            if ($product) {
-                // Determine installment number = non-voided payments so far + 1
-                $installmentNo  = LoanPayment::notVoided()->where('loan_id', $loan->id)->count() + 1;
-                $expectedDue    = \Carbon\Carbon::parse($loan->disbursed_date)->addMonths($installmentNo);
-                $trxDate        = \Carbon\Carbon::parse($data['trx_date']);
-
-                // Late penalty (only if data doesn't explicitly pass penalty_days=0 with intent)
-                if (!isset($data['penalty_days']) && $trxDate->gt($expectedDue)) {
-                    $penaltyDays   = (int) $trxDate->diffInDays($expectedDue);
-                    $penaltyAmount = (int) round($loan->monthly_installment * $penaltyDays * $product->penalty_daily_rate);
-                }
-
-                // Early repayment penalty
-                if ($isEarlyRepayment && !isset($data['early_repayment_penalty'])) {
+            if ($isEarlyRepayment) {
+                $earlyRepaymentPenalty = (int) ($data['early_repayment_penalty'] ?? 0);
+                // Auto-compute early repayment penalty if not overridden
+                $product = $loan->loanProduct;
+                if ($product && !isset($data['early_repayment_penalty'])) {
                     $earlyRepaymentPenalty = (int) round($loan->outstanding * $product->early_repayment_rate);
                 }
             }
@@ -212,10 +201,12 @@ class LoanService
             ]);
 
             // update totals (outstanding reduced by installment amount only)
-            $loan->total_paid += $amount;
-            $loan->outstanding = max(0, $loan->total_payable - $loan->total_paid);
+            $loan->total_paid  += $amount;
+            $loan->outstanding  = max(0, $loan->total_payable - $loan->total_paid);
 
-            if ($loan->outstanding === 0) {
+            // Close the loan when fully paid; treat negligible rounding remainder (≤ 10) as closed
+            if ($loan->outstanding <= 10) {
+                $loan->outstanding = 0;
                 $loan->status = 'CLOSED';
             }
 

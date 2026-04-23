@@ -304,8 +304,6 @@ class DemoTransactionSeeder extends Seeder
             $member  = $this->members[$idx];
             $product = $prodKey === 'regular' ? $this->prodRegular : $this->prodMikro;
 
-            $demoAdminMonthly = $prodKey === 'regular' ? 50000 : 25000;
-
             // Derive the member's home city from address ("Jl. ..., Jakarta" → "Jakarta")
             $kota = trim((string) last(explode(',', (string) $member->address)));
 
@@ -316,7 +314,6 @@ class DemoTransactionSeeder extends Seeder
                 'principal'                => $principal,
                 'tenor_months'             => $tenor,
                 'interest_monthly_percent' => $product->interest_rate_monthly_bp / 100.0,
-                'admin_monthly'            => $demoAdminMonthly,
                 'insurance_monthly'        => 0,
                 'method'                   => $product->method,
                 'interest_rate_monthly_bp' => $product->interest_rate_monthly_bp,

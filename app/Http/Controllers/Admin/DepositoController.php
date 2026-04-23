@@ -9,6 +9,7 @@ use App\Models\DepositoAccount;
 use App\Models\Member;
 use App\Models\SavingProduct;
 use App\Services\Savings\SavingsService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -97,6 +98,74 @@ class DepositoController extends Controller
         $expenseCategories = CashCategory::active()->forType('EXPENSE')->orderBy('name')->get();
 
         return view('admin.deposito.show', compact('deposito', 'cashAccounts', 'expenseCategories'));
+    }
+
+    public function edit(DepositoAccount $deposito)
+    {
+        return view('admin.deposito.edit', compact('deposito'));
+    }
+
+    public function update(Request $request, DepositoAccount $deposito)
+    {
+        $validated = $request->validate([
+            'bank_account_name' => ['nullable', 'string', 'max:100'],
+            'bank_account_no'   => ['nullable', 'string', 'max:50'],
+            'bank_name'         => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $deposito->update($validated);
+
+        return redirect()
+            ->route('admin.deposito.show', $deposito)
+            ->with('success', 'Data rekening bank deposito berhasil diperbarui.');
+    }
+
+    public function printIndex(Request $request)
+    {
+        $q = DepositoAccount::query()->with(['member', 'savingProduct']);
+
+        if ($request->filled('status')) {
+            if ($request->status === 'MATURED') {
+                $q->where('status', DepositoAccount::STATUS_ACTIVE)
+                    ->whereDate('maturity_date', '<=', now()->toDateString());
+            } else {
+                $q->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('member_id')) {
+            $q->where('member_id', $request->member_id);
+        }
+
+        if ($request->filled('saving_product_id')) {
+            $q->where('saving_product_id', $request->saving_product_id);
+        }
+
+        $depositos = $q->orderByDesc('start_date')->orderByDesc('id')->get();
+
+        $filterMember = $request->filled('member_id')
+            ? Member::find($request->member_id)?->name
+            : null;
+        $filterProduct = $request->filled('saving_product_id')
+            ? SavingProduct::find($request->saving_product_id)?->name
+            : null;
+        $filterStatus = $request->input('status');
+
+        $pdf = Pdf::loadView('admin.deposito.print-index', compact(
+            'depositos', 'filterMember', 'filterProduct', 'filterStatus'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->download('deposito-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    public function printShow(DepositoAccount $deposito)
+    {
+        $deposito->load(['member', 'savingProduct', 'creator']);
+
+        $pdf = Pdf::loadView('admin.deposito.print-show', compact('deposito'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download("deposito-{$deposito->reference_code}.pdf");
     }
 
     public function cair(Request $request, DepositoAccount $deposito, SavingsService $service)

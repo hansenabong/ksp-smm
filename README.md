@@ -67,6 +67,9 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 57 | **Collection Letter Address Enhancement** — SP1–SP3, Somasi, and Cessie PDF letters now display full alamat tinggal (from `form_data` fields: alamat, rt, rw, kelurahan, kecamatan, kota, kode_pos) and alamat jaminan (property collateral address with status agunan) instead of short `member->address` | ✅ Done |
 | 58 | **PK Word Export** — download PK A (Sertipikat) and PK B (Kendaraan) agreement documents as `.docx` Word files; CSS-to-inline-styles conversion for PhpWord compatibility; HTML entity/XHTML sanitization; float-to-inline conversion for numbered layouts; buttons on application show page | ⚠️ Partial — formatting not fully matching PDF (PhpWord HTML parser limitations) |
 | 59 | **Kwitansi Biaya-Biaya** — standalone manual fee receipt for active loans; Alpine.js dynamic form (add/remove rows with description + amount); printable kwitansi with KSP letterhead, fee table, total, and dual-signature block; route from active loan show page dropdown | ✅ Done |
+| 60 | **Denda System Overhaul** — full penalty lifecycle fix: (1) reactive Alpine.js recalculation of accumulated late-payment penalty as `trxDate` changes; (2) `calcAccumulatedPenalty()` now iterates all installment slots so paid-late slots without recorded denda are included in carry-forward; (3) denda keterlambatan allowed on regular payments (not just pelunasan dipercepat); (4) late-payment flag (`is_late`) added to schedule builder — orange row + "Terlambat" badge in jadwal table; (5) `outstanding <= 10 → CLOSED` safety net absorbs intdiv rounding remainder (Sisa Rp 5 fix); (6) per-installment penalty breakdown (slot # × amount × days × 0.3%) shown in payment form; (7) green "Total Denda Sudah Dibayar" banner card; (8) AutoPostingService stale comment cleanup (admin references removed) | ✅ Done |
+| 61 | **Permohonan Dana Enhancements** — (1) document redesigned to match Word template: two-column loan detail grid (Jenis Fasilitas, Produk, Objek, No. Anggota, Jangka Waktu, Angsuran/Bulan, Suku Bunga, Bunga Total, Nilai Pembiayaan, Pencairan Bersih); (2) Pencairan Bersih section expanded to show "Jumlah potongan" + "Jumlah di setor" rows in both web view and PDF; (3) Hold Angsuran replaced with two-field Alpine.js component: "Angsuran ke-" number input auto-calculates Hold Angsuran = `ke × monthly_installment`; (4) biaya display annotates Hold Angsuran with "(X angsuran)" in both web view and PDF cetak | ✅ Done |
+| 62 | **Deposito Cash Account Type + Finance Hardening** — (1) New `DEPOSITO` type added to `cash_accounts` (CASH/BANK/CHECK/GIRO/DEPOSITO); auto-creates leaf ledger under COA 1160 "Penempatan Deposito"; excluded from Total Saldo Kas on dashboard and Saldo Kas page — shown in separate amber "Tidak dihitung ke Total Saldo" section; (2) Bayar Angsuran role changed from `ADMIN_COLLECTION` → `FINANCE`; (3) Kode Referensi input field added to Setoran & Penarikan Simpanan forms; (4) Transfer Kas menu removed from Finance sidebar; (5) "Jenis Transaksi" dropdown (Tunai/Transfer/Cek/Giro) added to Pemasukan & Pengeluaran Kas forms — new `payment_method` VARCHAR column on `cash_transactions`; (6) Print PDF button added to Deposito index (landscape list) and show (A4 bilyet/certificate); (7) Edit button + form for Deposito (editable: rekening bank pencairan only; pokok/bunga/tenor/tanggal locked); (8) Trial balance/balance sheet/income statement imbalance fixed — removed `accounts.is_active = true` filter so legacy deactivated COA accounts with existing `journal_lines` are included, restoring D=C double-entry balance | ✅ Done |
 
 ---
 
@@ -203,7 +206,7 @@ ksp/
 |--------------------|---------------------------------------------------------------------|
 | `User`             | System users with Spatie roles                                      |
 | `Member`           | Cooperative members (member_no, name, phone, NIK, address, city, active, user_id for portal) |
-| `CashAccount`      | Cash accounts (name, type CASH/BANK/CHECK/GIRO, ledger auto-linked, active) |
+| `CashAccount`      | Cash accounts (name, type CASH/BANK/CHECK/GIRO/DEPOSITO, ledger auto-linked, active) |
 | `CashCategory`     | Cash transaction categories (type INCOME/EXPENSE/TRANSFER, linked GL account) |
 | `SavingProduct`    | Savings product definitions (interest rate, withdrawable flag)      |
 | `LoanProduct`      | Loan products (interest rate, admin fee, tenor, penalty rates in bp, linked GL accounts) |
@@ -216,7 +219,7 @@ ksp/
 
 | Model                | Purpose                                                              |
 |----------------------|----------------------------------------------------------------------|
-| `CashTransaction`    | Cash income/expense/transfer with category and void tracking         |
+| `CashTransaction`    | Cash income/expense/transfer with category, `payment_method` (TUNAI/TRANSFER/CEK/GIRO), and void tracking |
 | `SavingTransaction`  | Member savings deposits/withdrawals with void tracking               |
 | `LoanApplication`    | Loan applications with approval workflow, form data snapshot, notaris details, file attachments |
 | `LoanApplicationFile`| Document attachments for loan applications (type, path, filename)   |
@@ -246,6 +249,9 @@ Seeded by `AccountingSeeder`. Five-level hierarchy:
 | 1xxx       | Assets (Aktiva)                 | Debit          |
 | 1110       | Kas (Cash accounts group)       | Debit          |
 | 1120       | Bank accounts group             | Debit          |
+| 1140       | Cek (Check) accounts group      | Debit          |
+| 1150       | Giro accounts group             | Debit          |
+| 1160       | Penempatan Deposito group       | Debit          |
 | 1130       | Piutang Pinjaman (per product)  | Debit          |
 | 2xxx       | Liabilities (Kewajiban)         | Credit         |
 | 2110       | Simpanan Anggota (per product)  | Credit         |
@@ -259,7 +265,7 @@ Seeded by `AccountingSeeder`. Five-level hierarchy:
 | 5xxx       | Expenses (Beban)                | Debit          |
 
 Dynamic account linking:
-- `CashAccount` (CASH type) → leaf auto-generated under 1110 (111x); (BANK type) → leaf under 1120 (112x); (CHECK) → 114x; (GIRO) → 115x
+- `CashAccount` (CASH type) → leaf auto-generated under 1110 (111x); (BANK type) → leaf under 1120 (112x); (CHECK) → 114x; (GIRO) → 115x; (DEPOSITO) → 116x — excluded from Total Saldo Kas
 - `SavingProduct` → `ledger_account_id` leaf under 2110
 - `LoanProduct` → `receivable_account_id` (under 1130) + `interest_income_account_id`, `admin_income_account_id`, `insurance_income_account_id` (4111–4113)
 - `CashCategory` (INCOME) → `account_id` leaf under equity (3xxx) or revenue (4xxx)
@@ -347,7 +353,7 @@ Legacy roles (unused, kept for backward compatibility): ADMIN, MANAGER, BENDAHAR
 | **Pengajuan** — setujui / tolak | ✓ | — | — | — | — | — | — |
 | **Pengajuan** — kelola agunan | ✓ | — | ✓ | — | — | — | — |
 | **Pinjaman Approved** — lihat | ✓ | — | ✓ ro | ✓ ro | — | ✓ ro | ✓ ro |
-| **Pinjaman Approved** — bayar angsuran | ✓ | — | — | ✓ | — | — | — |
+| **Pinjaman Approved** — bayar angsuran | ✓ | ✓ | — | — | — | — | — |
 | **Pinjaman Approved** — cetak dokumen | ✓ | — | — | — | ✓ | — | — |
 | **Penagihan** — lihat (index, show, laporan) | ✓ | — | — | ✓ | — | ✓ | ✓ |
 | **Penagihan** — DHIA | ✓ | — | — | ✓ | ✓ ro | ✓ | ✓ |
@@ -368,7 +374,7 @@ Action buttons are hidden for unauthorized roles (even if they can view the page
 - **Edit Pengajuan** — SUPER_ADMIN, ADMIN_DATA only
 - **Kelola Agunan** — SUPER_ADMIN, ADMIN_DATA only
 - **Cetak Dokumen (PK/OL/Kwitansi)** — SUPER_ADMIN, TREASURY only
-- **Bayar Angsuran** — SUPER_ADMIN, ADMIN_COLLECTION only
+- **Bayar Angsuran** — SUPER_ADMIN, FINANCE only
 - **Pelunasan** — SUPER_ADMIN, ADMIN_COLLECTION only
 - **Tambah/Edit/Toggle Anggota** — SUPER_ADMIN, FINANCE, ADMIN_DATA only
 
@@ -442,6 +448,8 @@ Void operations cascade through linked records (transaction → cash → journal
 | Cetak Semua Pemasukan | `/cash/income/print` | DomPDF |
 | Cetak Semua Pengeluaran | `/cash/expense/print` | DomPDF |
 | Cetak Semua Transfer | `/cash/transfer/print` | DomPDF |
+| Deposito — Daftar (landscape) | `/deposito/print` | DomPDF |
+| Deposito — Bilyet (A4 portrait) | `/deposito/{deposito}/print` | DomPDF |
 
 ---
 
@@ -630,6 +638,7 @@ All migrations are applied in order. Key groups:
 - M45 migrations: `legal_berkas` (document bundles) + `legal_documents` (individual files per berkas)
 - M51 migration: `2026_04_08_110000_add_city_to_members_table` — adds nullable `city` column to members
 - M52 migration: `2026_04_08_100000_drop_admin_fee_from_loan_tables` — removes `admin_fee` from `loan_products` and `loan_applications` (admin fees now sourced from `disbursement_fees` JSON)
+- M62 migrations: `2026_04_23_100001_add_deposito_parent_account` — inserts COA 1160 "Penempatan Deposito"; `2026_04_23_100002_add_payment_method_to_cash_transactions` — adds nullable `payment_method` VARCHAR(20) to `cash_transactions`
 
 ---
 

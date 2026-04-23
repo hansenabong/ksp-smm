@@ -28,7 +28,6 @@ class IncomeStatementController extends Controller
         // "Period" = transactions within [date_from, date_to].
         $accounts = Account::query()
             ->whereIn('accounts.type', ['REVENUE', 'EXPENSE'])
-            ->where('accounts.is_active', true)
             ->whereDoesntHave('children')
             ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
             ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
@@ -90,7 +89,6 @@ class IncomeStatementController extends Controller
 
         $accounts = Account::query()
             ->whereIn('accounts.type', ['REVENUE', 'EXPENSE'])
-            ->where('accounts.is_active', true)
             ->whereDoesntHave('children')
             ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
             ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')

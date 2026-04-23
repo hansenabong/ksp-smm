@@ -311,7 +311,6 @@ class AutoPostingService
      * DR Kas                    (installment + penalty_amount + early_repayment_penalty)
      * CR Piutang Pinjaman       (principal portion)
      * CR Pendapatan Bunga       (interest portion)
-     * CR Pendapatan Admin       (admin portion)
      * CR Pendapatan Asuransi    (insurance portion, if any)
      * CR Denda Keterlambatan    (penalty_amount, if > 0)
      * CR Denda Pelunasan Cepat  (early_repayment_penalty, if > 0)
@@ -334,8 +333,6 @@ class AutoPostingService
         // Income accounts: use product-specific if set, otherwise fall back to COA defaults
         $accBunga = (int)($loan->loanProduct?->interest_income_account_id ?? 0)
             ?: $this->ensureAccountByCode('4111', 'Pendapatan Bunga Pinjaman',        'REVENUE', 'C', '4100');
-        $accAdmin = (int)($loan->loanProduct?->admin_income_account_id ?? 0)
-            ?: $this->ensureAccountByCode('4112', 'Pendapatan Biaya Admin Pinjaman',  'REVENUE', 'C', '4100');
         $accAsur  = (int)($loan->loanProduct?->insurance_income_account_id ?? 0)
             ?: $this->ensureAccountByCode('4113', 'Pendapatan Biaya Provisi / Asuransi','REVENUE','C','4100');
 
@@ -349,16 +346,15 @@ class AutoPostingService
         $earlyPenalty  = (int)($p->early_repayment_penalty ?? 0);
         $totalCash     = $amount + $penaltyAmt + $earlyPenalty;
 
-        // Decompose installment: principal = amount - (interest + admin + insurance)
+        // Decompose installment: principal = amount - (interest + insurance)
         $interest = (int) round(((int)$loan->principal) * ((float)$loan->interest_monthly_percent / 100.0));
-        $admin    = (int) ($loan->admin_monthly ?? 0);
         $ins      = (int) ($loan->insurance_monthly ?? 0);
 
-        $principalPart = $amount - ($interest + $admin + $ins);
+        $principalPart = $amount - ($interest + $ins);
 
         if ($principalPart < 0) {
             throw ValidationException::withMessages([
-                'amount' => 'Komponen angsuran tidak valid (pokok negatif). Cek setting bunga/admin/asuransi.',
+                'amount' => 'Komponen angsuran tidak valid (pokok negatif). Cek setting bunga/asuransi.',
             ]);
         }
 
@@ -369,7 +365,6 @@ class AutoPostingService
 
         if ($principalPart > 0) $lines[] = ['account_id' => $recvLedger,        'dc' => 'C', 'amount' => $principalPart];
         if ($interest > 0)      $lines[] = ['account_id' => $accBunga,           'dc' => 'C', 'amount' => $interest];
-        if ($admin > 0)         $lines[] = ['account_id' => $accAdmin,           'dc' => 'C', 'amount' => $admin];
         if ($ins > 0)           $lines[] = ['account_id' => $accAsur,            'dc' => 'C', 'amount' => $ins];
         if ($penaltyAmt > 0)    $lines[] = ['account_id' => $accDendaTerlambat,  'dc' => 'C', 'amount' => $penaltyAmt];
         if ($earlyPenalty > 0)  $lines[] = ['account_id' => $accDendaCepat,      'dc' => 'C', 'amount' => $earlyPenalty];

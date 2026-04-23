@@ -23,8 +23,10 @@ class BalanceSheetController extends Controller
         // Fetch cumulative debit/credit (from inception to date_to) for ALL leaf accounts.
         // ASSET, LIABILITY, EQUITY → balance sheet items.
         // REVENUE, EXPENSE → used to compute cumulative net income for equity section.
+        // Note: do NOT filter by accounts.is_active — legacy deactivated leaf
+        // accounts may still hold historical journal_lines; excluding them
+        // would break the Assets = Liabilities + Equity balance.
         $allAccounts = Account::query()
-            ->where('accounts.is_active', true)
             ->whereDoesntHave('children')
             ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
             ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
@@ -94,7 +96,6 @@ class BalanceSheetController extends Controller
         $dateTo = $request->input('date_to', now()->toDateString());
 
         $allAccounts = Account::query()
-            ->where('accounts.is_active', true)
             ->whereDoesntHave('children')
             ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
             ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')

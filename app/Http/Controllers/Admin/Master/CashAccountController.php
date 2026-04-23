@@ -11,19 +11,20 @@ use Illuminate\Validation\Rule;
 
 class CashAccountController extends Controller
 {
-    private array $types = ['CASH', 'BANK', 'CHECK', 'GIRO'];
+    private array $types = ['CASH', 'BANK', 'CHECK', 'GIRO', 'DEPOSITO'];
 
     /** Human-readable labels per type (for UI hints) */
     public array $typeLabels = [
-        'CASH'  => 'Kas Tunai',
-        'BANK'  => 'Rekening Bank',
-        'CHECK' => 'Cek',
-        'GIRO'  => 'Bilyet / Giro',
+        'CASH'     => 'Kas Tunai',
+        'BANK'     => 'Rekening Bank',
+        'CHECK'    => 'Cek',
+        'GIRO'     => 'Bilyet / Giro',
+        'DEPOSITO' => 'Deposito',
     ];
 
     /** Parent codes and ledger prefixes per type */
-    private array $parentCodes = ['CASH' => '1110', 'BANK' => '1120', 'CHECK' => '1140', 'GIRO' => '1150'];
-    private array $codePrefixes = ['CASH' => '111',  'BANK' => '112',  'CHECK' => '114',  'GIRO' => '115'];
+    private array $parentCodes = ['CASH' => '1110', 'BANK' => '1120', 'CHECK' => '1140', 'GIRO' => '1150', 'DEPOSITO' => '1160'];
+    private array $codePrefixes = ['CASH' => '111',  'BANK' => '112',  'CHECK' => '114',  'GIRO' => '115',  'DEPOSITO' => '116'];
 
     /**
      * Auto-generate the next available ledger code under 1110 (CASH) or 1120 (BANK)

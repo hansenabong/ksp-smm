@@ -95,6 +95,21 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Jenis Transaksi <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                    </label>
+                    <select name="payment_method"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        <option value="">— Pilih —</option>
+                        <option value="TUNAI"    @selected(old('payment_method') === 'TUNAI')>Tunai</option>
+                        <option value="TRANSFER" @selected(old('payment_method') === 'TRANSFER')>Transfer</option>
+                        <option value="CEK"      @selected(old('payment_method') === 'CEK')>Cek</option>
+                        <option value="GIRO"     @selected(old('payment_method') === 'GIRO')>Giro</option>
+                    </select>
+                    @error('payment_method') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Jumlah (Rp) <span class="text-red-500">*</span>
                     </label>
                     <input type="text" data-money name="amount" value="{{ old('amount') }}"

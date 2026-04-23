@@ -13,7 +13,7 @@ class LoanApplication extends Model
     ];
     protected $fillable = [
         'trx_date','member_id','principal','tenor_months','interest_monthly_percent',
-        'admin_monthly','insurance_monthly','status','notes','approval_note',
+        'insurance_monthly','status','notes','approval_note',
         'approved_by','approved_at','approved_cash_account_id','created_by',
         'loan_product_id', 'method', 'interest_rate_monthly_bp',
         'form_data',

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Perjanjian Pembiayaan {{ $nomorPk }}</title>
+    <title>Perjanjian Kredit {{ $nomorPk }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -11,67 +11,43 @@
             color: #000;
             line-height: 1.5;
         }
-        .page { padding: 2cm 2.5cm 2cm 2.5cm; }
-        .header { text-align: center; margin-bottom: 18pt; }
+        .page { padding: 1.5cm 2cm 1.5cm 2cm; }
+        .header { text-align: center; margin-bottom: 14pt; }
         .header h1 { font-size: 14pt; font-weight: bold; text-decoration: underline; letter-spacing: 1px; text-transform: uppercase; }
         .header .nomor { font-size: 11pt; margin-top: 4pt; }
-        .divider { border-top: 2px solid #000; margin: 8pt 0; }
-        .opening { text-align: justify; margin-bottom: 10pt; }
-        .party { margin-bottom: 10pt; }
+        .opening { text-align: justify; margin-bottom: 8pt; }
+        .party { margin-bottom: 8pt; }
         .party-num { float: left; width: 28pt; font-weight: bold; }
         .party-content { margin-left: 28pt; text-align: justify; }
         .clearfix::after { content: ''; display: table; clear: both; }
-        .selanjutnya { text-align: justify; margin: 10pt 0; }
-        .pasal-block { page-break-inside: avoid; margin-top: 14pt; }
+        .selanjutnya { text-align: justify; margin: 8pt 0; }
+
+        .pasal-block { margin-top: 12pt; }
         .pasal-header { text-align: center; font-weight: bold; margin-bottom: 2pt; }
-        .pasal-title { text-align: center; font-weight: bold; margin-bottom: 8pt; }
-        .pasal-item { margin-bottom: 6pt; text-align: justify; }
+        .pasal-title { text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 6pt; }
+        .pasal-body { text-align: justify; margin-bottom: 6pt; }
+        .pasal-item { margin-bottom: 5pt; text-align: justify; }
         .pasal-item-num { float: left; width: 20pt; }
         .pasal-item-text { margin-left: 20pt; }
-        .sub-list { margin-top: 4pt; }
-        .sub-list-item { margin-bottom: 3pt; }
-        .sub-list-item-num { float: left; width: 24pt; }
-        .sub-list-item-text { margin-left: 24pt; text-align: justify; }
-        .detail-table { width: 100%; margin: 6pt 0; border-collapse: collapse; }
-        .detail-table td { padding: 2pt 4pt; vertical-align: top; }
-        .detail-table td:first-child { width: 44%; }
+
+        .detail-table { width: 100%; margin: 4pt 0; border-collapse: collapse; }
+        .detail-table td { padding: 1pt 4pt; vertical-align: top; }
+        .detail-table td:first-child { width: 30%; }
         .detail-table td:nth-child(2) { width: 4%; text-align: center; }
-        .signature-section { margin-top: 24pt; }
-        .signature-grid { width: 100%; }
-        .signature-grid td { width: 33%; vertical-align: top; text-align: center; padding: 0 6pt; }
-        .signature-box { margin-top: 60pt; border-top: 1px solid #000; padding-top: 4pt; }
+
+        .signature-section { margin-top: 20pt; }
+        .sig-top { width: 100%; border-collapse: collapse; }
+        .sig-top td { width: 50%; vertical-align: top; padding: 0 6pt 0 0; }
+        .sig-name { margin-top: 60pt; }
+        .sig-bottom { width: 100%; border-collapse: collapse; margin-top: 20pt; }
+        .sig-bottom td { width: 50%; vertical-align: top; padding: 0 6pt 0 0; }
         .footer-note { margin-top: 16pt; font-size: 9pt; color: #444; border-top: 1px solid #aaa; padding-top: 6pt; text-align: center; }
-        .kop { border-bottom: 3px double #000; padding-bottom: 8pt; margin-bottom: 14pt; }
-        .kop-table { width: 100%; border-collapse: collapse; }
-        .kop-logo td { vertical-align: middle; }
-        .kop-name { font-size: 13pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        .kop-sub  { font-size: 9pt; color: #444; margin-top: 2pt; }
-        .kop-addr { font-size: 8.5pt; color: #444; margin-top: 1pt; }
+
+        .bank-box { border: 1pt solid #000; padding: 6pt 10pt; margin: 6pt 0; display: inline-block; min-width: 200pt; }
     </style>
 </head>
 <body>
 <div class="page">
-
-    {{-- ===== KOP SURAT ===== --}}
-    <div class="kop">
-        <table class="kop-table kop-logo"><tr>
-            <td style="width:60pt; padding-right:10pt;">
-                <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:54pt; height:54pt; object-fit:contain;">
-            </td>
-            <td>
-                <div class="kop-name">Koperasi Simpan Pinjam Sarana Mitra Mandiri</div>
-                <div class="kop-sub">Koperasi Simpan Pinjam</div>
-                <div class="kop-addr">Komplek Duta Mas Fatmawati Blok B1 No 16, Jakarta Selatan 12150</div>
-            </td>
-        </tr></table>
-    </div>
-
-    {{-- ===== HEADER ===== --}}
-    <div class="header">
-        <h1>PERJANJIAN KREDIT</h1>
-        <div class="nomor">Nomor: {{ $nomorPk }}</div>
-    </div>
-    <div class="divider"></div>
 
     @php
         $fd       = $application->form_data ?? [];
@@ -81,537 +57,765 @@
         $bulanId = ['','Januari','Februari','Maret','April','Mei','Juni',
                     'Juli','Agustus','September','Oktober','November','Desember'];
 
-        $tglStr   = $disbDate->day . ' ' . $bulanId[$disbDate->month] . ' ' . $disbDate->year;
-        $tglLunas = $disbDate->copy()->addMonths($application->tenor_months ?? $loan?->tenor_months ?? 0);
+        $hariId = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+        $hariStr = $hariId[$disbDate->dayOfWeek];
+
+        $tglStr     = $disbDate->day . ' ' . $bulanId[$disbDate->month] . ' ' . $disbDate->year;
+        $tglLunas   = $disbDate->copy()->addMonths($application->tenor_months ?? $loan?->tenor_months ?? 0);
+        $tglLunasStr = $tglLunas->day . ' ' . $bulanId[$tglLunas->month] . ' ' . $tglLunas->year;
 
         $principal    = $loan?->principal                ?? $application->principal;
         $tenor        = $loan?->tenor_months             ?? $application->tenor_months;
         $bunga        = $loan?->interest_monthly_percent ?? $application->interest_monthly_percent;
+        $bungaTahunan = $bunga * 12;
         $angsuran     = $loan?->monthly_installment      ?? 0;
-        $totalPayable = $loan?->total_payable            ?? 0;
         $dueDay       = $disbDate->day;
 
-        // Penalty & prepayment from product
-        $penaltyBp   = $application->loanProduct?->penalty_daily_rate_bp   ?? 30;
-        $prepayBp    = $application->loanProduct?->early_repayment_rate_bp ?? 500;
-        $penaltyPct  = number_format($penaltyBp  / 100, 1);   // e.g. "0.3"
-        $prepayPct   = number_format($prepayBp   / 100, 0);   // e.g. "5"
-        $penaltyMonth= number_format($penaltyBp  / 100 * 30, 0); // approx /month
+        $tujuan   = $fd['tujuan_pembiayaan'] ?? $application->notes ?? '';
 
-        // Notaris
-        $hasNotaris  = !empty($application->notaris_deed_number);
-        $notarisDate = $application->notaris_deed_date
-            ? $application->notaris_deed_date->day . ' ' . $bulanId[$application->notaris_deed_date->month] . ' ' . $application->notaris_deed_date->year
-            : null;
+        // Provisi from product
+        $provisiPct = $application->loanProduct?->provision_rate_percent ?? 7;
+        $provisiAmt = round($principal * $provisiPct / 100);
 
-        // Disbursement fees
-        $disbFees  = $loan?->disbursement_fees ?? [];
-        $feeLabels = [
-            'biaya_administrasi' => 'Biaya Administrasi',
-            'biaya_provisi'      => 'Biaya Provisi',
-            'biaya_notaris'      => 'Biaya Notaris',
-            'asuransi'           => 'Asuransi',
-            'pengecekan'         => 'Pengecekan',
-            'ploting'            => 'Ploting',
-            'roya'               => 'Roya',
-            'pnpb'               => 'PNPB',
-            'hold_imb'           => 'Hold IMB',
-            'hold_pbb'           => 'Hold PBB',
-            'hold_angsuran'      => 'Hold Angsuran',
-            'bphtb'              => 'BPHTB',
-            'pph'                => 'PPh',
-        ];
-        $totalFees    = (int) array_sum(array_filter($disbFees, fn($v) => (int)$v > 0));
-        $netDisbursed = (int)$principal - $totalFees;
-        $hasFees      = !empty($disbFees) && $totalFees > 0;
+        // Debitur data
+        $namaDebitur = $fd['nama_lengkap'] ?? $member?->name ?? '___________________________';
+        $pekerjaan   = $fd['pekerjaan']    ?? '___________________________';
+        $jalan       = $fd['jalan']        ?? $fd['alamat'] ?? $member?->address ?? '___________________________';
+        $rt          = $fd['rt']           ?? '000';
+        $rw          = $fd['rw']           ?? '000';
+        $noKtp       = $fd['no_ktp']       ?? '___________________________';
+        $kelurahan   = $fd['kelurahan']    ?? '___________________________';
+        $kecamatan   = $fd['kecamatan']    ?? '___________________________';
+        $kota        = $fd['kota']         ?? '___________________________';
+        $namaIstri   = $fd['nama_pasangan'] ?? $fd['nama_suami'] ?? '___________________________';
+        $alamatIstri = $fd['alamat_pasangan'] ?? '___________________________';
+        $rtIstri     = $fd['rt_pasangan']  ?? '000';
+        $rwIstri     = $fd['rw_pasangan']  ?? '000';
 
-        $adminFee = $application->admin_monthly ?? 0;
-        $tujuan   = $fd['tujuan_pembiayaan'] ?? $application->notes ?? null;
-
-        $hasProperty = !empty($fd['no_hak'] ?? $fd['lokasi_agunan'] ?? $fd['kota_agunan'] ?? null);
-        $hasVehicle  = !empty($fd['jenis_kendaraan'] ?? null);
-
-        // Build structured property address
-        $propAddr = [];
-        if (!empty($fd['komplek_agunan']))  $propAddr[] = 'Komplek ' . $fd['komplek_agunan'];
-        if (!empty($fd['jalan_agunan']))    $propAddr[] = 'Jalan '   . $fd['jalan_agunan'];
-        if (!empty($fd['blok_agunan']))     $propAddr[] = 'Blok '    . $fd['blok_agunan'];
-        if (!empty($fd['no_agunan']))       $propAddr[] = 'No. '     . $fd['no_agunan'];
-        if (!empty($fd['rt_agunan']))       $propAddr[] = 'RT '      . ($fd['rt_agunan'] ?? '') . '/RW ' . ($fd['rw_agunan'] ?? '');
-        if (!empty($fd['kelurahan_agunan'])) $propAddr[] = 'Kel. '   . $fd['kelurahan_agunan'];
-        if (!empty($fd['kecamatan_agunan'])) $propAddr[] = 'Kec. '   . $fd['kecamatan_agunan'];
-        if (!empty($fd['kota_agunan']))     $propAddr[] = $fd['kota_agunan'];
-        $propAddrStr = !empty($propAddr) ? implode(', ', $propAddr) : ($fd['lokasi_agunan'] ?? '___________________________');
-
-        // Dynamic pasal numbering
-        $pasalNo = 1;
+        // Property / collateral data
+        $noHak       = $fd['no_hak']              ?? 'XXXX';
+        $namaKel     = $fd['kelurahan_agunan']     ?? 'Kelurahan';
+        $tglSuratUkur = $fd['tgl_surat_ukur']     ?? 'XX-XX-XXXX';
+        $noSuratUkur  = $fd['no_surat_ukur']      ?? 'XXX/XX/XX';
+        $nib          = $fd['nib_agunan']          ?? 'XX.xx.xx.xx';
+        $nop          = $fd['nop_agunan']          ?? 'Xx.XX.XXX.XXX.XXX.XXX.X';
+        $provinsi     = $fd['provinsi_agunan']     ?? '........................';
+        $kabAgunan    = $fd['kota_agunan']         ?? '...........................';
+        $kecAgunan    = $fd['kecamatan_agunan']    ?? '............................';
+        $kelAgunan    = $fd['kelurahan_agunan']    ?? '....................';
+        $jalanAgunan  = $fd['jalan_agunan']        ?? '..........................';
+        $atasNama     = $fd['atas_nama_agunan']    ?? '....................................................';
     @endphp
+
+    {{-- ===== HEADER ===== --}}
+    <div class="header">
+        <h1>PERJANJIAN KREDIT</h1>
+        <div class="nomor">Nomor {{ $nomorPk }}</div>
+    </div>
 
     {{-- ===== PEMBUKA ===== --}}
     <p class="opening">
-        Pada hari ini, tanggal <strong>{{ $tglStr }}</strong>,
-        diadakan Perjanjian Pembiayaan Konsumen yang kemudian disebut <em>"Perjanjian"</em> antara:
+        Pada hari ini, {{ $hariStr }}, tanggal {{ $disbDate->format('d') }}
+        Bulan {{ $bulanId[$disbDate->month] }}
+        Tahun Dua Ribu {{ terbilang($disbDate->year - 2000) }}
+        ( {{ terbilang($disbDate->year) }} )
+        diadakan Perjanjian Kredit yang kemudian disebut "perjanjian" antara :
     </p>
 
+    {{-- Pihak Pertama --}}
     <div class="party clearfix">
         <div class="party-num">I.</div>
         <div class="party-content">
-            <strong>Koperasi Simpan Pinjam Sarana Mitra Mandiri</strong>, suatu badan usaha berbentuk
-            Koperasi Simpan Pinjam berkedudukan di Jakarta, dalam hal ini diwakili oleh
-            <strong>Go Tji Seng</strong>, dalam kedudukannya sebagai <strong>Ketua Koperasi</strong>,
-            sah mewakili Koperasi, selanjutnya disebut <strong><em>"Pihak Pertama (Koperasi)"</em></strong>.
+            Koperasi Sarana Mitra Mandiri, suatu perusahaan pembiayaan yang berbentuk Koperasi
+            Simpan Pinjam berkedudukan di Jakarta, dalam hal ini diwakili oleh Go Tji Seng,
+            dalam kedudukannya sebagai Ketua Koperasi, sah mewakili Koperasi.
+            selanjutnya disebut sebagai <strong>Pihak Pertama (Koperasi)</strong>.
         </div>
     </div>
 
+    {{-- Pihak Kedua --}}
     <div class="party clearfix">
         <div class="party-num">II.</div>
         <div class="party-content">
-            <strong>{{ $fd['nama_lengkap'] ?? $member?->name ?? '___________________________' }}</strong>,
-            pekerjaan <strong>{{ $fd['pekerjaan'] ?? '_______________' }}</strong>,
-            bertempat tinggal di
-            {{ $fd['alamat'] ?? $member?->address ?? '___________________________' }}
-            @if(!empty($fd['rt'] ?? null) && !empty($fd['rw'] ?? null)) RT {{ $fd['rt'] }}/RW {{ $fd['rw'] }},@endif
-            @if(!empty($fd['kota'] ?? null)) {{ $fd['kota'] }}{{ !empty($fd['kode_pos'] ?? null) ? ' '.$fd['kode_pos'] : '' }},@endif
-            pemegang KTP Nomor <strong>{{ $fd['no_ktp'] ?? '___________________________' }}</strong>,
-            @if(!empty($fd['nama_pasangan'] ?? null))
-                dengan persetujuan dari {{ ($fd['kelamin'] ?? '') === 'L' ? 'istri' : 'suami' }}
-                bernama <strong>{{ $fd['nama_pasangan'] }}</strong> yang turut menandatangani Perjanjian ini,
-            @endif
-            selanjutnya disebut <strong><em>"Pihak Kedua"</em></strong>.
+            <strong>{{ $namaDebitur }}</strong>, pekerjaan <strong>{{ $pekerjaan }}</strong>,
+            bertempat tinggal di Jalan {{ $jalan }}
+            Rukun Tetangga {{ $rt }}, Rukun Warga {{ $rw }},
+            pemegang Kartu Tanda Penduduk Nomor <strong>{{ $noKtp }}</strong>,
+            Desa/Kelurahan {{ $kelurahan }}, Kecamatan {{ $kecamatan }}, Kota {{ $kota }},
+            yang menurut keterangannya bertindak untuk dan atas nama <strong>DIRI SENDIRI</strong>
+            dan dalam melakukan tindakan hukum dalam perjanjian ini telah mendapat persetujuan dari
+            {{ $namaIstri }} bertempat tinggal di {{ $alamatIstri }}
+            RT {{ $rtIstri }} RW {{ $rwIstri }},
+            dalam hal ini berkedudukan sebagai istri yang turut serta menandatangani perjanjian ini
+            sebagai bukti persetujuannya, untuk selanjutnya disebut <strong>Pihak Kedua (Debitur)</strong>.
         </div>
     </div>
-
-    @if($hasNotaris)
-    <p class="opening" style="margin-top: 8pt;">
-        Perjanjian ini dibuat berdasarkan Akta Notaris
-        Nomor <strong>{{ $application->notaris_deed_number }}</strong>
-        tanggal <strong>{{ $notarisDate }}</strong>
-        yang dibuat di hadapan Notaris <strong>{{ $application->notaris_name }}</strong>@if($application->notaris_city), berkedudukan di {{ $application->notaris_city }}@endif.
-    </p>
-    @endif
 
     <p class="selanjutnya">
-        Selanjutnya <em>"Pihak Pertama"</em> dan <em>"Pihak Kedua"</em> disebut <strong><em>"Para Pihak"</em></strong>.
+        Selanjutnya Pihak Pertama (Koperasi) dan Pihak Kedua (Debitur) disebut <strong>"Para Pihak"</strong>.
     </p>
     <p class="opening">
-        Sebelum menandatangani <em>"Perjanjian"</em> ini, <em>"Para Pihak"</em> menerangkan bahwa
-        <em>"Pihak Kedua"</em> berkeinginan mendapatkan fasilitas pembiayaan dari <em>"Pihak Pertama"</em>;
-        sehubungan dengan itu, <em>"Para Pihak"</em> telah sepakat membuat <em>"Perjanjian"</em>
-        dengan syarat-syarat dan ketentuan-ketentuan sebagai berikut:
+        Sebelum menandatangani Perjanjian ini, Para Pihak bertindak sebagaimana tersebut diatas dan
+        menerangkan dengan ini telah mufakat dan setuju untuk membuat dan menandatangani Perjanjian
+        dengan syarat-syarat dan ketentuan-ketentuan sebagai berikut :
     </p>
 
-    {{-- ===== PASAL 1 — PLAFOND DAN JANGKA WAKTU ===== --}}
+    {{-- ===== PASAL 1 ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Plafond dan Jangka Waktu</div>
-    @php $pasalNo++; @endphp
+    <div class="pasal-header">Pasal 1</div>
+    <div class="pasal-title">Jumlah dan Tujuan Penggunaan Fasilitas Kredit</div>
+    <p class="pasal-body">
+        Pihak Pertama (Koperasi) bersedia memberikan Fasilitas Kredit sebesar
+        Rp {{ number_format($principal, 0, ',', '.') }},
+        ({{ terbilang((int)$principal) }} rupiah) yang terdiri dari :
+    </p>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-num">a.</div>
         <div class="pasal-item-text">
-            <em>"Pihak Pertama"</em> memberikan fasilitas pembiayaan kepada <em>"Pihak Kedua"</em>
-            dengan ketentuan sebagai berikut:
-            <table class="detail-table">
-                <tr><td>Produk Pembiayaan</td><td>:</td><td><strong>{{ $application->loanProduct?->name ?? '-' }}</strong></td></tr>
-                <tr><td>Pokok Pinjaman (Plafond)</td><td>:</td><td><strong>Rp {{ number_format($principal, 0, ',', '.') }}</strong> ({{ terbilang($principal) }} rupiah)</td></tr>
-                <tr><td>Jangka Waktu</td><td>:</td><td><strong>{{ $tenor }} ({{ terbilang($tenor) }}) bulan</strong></td></tr>
-                <tr><td>Suku Bunga Flat per Bulan</td><td>:</td><td><strong>{{ $bunga }}%</strong> ({{ number_format($bunga * 12, 0) }}% per tahun flat)</td></tr>
-                <tr><td>Angsuran per Bulan</td><td>:</td><td><strong>Rp {{ number_format($angsuran, 0, ',', '.') }},-</strong> @if($angsuran > 0)({{ terbilang($angsuran) }} rupiah)@endif</td></tr>
-                @if($adminFee)<tr><td>Biaya Provisi / Admin</td><td>:</td><td>Rp {{ number_format($adminFee, 0, ',', '.') }},-</td></tr>@endif
-                @if($application->insurance_monthly)<tr><td>Biaya Asuransi per Bulan</td><td>:</td><td>Rp {{ number_format($application->insurance_monthly, 0, ',', '.') }},-</td></tr>@endif
-                @if($totalPayable)<tr><td>Total Kewajiban</td><td>:</td><td><strong>Rp {{ number_format($totalPayable, 0, ',', '.') }},-</strong></td></tr>@endif
-                @if($hasFees)
-                <tr><td>Total Biaya Pencairan</td><td>:</td><td>Rp {{ number_format($totalFees, 0, ',', '.') }},-</td></tr>
-                <tr><td>Dana Diterima Bersih</td><td>:</td><td><strong>Rp {{ number_format($netDisbursed, 0, ',', '.') }},-</strong></td></tr>
-                @endif
-                <tr><td>Tanggal Pencairan</td><td>:</td><td><strong>{{ $tglStr }}</strong></td></tr>
-                <tr><td>Jatuh Tempo Akhir</td><td>:</td><td><strong>{{ $tglLunas->day }} {{ $bulanId[$tglLunas->month] }} {{ $tglLunas->year }}</strong></td></tr>
-            </table>
+            Fasilitas Pinjaman Berjangka dengan Plafond sebesar
+            Rp {{ number_format($principal, 0, ',', '.') }},- ({{ terbilang((int)$principal) }})
+            dengan jangka waktu {{ $tenor }} ({{ terbilang($tenor) }}) bulan,
+            terhitung sejak tanggal {{ $tglStr }} ({{ terbilang($disbDate->day) }})
+            dan karenanya seluruh hutang harus dibayar lunas oleh Pihak Kedua (Debitur) kepada
+            Pihak Pertama (Koperasi) pada tanggal {{ $tglLunasStr }};
         </div>
     </div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-num">b.</div>
         <div class="pasal-item-text">
-            <em>"Perjanjian"</em> ini dibuat untuk jangka waktu <strong>{{ $tenor }} ({{ terbilang($tenor) }}) bulan</strong>,
-            terhitung sejak tanggal pencairan dan wajib lunas pada tanggal
-            <strong>{{ $tglLunas->day }} {{ $bulanId[$tglLunas->month] }} {{ $tglLunas->year }}</strong>.
+            Pelunasan mana meliputi hutang pokok, bunga, biaya administrasi dan biaya-biaya lainnya.
         </div>
     </div>
-    </div>{{-- /pasal-block --}}
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) dengan ini mengaku telah mendapat Fasilitas Kredit yang sah karena
+            uang yang telah dipinjam itu untuk kepentingannya dan telah menerima lengkap dari Pihak
+            Pertama (Koperasi), untuk penerimaan surat Perjanjian ini berlaku sebagai tanda penerimaan
+            yang sah.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Kredit ini hanya boleh dipergunakan untuk tujuan
+            "<strong>{{ $tujuan ?: '___________________________' }}</strong>"
+            yang akan dipergunakan oleh Pihak Kedua (Debitur) pada waktu dan untuk keperluan sesuai
+            dengan rencana yang telah disetujui oleh Pihak Pertama (Koperasi).
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">e.</div>
+        <div class="pasal-item-text">
+            Setiap waktu Pihak Pertama (Koperasi) dan/atau Pihak Ketiga yang ditunjuk oleh Pihak
+            Pertama (Koperasi) berhak memeriksa penggunaan kredit yang dimaksud, satu dan lain dalam
+            rangka pengawasan dan pengamanan kredit tersebut dan Pihak Kedua (Debitur) wajib membayar
+            seluruh pinjaman beserta bunga dan ongkos-ongkos lain yang timbul karena perjanjian ini,
+            pada seketika itu juga dengan syarat, apabila Pihak Kedua (Debitur) tidak membayarnya
+            maka Pihak Pertama (Koperasi) berkuasa untuk menjual barang atau benda yang dijadikan
+            jaminan atau agunan dalam perjanjian ini baik di hadapan umum maupun di bawah tangan.
+        </div>
+    </div>
+    </div>
 
-    {{-- ===== PASAL 2 — TUJUAN PENGGUNAAN ===== --}}
+    {{-- ===== PASAL 2 ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Tujuan Penggunaan</div>
-    @php $pasalNo++; @endphp
+    <div class="pasal-header">Pasal 2</div>
+    <div class="pasal-title">Bunga, Administrasi, dan Penalty</div>
+    <p class="pasal-body">
+        Terhadap Fasilitas Kredit yang diberikan oleh Pihak Pertama (Koperasi) tersebut kepada
+        Pihak Kedua (Debitur) dibebankan :
+    </p>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-num">a.</div>
         <div class="pasal-item-text">
-            Fasilitas pembiayaan ini hanya dapat digunakan oleh <em>"Pihak Kedua"</em> semata-mata
-            untuk keperluan <strong>{{ $tujuan ?? '___________________________' }}</strong>.
+            <strong>Bunga</strong> : untuk Fasilitas Kredit kepada Pihak kedua (Debitur) dibebankan
+            suku bunga pinjaman sebesar <strong>{{ number_format($bungaTahunan, 0) }}%
+            ({{ terbilang((int)$bungaTahunan) }} persen)</strong> pertahun flat untuk masa
+            60 (enam puluh) bulan atas seluruh jumlah Fasilitas Kredit yang diberikan.
         </div>
     </div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-num">b.</div>
         <div class="pasal-item-text">
-            <em>"Pihak Kedua"</em> tidak diperkenankan mengalihkan penggunaan fasilitas ini untuk
-            tujuan lain tanpa persetujuan tertulis <em>"Pihak Pertama"</em>.
+            <strong>Biaya Administrasi</strong> : untuk Fasilitas Kredit dikenakan biaya sebesar
+            Rp 20.000.000,- (Dua Puluh Juta Rupiah) perakad untuk setiap masa 60 (enam puluh) bulan
+            atas seluruh jumlah Fasilitas Kredit yang diberikan dan dipungut terlebih dahulu untuk
+            setiap masa tersebut.
         </div>
     </div>
-    </div>{{-- /pasal-block --}}
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            <strong>Biaya Provisi</strong> : untuk Fasilitas Kredit kepada Pihak Kedua (Debitur)
+            dikenakan biaya provisi sebesar <strong>{{ number_format($provisiPct, 0) }}%</strong>
+            perakad untuk setiap masa 60 (enam puluh) bulan atas seluruh jumlah Fasilitas Kredit
+            yang diberikan dan dipungut terlebih dahulu untuk setiap masa tersebut.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) dengan ini menyatakan persetujuannya, apabila dalam batas waktu
+            berlakunya kredit ini belum melunasi secara seksama dan sepatutnya seluruh jumlah kredit
+            yang dipergunakan berdasarkan Perjanjian ini beserta bunganya maka Pihak Pertama (Koperasi)
+            berhak memperhitungkan denda (Penalty overdue) terhadap Pihak Kedua (Debitur) yang besarnya
+            akan ditentukan oleh Pihak Pertama (Koperasi) sebagaimana yang tercantum pada pasal 3.
+        </div>
+    </div>
+    </div>
 
-    {{-- ===== PASAL 3 — OBYEK PEMBIAYAAN (jika ada jaminan) ===== --}}
-    @if($hasProperty || $hasVehicle)
+    {{-- ===== PASAL 3 ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Obyek Pembiayaan</div>
-    @php $pasalNo++; @endphp
+    <div class="pasal-header">Pasal 3</div>
+    <div class="pasal-title">Batas Waktu Penarikan Dana/atau Penggunaan Fasilitas Kredit</div>
+    <p class="pasal-body">Untuk Fasilitas Kredit berlaku ketentuan sebagai berikut :</p>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-num">a.</div>
         <div class="pasal-item-text">
-            Atas pembiayaan tersebut <em>"Pihak Kedua"</em> menyerahkan dan <em>"Pihak Pertama"</em>
-            menerima obyek pembiayaan sebagai berikut:
-            <table class="detail-table">
-                @if($hasProperty)
-                <tr><td>Jenis Jaminan</td><td>:</td><td>{{ $fd['status_agunan'] ?? 'Tanah dan/atau Bangunan' }}</td></tr>
-                <tr><td>Nomor Sertifikat</td><td>:</td><td><strong>{{ $fd['no_hak'] ?? '_______________' }}</strong></td></tr>
-                <tr><td>Luas</td><td>:</td><td>{{ $fd['luas_tanah'] ?? '___' }} m²@if(!empty($fd['luas_bangunan'] ?? null)) (bangunan {{ $fd['luas_bangunan'] }} m²)@endif</td></tr>
-                <tr><td>Atas Nama</td><td>:</td><td><strong>{{ $fd['atas_nama_agunan'] ?? '___________________________' }}</strong></td></tr>
-                <tr><td>Lokasi / Alamat</td><td>:</td><td>{{ $propAddrStr }}</td></tr>
-                @if(!empty($fd['penerbit_sertifikat'] ?? null))<tr><td>Diterbitkan Oleh</td><td>:</td><td>{{ $fd['penerbit_sertifikat'] }}</td></tr>@endif
-                @if(!empty($fd['tgl_sertifikat'] ?? null))
-                    @php $tglSert = \Carbon\Carbon::parse($fd['tgl_sertifikat']); @endphp
-                    <tr><td>Tanggal Penerbitan</td><td>:</td><td>{{ $tglSert->day }} {{ $bulanId[$tglSert->month] }} {{ $tglSert->year }}</td></tr>
-                @endif
-                @if(!empty($fd['nilai_agunan'] ?? null))<tr><td>Nilai NJOP</td><td>:</td><td>Rp {{ number_format($fd['nilai_agunan'], 0, ',', '.') }}</td></tr>@endif
-                @endif
-                @if($hasVehicle)
-                <tr><td>Jenis Kendaraan</td><td>:</td><td>{{ $fd['jenis_kendaraan'] }} Tahun {{ $fd['tahun_kendaraan'] ?? '' }}, Warna {{ $fd['warna_kendaraan'] ?? '' }}</td></tr>
-                <tr><td>No. BPKB</td><td>:</td><td>{{ $fd['no_bpkb'] ?? '-' }}</td></tr>
-                <tr><td>Atas Nama BPKB</td><td>:</td><td>{{ $fd['atas_nama_bpkb'] ?? '-' }}</td></tr>
-                @endif
-            </table>
+            Pembayaran Angsuran Pokok Pinjaman dan Bunga Pinjaman akan dilakukan dengan pendebetan
+            langsung oleh Pihak Pertama (Koperasi) dari rekening tabungan
+            ({{ strtoupper($namaDebitur) }}), pada Koperasi Simpan Pinjam Sarana Mitra Mandiri,
+            setiap tanggal <strong>{{ $dueDay }}</strong>, tiap-tiap bulannya sebesar
+            <strong>Rp {{ number_format($angsuran, 0, ',', '.') }},-
+            ({{ terbilang((int)$angsuran) }})</strong>
+            yang pertama kalinya pada tanggal {{ $tglStr }}
+            dan harus sudah lunas seluruhnya selambat-lambatnya pada tanggal {{ $tglLunasStr }}.
         </div>
     </div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-num">b.</div>
         <div class="pasal-item-text">
-            Berikut segala sesuatu yang berdiri dan tertanam di atas tanah/obyek tersebut.
+            Apabila Pihak Kedua (Debitur) melunasi seluruh pinjamannya kepada Pihak Pertama
+            (Koperasi) sebelum tanggal jatuh tempo maka Pihak Kedua (Debitur) dikenakan denda
+            penalty sebesar <strong>5 % (lima) persen</strong> dari sisa outstanding/baki debet.
         </div>
     </div>
-    </div>{{-- /pasal-block --}}
-    @endif
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Besarnya jumlah angsuran pokok pinjaman dan bunga pinjaman adalah sesuai dengan daftar
+            pembayaran yang telah ditetapkan.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Apabila Pihak Kedua (Debitur) melakukan kelalaian untuk setiap bulannya tidak melakukan
+            pembayaran angsuran pokok pinjaman dan bunga pinjaman, maka Pihak Kedua (Debitur) akan
+            dikenakan bunga pinjaman yang besarnya ditentukan oleh Pihak Pertama (Koperasi) atas
+            seluruh pinjaman yang masih ada dan Pihak Kedua (Debitur) wajib membayar seluruh
+            kewajiban pinjaman kepada Pihak Pertama (Koperasi) secara seketika dan sekaligus lunas
+            tanpa pemberitahuan atau surat-surat lain semacam itu. Jika Pihak kedua (Debitur) lalai
+            dalam memenuhi kewajiban seperti tersebut di atas, maka Pihak Pertama (Koperasi) berhak
+            untuk melakukan eksekusi atas jaminan pinjaman dari Fasilitas Kredit Pihak Kedua (Debitur)
+            atau tindakan-tindakan hukum lainnya yang dianggap baik oleh Pihak Pertama (Koperasi).
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">e.</div>
+        <div class="pasal-item-text">
+            Apabila Pihak kedua (Debitur) melakukan keterlambatan atas pembayaran Angsuran Pokok
+            Pinjaman dan Angsuran Bunga Pinjaman pada setiap bulannya, maka Pihak Kedua (Debitur)
+            akan dikenakan denda oleh Pihak Pertama (Koperasi) sebesar
+            <strong>0,3 % (nol koma tiga) persen per hari</strong>.
+        </div>
+    </div>
+    </div>
 
-    {{-- ===== PASAL — ANGSURAN DAN BUNGA ===== --}}
+    {{-- ===== PASAL 4 — AGUNAN (SERTIPIKAT) ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Angsuran dan Bunga</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            <em>"Pihak Kedua"</em> wajib membayar angsuran selama <strong>{{ $tenor }} ({{ terbilang($tenor) }}) bulan</strong>,
-            sebesar <strong>Rp {{ number_format($angsuran, 0, ',', '.') }},- ({{ terbilang($angsuran) }} rupiah)</strong>
-            per bulan, yang dibayarkan setiap tanggal <strong>{{ $dueDay }}</strong> setiap bulan berjalan.
-        </div>
+    <div class="pasal-header">Pasal 4</div>
+    <div class="pasal-title">Agunan dan/atau Jaminan</div>
+    <p class="pasal-body">
+        Untuk menambah kepastian tentang pembayaran kembali yang sepatutnya dari pada kredit
+        tersebut diatas dan pelunasan yang seksama dari bunga dan biaya-biaya lainnya, Pihak Kedua
+        (Debitur) memberikan jaminan kebendaan dengan segala pembebasan (vrijwaring) beban, apapun
+        sifatnya kepada Pihak Pertama (Koperasi), berupa Tanah dan Bangunan sebagai berikut :
+    </p>
+    <p class="pasal-body" style="margin-left: 20pt;">
+        Hak Milik, Nomor {{ $noHak }}/{{ $namaKel }},
+        sebagaimana yang telah diuraikan dalam Surat Ukur tertanggal {{ $tglSuratUkur }}
+        Nomor {{ $noSuratUkur }},
+        dengan Nomor Identifikasi Bidang Tanah (NIB) : {{ $nib }};
+        dan Surat Pemberitahuan Pajak Terhutang Pajak Bumi dan Bangunan (SPPT PBB)
+        Nomor Objek Pajak (NOP) : {{ $nop }};
+        yang terletak di :
+    </p>
+    <table class="detail-table" style="margin-left: 20pt; width: auto; min-width: 280pt;">
+        <tr><td>Provinsi</td><td>:</td><td><strong>{{ $provinsi }}</strong></td></tr>
+        <tr><td>Kabupaten</td><td>:</td><td><strong>{{ $kabAgunan }}</strong></td></tr>
+        <tr><td>Kecamatan</td><td>:</td><td><strong>{{ $kecAgunan }}</strong></td></tr>
+        <tr><td>Kelurahan</td><td>:</td><td><strong>{{ $kelAgunan }}</strong></td></tr>
+        <tr><td>Jalan</td><td>:</td><td><strong>{{ $jalanAgunan }}</strong></td></tr>
+    </table>
+    <p class="pasal-body" style="margin-top: 6pt; margin-left: 20pt;">
+        Sertifikat terdaftar atas nama <strong>{{ $atasNama }}</strong>;
+    </p>
+    <p class="pasal-body">
+        Hanya Pihak Pertama (Koperasi) yang dapat mempertimbangkan bila jaminan tersebut harus
+        ditambah atau dapat dikurangi.
+    </p>
     </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
-        <div class="pasal-item-text">
-            Angsuran di atas dihitung dengan tingkat suku bunga sebesar
-            <strong>{{ $bunga }}% per bulan flat</strong>
-            (setara <strong>{{ number_format($bunga * 12, 0) }}% per tahun flat</strong>), dan dapat direview.
-        </div>
-    </div>
-    </div>{{-- /pasal-block --}}
 
-    {{-- ===== PASAL — PROVISI (jika ada) ===== --}}
-    @if($adminFee)
+    {{-- ===== PASAL 5 — ASURANSI ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Provisi dan Biaya-Biaya</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            Selain kewajiban angsuran, <em>"Pihak Kedua"</em> wajib membayar di muka biaya provisi/administrasi
-            sebesar <strong>Rp {{ number_format($adminFee, 0, ',', '.') }},-</strong>
-            yang diperhitungkan pada saat pencairan fasilitas.
-        </div>
-    </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
-        <div class="pasal-item-text">
-            Provisi yang telah dibayarkan tidak dapat ditarik kembali dengan alasan apa pun.
-        </div>
-    </div>
-    </div>{{-- /pasal-block --}}
-    @endif
-
-    {{-- ===== PASAL — RINCIAN BIAYA PENCAIRAN (jika ada) ===== --}}
-    @if($hasFees)
-    <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Rincian Biaya Pencairan</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            Pada saat pencairan, dipotong biaya-biaya sebagai berikut:
-            <table class="detail-table" style="margin-top: 4pt;">
-                @foreach($disbFees as $key => $amount)
-                    @if((int)$amount > 0)
-                    <tr>
-                        <td>{{ $feeLabels[$key] ?? $key }}</td>
-                        <td>:</td>
-                        <td>Rp {{ number_format((int)$amount, 0, ',', '.') }},-</td>
-                    </tr>
-                    @endif
-                @endforeach
-                <tr style="border-top: 1px solid #000; font-weight: bold;">
-                    <td>Total Biaya</td><td>:</td><td>Rp {{ number_format($totalFees, 0, ',', '.') }},-</td>
-                </tr>
-                <tr style="font-weight: bold;">
-                    <td>Dana Diterima Bersih</td><td>:</td>
-                    <td>Rp {{ number_format($netDisbursed, 0, ',', '.') }},- ({{ terbilang($netDisbursed) }} rupiah)</td>
-                </tr>
-            </table>
-        </div>
-    </div>
-    </div>{{-- /pasal-block --}}
-    @endif
-
-    {{-- ===== PASAL — DENDA KETERLAMBATAN ===== --}}
-    <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Denda Keterlambatan</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            Atas setiap keterlambatan pembayaran angsuran, <em>"Pihak Kedua"</em> dikenai denda
-            sebesar <strong>{{ $penaltyPct }}% per hari</strong> atau
-            <strong>{{ $penaltyMonth }}% per bulan</strong>, dihitung dari besarnya kewajiban tertunggak.
-            Denda wajib dibayar bersama-sama dengan angsuran yang tertunggak.
-        </div>
-    </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
-        <div class="pasal-item-text">
-            Apabila <em>"Pihak Kedua"</em> hanya membayar angsuran tanpa denda, maka <em>"Pihak Pertama"</em>
-            berhak memperhitungkan pembayaran tersebut terlebih dahulu untuk pelunasan denda sebelum pokok.
-        </div>
-    </div>
-    </div>{{-- /pasal-block --}}
-
-    {{-- ===== PASAL — PELUNASAN DIPERCEPAT ===== --}}
-    <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Pelunasan Dipercepat</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            Pelunasan sebelum jatuh tempo (<em>prepayment</em>) dapat dilakukan dengan pemberitahuan
-            tertulis minimal 1 (satu) bulan sebelumnya, setelah <em>"Perjanjian"</em> ini berjalan
-            paling sedikit 3 (tiga) bulan.
-        </div>
-    </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
-        <div class="pasal-item-text">
-            Dalam hal pelunasan dipercepat, <em>"Pihak Kedua"</em> dikenai biaya penalti sebesar
-            <strong>{{ $prepayPct }}% ({{ terbilang((int)$prepayPct) }} persen)</strong> dari sisa pokok
-            yang masih terhutang, ditambah biaya lain yang masih belum dibayar.
-        </div>
-    </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">3.</div>
-        <div class="pasal-item-text">
-            Biaya provisi dan administrasi yang sudah dibayarkan tidak dapat ditarik kembali.
-        </div>
-    </div>
-    </div>{{-- /pasal-block --}}
-
-    {{-- ===== PASAL — ASURANSI ===== --}}
-    <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
+    <div class="pasal-header">Pasal 5</div>
     <div class="pasal-title">Asuransi</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            Selama <em>"Pihak Kedua"</em> masih berhutang kepada <em>"Pihak Pertama"</em>,
-            <em>"Pihak Kedua"</em> diwajibkan mengikuti Asuransi Kematian, Kebakaran, dan lain sebagainya
-            sesuai ketentuan <em>"Pihak Pertama"</em>.
-        </div>
+    <p class="pasal-body">
+        Selama Pihak Kedua (Debitur) masih berhutang kepada Pihak Pertama (Koperasi) maka
+        Pihak Kedua (Debitur) diwajibkan mengikuti Asuransi KEMATIAN, KEBAKARAN, dan lain
+        sebagainya sesuai yang telah ditentukan dan ditetapkan oleh Pihak Pertama (Koperasi),
+        dan Pihak Pertama (Koperasi) berhak menerima uang ganti rugi kerugian tersebut, dan uang
+        ganti rugi dari perusahaan asuransi bersangkutan akan dipergunakan untuk melunasi hutang
+        Pihak Kedua (Debitur) kepada Pihak Pertama (Koperasi), berikut dengan bunga-bunga dan
+        lain-lain serta biaya-biaya yang bertalian dengan hutang itu, tidak ada yang dikecualikan
+        dengan ketentuan, bahwa apabila uang ganti kerugian itu tidak cukup untuk melunasi hutang
+        Pihak Kedua (Debitur) kepada Pihak Pertama (Koperasi), maka Pihak Kedua (Debitur)
+        diwajibkan untuk menambah kekurangannya dan sebaliknya apabila ada kelebihan maka kelebihan
+        itu akan diserahkan oleh Pihak Pertama (Koperasi) kepada Pihak Kedua (Debitur), untuk
+        kelebihan mana maka Pihak Kedua (Debitur) tidak berhak untuk mendapatkan bunga dari padanya
+        sedangkan premi-premi asuransi tersebut dan polis asli asuransi tersebut selama
+        berlangsungnya perjanjian kredit ini akan disimpan oleh Pihak Pertama (Koperasi).
+    </p>
     </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
-        <div class="pasal-item-text">
-            Apabila terjadi klaim, uang ganti rugi dari perusahaan asuransi akan dipergunakan untuk
-            melunasi hutang <em>"Pihak Kedua"</em> kepada <em>"Pihak Pertama"</em> beserta bunga dan
-            biaya-biaya terkait. Kelebihan klaim, jika ada, akan diserahkan kepada <em>"Pihak Kedua"</em>.
-        </div>
-    </div>
-    </div>{{-- /pasal-block --}}
 
-    {{-- ===== PASAL — TEMPAT PEMBAYARAN ===== --}}
+    {{-- ===== PASAL 6 — KEJADIAN KELALAIAN ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
+    <div class="pasal-header">Pasal 6</div>
+    <div class="pasal-title">Kejadian Kelalaian</div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">a.</div>
+        <div class="pasal-item-text">
+            Apabila Pihak kedua (Debitur) berada dalam keadaan lalai atau berhenti membayar seperti
+            yang tercantum pada pasal 3 ayat 1 huruf (d), maka Pihak Pertama (Koperasi) tanpa perlu
+            mendapat persetujuan lebih dahulu dari Pihak Kedua (Debitur). Pihak Pertama (Koperasi)
+            berhak untuk menjual dan/atau memindahtangankan, atau dengan cara cessie/pengalihan
+            piutang dan/atau menjual secara lelang serta berhak untuk mengambil langkah-langkah
+            hukum lainnya atas barang jaminan baik di muka umum maupun di bawah tangan untuk
+            sejumlah harga dan syarat-syarat yang ditimbang oleh Pihak Pertama (Koperasi).
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">b.</div>
+        <div class="pasal-item-text">
+            Hasil bersih dari penjualan jaminan tersebut, yaitu setelah dikurangi biaya-biaya yang
+            diperlukan untuk tindakan tersebut, akan dipergunakan untuk melunasi seluruh hutang
+            Pihak Kedua (Debitur).
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Sedangkan apabila dari hasil penjualan jaminan ternyata tidak mencukupi atau tidak dapat
+            melunasi seluruh hutang pokok, hutang bunga, biaya provisi, maupun biaya-biaya lain yang
+            timbul berdasarkan perjanjian ini termasuk perubahannya dan/atau penambahannya dan/atau
+            pembaharuannya dan/atau perpanjangannya yang mungkin ada dan/atau perjanjian-perjanjian
+            apapun, baik yang telah ada dan/atau akan dibuat, maka sisa hutang tersebut tetap menjadi
+            kewajiban Pihak kedua (Debitur) untuk membayar dan melunasinya.
+        </div>
+    </div>
+    </div>
+
+    {{-- ===== PASAL 7 — BERAKHIRNYA PERJANJIAN ===== --}}
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal 7</div>
+    <div class="pasal-title">Berakhirnya Perjanjian</div>
+    <p class="pasal-body">
+        Menyimpang dari apa yang ditentukan dalam pasal 1 ayat 4 tersebut di atas, jika terjadi
+        salah satu sebab yang tersebut di bawah ini, maka Pihak Pertama (Koperasi) berhak untuk
+        seketika tanpa somasi lagi mengakhiri perjanjian ini dan menuntut pembayaran dengan seketika
+        dan sekaligus lunas dari jumlah uang yang terhutang oleh Pihak Kedua (Debitur) berdasarkan
+        perjanjian ini termasuk perubahannya dan/atau penambahannya dan/atau pembaharuannya dan/atau
+        perjanjian-perjanjian apapun, baik yang telah ada dan/atau akan dilunasinya, baik karena
+        hutang pokok, bunga-bunga, biaya administrasi, provisi, dan biaya-biaya lain sehubungan
+        dengan hutang dimaksud dan oleh karena itu pemberitahuan dengan surat juru sita atau
+        surat-surat lain serupa itu tidak diperlukan lagi bilamana :
+    </p>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">a.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) tidak atau tidak cukup melaksanakan salah satu kewajibannya yang
+            ditentukan dalam perjanjian ini atau kemudian akan diberlakukan oleh Pihak Pertama
+            (Koperasi), maka Pihak Kedua (Debitur) telah berada dalam keadaan lalai, kelalaian mana
+            cukup dibuktikan dengan tidak dilaksanakannya kewajiban secara layak dari pada waktunya;
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">b.</div>
+        <div class="pasal-item-text">Pihak Kedua (Debitur) meninggal dunia;</div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) jatuh pailit dan/atau karena apapun juga kehilangan haknya untuk
+            mengurus sendiri harta kekayaannya;
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) mendapat pengunduran pembayaran (surseance van betaling);
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">e.</div>
+        <div class="pasal-item-text">
+            Jaminan sebagaimana pada pasal 4 ayat (1) terindikasi sengketa, dijual, diubah sehingga
+            tidak seperti jaminan semula atau dipindahtangankan, disewakan atau dengan cara lain
+            dilepaskan atau dijaminkan oleh Pihak Kedua (Debitur) kepada pihak lain;
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">f.</div>
+        <div class="pasal-item-text">Harta kekayaan Pihak Kedua (Debitur) dikenakan sitaan;</div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">g.</div>
+        <div class="pasal-item-text">
+            Likuiditas, Bonafiditas, dan Solvabilitas Pihak Kedua (Debitur) sedemikian rupa, sehingga
+            menurut pertimbangan Pihak Pertama (Koperasi), Pihak Kedua (Debitur) tidak dapat membayar
+            hutangnya lagi;
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">h.</div>
+        <div class="pasal-item-text">
+            Izin usaha Pihak Kedua (Debitur) dicabut, baik untuk sementara maupun selamanya, apa yang
+            dijaminkan dalam perjanjian ini disita pihak lain dan/atau adalah merubah sedemikian rupa
+            jaminan sehingga harganya menurut Pihak pertama (Koperasi) tidak memberikan jaminan yang
+            cukup guna pembayaran lunas hutang Pihak Kedua (Debitur);
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">i.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) tidak memenuhi salah satu atau lebih kewajiban sebagaimana
+            ditentukan dalam perjanjian ini;
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">j.</div>
+        <div class="pasal-item-text">
+            Terjadi peristiwa yang berada di luar kekuasaan dan kemampuan Pihak Pertama (Koperasi)
+            untuk mengatasinya (force majeur) antara lain akibat krisis atau kemacetan likuiditas
+            sebagai akibat dari perubahan kebijaksanaan pemerintah dibidang moneter;
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">k.</div>
+        <div class="pasal-item-text">
+            Kekayaan Pihak Kedua (Debitur) menjadi berkurang sedemikian rupa, sehingga tidak lagi
+            merupakan jaminan yang cukup bagi hutangnya pada Pihak Pertama (Koperasi);
+        </div>
+    </div>
+    </div>
+
+    {{-- ===== PASAL 8 — PERNYATAAN ===== --}}
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal 8</div>
+    <div class="pasal-title">Pernyataan</div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">a.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) menyetujui bahwa pembukuan Pihak Pertama (Koperasi) selalu menjadi
+            dasar untuk menetapkan jumlah-jumlah yang terhutang oleh Pihak Kedua (Debitur) pada
+            Pihak Pertama (Koperasi) dan Pihak Kedua (Debitur) melepaskan haknya untuk mengajukan
+            keberatan atas pembuktian tersebut.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">b.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) memberi hak dan kuasa penuh kepada Pihak Pertama (Koperasi) untuk
+            membebani atau mendebet rekening Pihak Kedua (Debitur) pada Pihak Pertama (Koperasi),
+            guna pembayaran-pembayaran bunga pinjaman angsuran/cicilan pokok pinjaman, provisi, biaya
+            administrasi dan biaya-biaya lainnya yang wajib dilaksanakan/dilakukan oleh Pihak Kedua
+            (Debitur) kepada Pihak Pertama (Koperasi) sehubungan dengan adanya perjanjian ini.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) mengikat diri terhadap Pihak Pertama (Koperasi) untuk menyampaikan
+            informasi-informasi lain apapun, memberitahukan tentang setiap keadaan mengenai sesuatu
+            perubahan besar dalam keuangan, dan Pihak Kedua (Debitur) tidak akan mengikat diri sebagai
+            penanggung (borg) terhadap Pihak Ketiga serta tunduk sepenuhnya atas segala petunjuk yang
+            ditetapkan dan/atau yang kemudian hari akan ditetapkan oleh Pihak Pertama (Koperasi).
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) tidak ada suatu perkara perdata, tata usaha negara, tuntutan pajak,
+            penyidikan maupun perkara pidana atau sengketa yang sedang berlangsung, yang mengancam
+            atau dapat menimbulkan akibat terhadap Pihak Kedua (Debitur), sehingga mempengaruhi
+            keadaan keuangan atau usaha-usaha Pihak Kedua (Debitur) atau dapat mengganggu kemampuan
+            Pihak Kedua (Debitur) untuk melaksanakan kewajibannya berdasarkan Perjanjian Kredit.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">e.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) wajib memberitahukan kepada Pihak Pertama (Koperasi) tentang adanya
+            permohonan pernyataan pailit yang diajukan oleh Krediturnya atau pihak lain kepada
+            Pengadilan Niaga untuk menyatakan pailit Pihak Kedua (Debitur) selambat-lambatnya
+            3 (tiga) hari sejak Pihak Kedua (Debitur) mengetahui adanya permohonan pernyataan pailit
+            dimaksud atau sejak Pihak Kedua (Debitur) menerima panggilan sidang dari Pengadilan Niaga
+            atas permohonan pernyataan pailit dimaksud.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">f.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) memberikan semua dokumen, data, dan keterangan kepada Pihak Pertama
+            (Koperasi) adalah yang sebenarnya dan dapat dipertanggungjawabkan keasliannya.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">g.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) dengan ini menyatakan persetujuannya dalam hal terjadi salah satu
+            kelalaian atas Pihak Kedua (Debitur) dan/atau yang telah menyatakan persetujuannya
+            sebagaimana pada nomor II romawi diatas maka Pihak Pertama (Koperasi) berhak untuk
+            menuntut pembayaran atas jumlah terhutang oleh Pihak Kedua (Debitur) berdasarkan
+            Perjanjian Kredit termasuk perubahannya dan/atau penambahannya dan/atau pembaharuannya
+            dan/atau perpanjangannya dengan menggunakan jasa Pihak Ketiga yang ditunjuk oleh Pihak
+            Pertama (Koperasi).
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">h.</div>
+        <div class="pasal-item-text">
+            Pihak kedua (Debitur) dengan ini menyatakan persetujuannya apabila jaminan disita oleh
+            suatu instansi pemerintah akibat dari suatu tindak pidana dan/atau kejahatan lainnya,
+            Pihak Pertama (Koperasi) berhak mengambil alih dan menguasai jaminan tersebut dan tanpa
+            perlu mendapat persetujuan lebih dulu dari Pihak Kedua (Debitur), Pihak Pertama (Koperasi)
+            berhak menjual dan/atau memindahtangankan, atau dengan cara menjual secara lelang serta
+            berhak untuk mengambil langkah-langkah hukum lainnya atas jaminan baik di muka umum
+            maupun di bawah tangan untuk sejumlah harga dan syarat-syarat yang ditimbang oleh Pihak
+            Pertama (Koperasi). Hasil bersih dari penjualan jaminan tersebut, yaitu setelah dikurangi
+            biaya-biaya yang diperlukan untuk tindakan tersebut, akan dipergunakan untuk melunasi
+            seluruh hutang Pihak Kedua (Debitur).
+        </div>
+    </div>
+    </div>
+
+    {{-- ===== PASAL 9 — LARANGAN ===== --}}
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal 9</div>
+    <div class="pasal-title">Larangan Bagi Pihak Kedua (Debitur)</div>
+    <p class="pasal-body">
+        Selama Pihak Kedua (Debitur) belum membayar lunas hutang dan/atau penggunaan Fasilitas Kredit
+        belum berakhir, Pihak Kedua (Debitur) dilarang atau tidak diperkenankan untuk melakukan
+        hal-hal di bawah ini, tanpa persetujuan tertulis dahulu dari Pihak Pertama (Koperasi) :
+    </p>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">a.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) mengajukan permohonan pernyataan pailit kepada Pengadilan Niaga
+            untuk menyatakan pailit dari Pihak Kedua (Debitur) sendiri.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">b.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) mengalihkan, menjual, menyewakan jaminan kepada Pihak Ketiga atau
+            pihak lain.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) menggunakan jaminan untuk suatu alat tindak pidana atau suatu alat
+            yang digunakan untuk melanggar ketentuan Peraturan Perundang-Undangan yang berlaku.
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Pihak Kedua (Debitur) merubah bentuk jaminan sehingga tidak seperti bentuk awal jaminan.
+        </div>
+    </div>
+    </div>
+
+    {{-- ===== PASAL 10 — TEMPAT PEMBAYARAN ===== --}}
+    <div class="pasal-block">
+    <div class="pasal-header">Pasal 10</div>
     <div class="pasal-title">Tempat Pembayaran</div>
-    @php $pasalNo++; @endphp
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
-        <div class="pasal-item-text">
-            Pembayaran dapat dilakukan di Kantor <em>"Pihak Pertama"</em> yaitu
-            <strong>Koperasi Simpan Pinjam Sarana Mitra Mandiri</strong>,
-            Komplek Duta Mas Fatmawati Blok B1 No 16, Jakarta Selatan 12150,
-            atau di alamat lain yang ditunjuk oleh <em>"Pihak Pertama"</em>.
-        </div>
+    <p class="pasal-body">
+        Pembayaran dapat dilakukan kepada dan di Kantor "Pihak Pertama" yaitu Koperasi Simpan Pinjam
+        Sarana Mitra Mandiri, Komplek Duta Mas Fatmawati Blok B1 No 16 Jakarta Selatan 12150 atau
+        di alamat yang ditunjuk oleh Pihak Pertama (Koperasi) atau :
+    </p>
+    <div class="bank-box">
+        <table style="border-collapse:collapse; font-size:10pt;">
+            <tr><td style="padding:2pt 4pt; width:120pt;">Bank</td><td>:</td><td style="padding:2pt 4pt;">.........</td></tr>
+            <tr><td style="padding:2pt 4pt;">KCP</td><td>:</td><td style="padding:2pt 4pt;">..................................</td></tr>
+            <tr><td style="padding:2pt 4pt;">A/C No.</td><td>:</td><td style="padding:2pt 4pt;">....................</td></tr>
+            <tr><td style="padding:2pt 4pt;">Atas Nama</td><td>:</td><td style="padding:2pt 4pt;"><strong>KSP SARANA MITRA MANDIRI</strong></td></tr>
+            <tr><td style="padding:2pt 4pt;">Cabang</td><td>:</td><td style="padding:2pt 4pt;">..................................</td></tr>
+        </table>
     </div>
-    </div>{{-- /pasal-block --}}
+    </div>
 
-    {{-- ===== PASAL — PENYERAHAN DOKUMEN (jika ada jaminan) ===== --}}
-    @if($hasProperty || $hasVehicle)
+    {{-- ===== PASAL 11 — PENYERAHAN DAN PENGEMBALIAN DOKUMEN/SERTIPIKAT ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Penyerahan dan Pengembalian Dokumen / Sertipikat</div>
-    @php $pasalNo++; @endphp
+    <div class="pasal-header">Pasal 11</div>
+    <div class="pasal-title">Penyerahan dan Pengembalian Dokumen/Sertipikat</div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-num">a.</div>
         <div class="pasal-item-text">
-            <em>"Pihak Kedua"</em> wajib menyerahkan semua bukti kepemilikan obyek pembiayaan kepada
-            <em>"Pihak Pertama"</em> untuk disimpan selama hutang belum dibayar lunas.
+            Pihak Kedua (Debitur) wajib menyerahkan semua bukti-bukti kepemilikan obyek pembiayaan
+            yang dibiayai dengan Fasilitas Kredit ini kepada Pihak Pertama (Koperasi) atau Pihak
+            Ketiga yang ditunjuk oleh Pihak Pertama (Koperasi) untuk disimpan selama hutang belum
+            dibayar lunas.
         </div>
     </div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-num">b.</div>
         <div class="pasal-item-text">
-            Setelah <em>"Pihak Kedua"</em> melunasi seluruh kewajibannya, <em>"Pihak Pertama"</em>
-            wajib mengembalikan semua bukti kepemilikan paling lambat <strong>14 (empat belas) hari kerja</strong>
-            setelah pelunasan.
+            Dalam hal Pihak Kedua (Debitur) telah melunasi seluruh hutangnya kepada Pihak Pertama
+            (Koperasi), maka Pihak Pertama (Koperasi) berkewajiban untuk mengembalikan semua
+            bukti-bukti kepemilikan obyek pembiayaan kepada Pihak Kedua (Debitur) paling lambat
+            14 (empat belas) hari kerja setelah proses pembebanan hak tanggungan pada Badan
+            Pertanahan Nasional selesai.
         </div>
     </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">3.</div>
-        <div class="pasal-item-text">
-            Selama <em>"Perjanjian"</em> berlaku, <em>"Pihak Kedua"</em> dilarang untuk menjual,
-            memindahkan, atau menjaminkan obyek pembiayaan kepada pihak lain tanpa izin tertulis
-            dari <em>"Pihak Pertama"</em>.
-        </div>
     </div>
-    </div>{{-- /pasal-block --}}
-    @endif
 
-    {{-- ===== PASAL — WANPRESTASI ===== --}}
+    {{-- ===== PASAL 12 — KETENTUAN LAIN ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Wanprestasi</div>
-    @php $pasalNo++; @endphp
+    <div class="pasal-header">Pasal 12</div>
+    <div class="pasal-title">Ketentuan Lain</div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-num">a.</div>
         <div class="pasal-item-text">
-            Peristiwa-peristiwa berikut ini merupakan wanprestasi <em>"Pihak Kedua"</em>:
-            <div class="sub-list">
-                <div class="sub-list-item clearfix">
-                    <div class="sub-list-item-num">a.</div>
-                    <div class="sub-list-item-text"><em>"Pihak Kedua"</em> tidak membayar angsuran, denda, dan/atau biaya lain selama 2 (dua) bulan berturut-turut.</div>
-                </div>
-                <div class="sub-list-item clearfix">
-                    <div class="sub-list-item-num">b.</div>
-                    <div class="sub-list-item-text">Obyek pembiayaan dijual, disewakan, dipindahtangankan, atau dijaminkan tanpa persetujuan tertulis <em>"Pihak Pertama"</em>.</div>
-                </div>
-                <div class="sub-list-item clearfix">
-                    <div class="sub-list-item-num">c.</div>
-                    <div class="sub-list-item-text"><em>"Pihak Kedua"</em> ditaruh di bawah pengampuan (curatele) atau meninggal dunia.</div>
-                </div>
-                <div class="sub-list-item clearfix">
-                    <div class="sub-list-item-num">d.</div>
-                    <div class="sub-list-item-text">Pernyataan atau dokumen yang diberikan <em>"Pihak Kedua"</em> terbukti tidak benar/palsu.</div>
-                </div>
-            </div>
+            Jumlah hutang oleh Pihak Kedua (Debitur) kepada Pihak Pertama (Koperasi) atau
+            pengganti-pengganti haknya yang merupakan hutang yang tidak dapat dibagi-bagi
+            (Ondeelbare schuld) sehingga berdasarkan pasal 1300 Kitab Undang-Undang Hukum Perdata,
+            setiap pengganti hak dari Pihak Kedua (Debitur) dapat dituntut untuk seluruh jumlah
+            hutang.
         </div>
     </div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-num">b.</div>
         <div class="pasal-item-text">
-            Dengan terjadinya salah satu hal di atas, <em>"Pihak Kedua"</em> dan/atau ahli warisnya wajib
-            membayar seluruh sisa pokok, bunga, dan denda sekaligus pada saat yang ditentukan oleh
-            <em>"Pihak Pertama"</em>.
+            Semua kuasa yang termaktub di dalam perjanjian ini merupakan bagian yang terpenting yang
+            tidak dapat dipisahkan dari perjanjian ini, yang tidak akan dibuat tanpa adanya kuasa
+            tersebut dan oleh karena itu kuasa-kuasa tersebut tidak dapat dicabut dan tidak akan
+            berakhir karena sebab apapun juga atau karena sebab-sebab yang diatur dalam pasal 1813
+            Kitab Undang-Undang Hukum Perdata.
         </div>
     </div>
-    </div>{{-- /pasal-block --}}
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">c.</div>
+        <div class="pasal-item-text">
+            Semua surat menyurat atau pemberitahuan-pemberitahuan yang harus dikirim oleh
+            masing-masing pihak kepada pihak lain mengenai atau sehubungan dengan Perjanjian ini
+            ke alamat-alamat tersebut dibawah ini :
+            <br><br>
+            <table style="width:100%; border-collapse:collapse; font-size:10pt;">
+                <tr>
+                    <td style="width:50%; vertical-align:top;">
+                        <strong>Pihak Pertama (Koperasi)</strong><br>
+                        Koperasi Simpan Pinjam Sarana Mitra Mandiri<br>
+                        Komplek Dutamas Fatmawati Blok B1 No. 16<br>
+                        Cipete Utara, Kebayoran Baru, Jakarta Selatan<br>
+                        Telp : 021 - ......................................
+                    </td>
+                    <td style="width:50%; vertical-align:top;">
+                        <strong>Pihak Kedua (Debitur)</strong><br>
+                        Nama : {{ $namaDebitur }}<br>
+                        Alamat : {{ $jalan }},<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $kelurahan }}, {{ $kecamatan }}<br>
+                        Telp : ......................................
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div class="pasal-item clearfix">
+        <div class="pasal-item-num">d.</div>
+        <div class="pasal-item-text">
+            Hal-hal lain yang belum diatur dan atau belum cukup diatur dalam Perjanjian Kredit ini,
+            termasuk dan tidak terbatas pada hal-hal mengenai perubahan-perubahannya, akan diatur
+            oleh Para Pihak dalam suatu persetujuan tersendiri yang merupakan satu kesatuan dan tidak
+            dapat terpisahkan dari Perjanjian ini.
+        </div>
+    </div>
+    </div>
 
-    {{-- ===== PASAL — HUKUM DAN YURISDIKSI ===== --}}
+    {{-- ===== PASAL 13 ===== --}}
     <div class="pasal-block">
-    <div class="pasal-header">Pasal {{ $pasalNo }}</div>
-    <div class="pasal-title">Hukum Yang Berlaku dan Yurisdiksi</div>
+    <div class="pasal-header">Pasal 13</div>
+    <div class="pasal-title">Hukum Yang Dipakai dan Yurisdiksi Pengadilan</div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">1.</div>
+        <div class="pasal-item-num">a.</div>
         <div class="pasal-item-text">
-            <em>"Perjanjian"</em> ini tunduk pada Hukum Republik Indonesia.
+            Mengenai Perjanjian ini dan segala akibatnya, kedua belah pihak memilih tempat kedudukan
+            hukum (domisili) umum yang tetap dan secara hukum pada Kantor Panitera Pengadilan Negeri
+            yang berwenang atas wilayah tempat Kantor Pihak Pertama (Koperasi) yang memberi kredit.
         </div>
     </div>
     <div class="pasal-item clearfix">
-        <div class="pasal-item-num">2.</div>
+        <div class="pasal-item-num">b.</div>
         <div class="pasal-item-text">
-            Apabila terjadi perselisihan, <em>"Para Pihak"</em> menyelesaikannya secara musyawarah
-            mufakat; jika tidak tercapai kesepakatan, <em>"Para Pihak"</em> memilih domisili hukum di
-            Kantor Kepaniteraan Pengadilan Negeri Jakarta Selatan.
+            Dengan tidak mengurangi hak dari Pihak pertama (Koperasi) untuk memohon pelaksanaan
+            (eksekusi) dari Perjanjian ini atau mengajukan tuntutan hukum terhadap Pihak Kedua
+            (Debitur) berdasarkan Perjanjian ini melalui Pengadilan-Pengadilan Negeri lainnya dalam
+            Wilayah Republik Indonesia.
         </div>
     </div>
-    <div class="pasal-item clearfix">
-        <div class="pasal-item-num">3.</div>
-        <div class="pasal-item-text">
-            <em>"Perjanjian"</em> ini dibuat dalam rangkap 2 (dua), masing-masing bermaterai cukup dan
-            mempunyai kekuatan hukum yang sama.
-        </div>
     </div>
-    </div>{{-- /pasal-block --}}
+
+    {{-- ===== PENUTUP ===== --}}
+    <p class="opening" style="margin-top: 14pt;">
+        Demikian Perjanjian Kredit ini dibuat dan telah disesuaikan dengan ketentuan Peraturan
+        Perundang-undangan, ditandatangani di Jakarta, pada hari dan tanggal seperti tersebut pada
+        bagian awal Perjanjian ini.
+    </p>
 
     {{-- ===== TANDA TANGAN ===== --}}
     <div class="signature-section">
-        <p style="text-align:center; margin-bottom: 8pt;">
-            Demikian <em>"Perjanjian"</em> ini dibuat dan ditandatangani di Jakarta
-            pada hari dan tanggal tersebut di atas.
-        </p>
-        <table class="signature-grid">
+        <table class="sig-top">
             <tr>
                 <td>
-                    <strong>Pihak Pertama (Koperasi)</strong><br>
-                    KSP Sarana Mitra Mandiri
-                    <div class="signature-box">
-                        ( Go Tji Seng / Ricky )<br>
-                        <small>Ketua KSP Sarana Mitra Mandiri</small>
+                    <strong>"Pihak Pertama"</strong><br>
+                    <strong>KSP SARANA MITRA MANDIRI</strong>
+                    <div class="sig-name">
+                        <strong>Go Tji seng</strong><br>
+                        .....................................................<br>
+                        <strong>Ketua Koperasi</strong>
                     </div>
                 </td>
                 <td>
-                    <strong>Pihak Kedua</strong><br>
-                    Pemohon
-                    <div class="signature-box">
-                        <small style="display:block; margin-bottom: 50pt;">(Meterai Rp 10.000)</small>
-                        ( {{ $fd['nama_lengkap'] ?? $member?->name ?? '___________________________' }} )<br>
-                        <small>No. KTP: {{ $fd['no_ktp'] ?? '-' }}</small>
+                    <strong>"Pihak Kedua",</strong>
+                    <div class="sig-name">
+                        .....................................................<br>
+                        <br>
+                        <strong>Persetujuan Suami,</strong><br>
+                        <br>
+                        .....................................................
                     </div>
                 </td>
-                @if(!empty($fd['nama_pasangan'] ?? null))
-                <td>
-                    <strong>Persetujuan {{ ($fd['kelamin'] ?? '') === 'L' ? 'Istri' : 'Suami' }}</strong><br>
-                    &nbsp;
-                    <div class="signature-box">
-                        ( {{ $fd['nama_pasangan'] }} )<br>
-                        <small>No. KTP: {{ $fd['no_ktp_pasangan'] ?? '-' }}</small>
-                    </div>
-                </td>
-                @endif
             </tr>
         </table>
 
-        <table class="signature-grid" style="margin-top: 32pt;">
+        <table class="sig-bottom">
             <tr>
-                <td><strong>Saksi 1</strong><div class="signature-box">( ___________________________ )</div></td>
-                <td><strong>Saksi 2</strong><div class="signature-box">( ___________________________ )</div></td>
-                <td></td>
+                <td>
+                    Saksi,<br>
+                    <div style="margin-top: 50pt;">
+                        (.........................................................)
+                    </div>
+                </td>
+                <td>
+                    Saksi,<br>
+                    <div style="margin-top: 50pt;">
+                        (.........................................)
+                    </div>
+                </td>
             </tr>
         </table>
     </div>

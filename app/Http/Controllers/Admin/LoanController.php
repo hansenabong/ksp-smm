@@ -39,7 +39,10 @@ class LoanController extends Controller
             'application.files.uploader',
             'payments' => fn($q) => $q->notVoided()->with(['cashAccount', 'creator'])->orderByDesc('trx_date'),
         ]);
-        return view('admin.loans.active.show', compact('loan'));
+
+        $accPenalty = LoanPaymentController::calcAccumulatedPenalty($loan);
+
+        return view('admin.loans.active.show', compact('loan', 'accPenalty'));
     }
 
     public function schedule(Loan $loan)
@@ -82,11 +85,16 @@ class LoanController extends Controller
 
         // Merge hold_angsuran into existing fees (other fees preserved)
         $fees = $loan->disbursement_fees ?? [];
-        $ha = (int) preg_replace('/[^0-9]/', '', (string) $request->input('hold_angsuran', ''));
+        $haKe = max(0, (int) $request->input('hold_angsuran_ke', 0));
+        $ha   = $haKe > 0
+            ? $haKe * (int) $loan->monthly_installment
+            : (int) preg_replace('/[^0-9]/', '', (string) $request->input('hold_angsuran', ''));
+
         if ($ha > 0) {
-            $fees['hold_angsuran'] = $ha;
+            $fees['hold_angsuran']    = $ha;
+            $fees['hold_angsuran_ke'] = $haKe;
         } else {
-            unset($fees['hold_angsuran']);
+            unset($fees['hold_angsuran'], $fees['hold_angsuran_ke']);
         }
 
         $loan->update([
@@ -220,7 +228,6 @@ class LoanController extends Controller
         $tenor            = (int) $loan->tenor_months;
         $principalMonthly = (int) $loan->principal_monthly;
         $interestMonthly  = (int) $loan->interest_monthly;
-        $adminMonthly     = (int) $loan->admin_monthly;
         $insuranceMonthly = (int) $loan->insurance_monthly;
         $monthlyInstallment = (int) $loan->monthly_installment;
 
@@ -253,7 +260,7 @@ class LoanController extends Controller
             if ($due->lte($settlementDate) && $i > $paidCount) {
                 $overdueCount++;
                 $installmentAmount = ($i === $tenor)
-                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $adminMonthly + $insuranceMonthly
+                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
                     : $monthlyInstallment;
                 $tunggakan += $installmentAmount;
             }
@@ -267,7 +274,7 @@ class LoanController extends Controller
             $daysLate = max(0, $due->diffInDays($settlementDate, false));
             if ($daysLate > 0) {
                 $installmentAmount = ($i === $tenor)
-                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $adminMonthly + $insuranceMonthly
+                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
                     : $monthlyInstallment;
                 $penalty = (int) round($installmentAmount * ($penaltyDailyRateBp / 10000.0) * $daysLate);
                 $dendaKeterlambatan += $penalty;
@@ -290,7 +297,6 @@ class LoanController extends Controller
 
         // Remaining interest (bunga tersisa for flat rate)
         $bungaTersisa    = $interestMonthly * $remaining;
-        $adminTersisa    = $adminMonthly    * $remaining;
         $asuransiTersisa = $insuranceMonthly * $remaining;
 
         // Current month installment (bulan berjalan angsuran)
@@ -299,7 +305,6 @@ class LoanController extends Controller
         // TOTAL PELUNASAN
         $totalPelunasan = $sisaPokok
             + $bungaTersisa
-            + $adminTersisa
             + $asuransiTersisa
             + $tunggakan        // overdue principal component already in sisa pokok, but denda tambahan
             + $dendaKeterlambatan
@@ -328,7 +333,6 @@ class LoanController extends Controller
             'biaya_pelunasan_dipercepat'=> $biayaPelunasanDipercepat,
             'early_repayment_rate_bp'   => $earlyRepaymentRateBp,
             'bunga_tersisa'             => $bungaTersisa,
-            'admin_tersisa'             => $adminTersisa,
             'asuransi_tersisa'          => $asuransiTersisa,
             'outstanding'               => (int) $loan->outstanding,
             'total_pelunasan'           => $totalPelunasanStandard,
@@ -352,7 +356,6 @@ class LoanController extends Controller
         $tenor            = (int) $loan->tenor_months;
         $principalMonthly = (int) $loan->principal_monthly;
         $interestMonthly  = (int) $loan->interest_monthly;
-        $adminMonthly     = (int) $loan->admin_monthly;
         $insuranceMonthly = (int) $loan->insurance_monthly;
         $disbursedDate    = Carbon::parse($loan->disbursed_date);
 
@@ -383,7 +386,7 @@ class LoanController extends Controller
             $recovery    = $isLast
                 ? ($principal - ($principalMonthly * ($tenor - 1)))
                 : $principalMonthly;
-            $installment = $recovery + $interestMonthly + $adminMonthly + $insuranceMonthly;
+            $installment = $recovery + $interestMonthly + $insuranceMonthly;
             $dueDate     = $disbursedDate->copy()->addMonths($n);
 
             $actualPayment = ($n <= $payments->count()) ? $payments[$n - 1] : null;
@@ -430,7 +433,6 @@ class LoanController extends Controller
         $tenor            = (int) $loan->tenor_months;
         $principalMonthly = (int) $loan->principal_monthly;
         $interestMonthly  = (int) $loan->interest_monthly;
-        $adminMonthly     = (int) $loan->admin_monthly;
         $insuranceMonthly = (int) $loan->insurance_monthly;
         $disbursedDate    = Carbon::parse($loan->disbursed_date);
 
@@ -462,7 +464,7 @@ class LoanController extends Controller
                 ? ($principal - $principalMonthly * ($tenor - 1))
                 : $principalMonthly;
 
-            $loanPayment = $recovery + $interestMonthly + $adminMonthly + $insuranceMonthly;
+            $loanPayment = $recovery + $interestMonthly + $insuranceMonthly;
 
             $outstandingPrincipal -= $recovery;
             $unearnedIncome       -= $interestMonthly;

@@ -20,8 +20,9 @@ class AdminHomeController extends Controller
         $totalActiveMembers = Member::active()->count();
 
         // Cash balances per account + grand total
+        // DEPOSITO accounts are view-only and excluded from Total Saldo Kas.
         $cashBalances     = collect($this->cashService->getAllBalances());
-        $totalCashBalance = (int) $cashBalances->sum('balance');
+        $totalCashBalance = (int) $cashBalances->where('type', '!=', 'DEPOSITO')->sum('balance');
 
         // Total savings balance across all products and members (DEPOSIT − WITHDRAWAL)
         $totalSavings = (int) SavingTransaction::notVoided()

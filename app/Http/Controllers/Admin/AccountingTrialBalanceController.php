@@ -28,8 +28,10 @@ class AccountingTrialBalanceController extends Controller
         //   ob_debit / ob_credit    = cumulative activity BEFORE date_from (opening balance)
         //   period_debit / period_credit = activity WITHIN [date_from, date_to] (period movement)
         // Ending balance = opening + net period movement.
+        // Note: do NOT filter by accounts.is_active — legacy deactivated accounts
+        // may still hold historical journal_lines; excluding them would drop one
+        // side of their journal entries and break D = C balance.
         $rows = Account::query()
-            ->where('accounts.is_active', true)
             ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
             ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
             ->select([
@@ -147,7 +149,6 @@ class AccountingTrialBalanceController extends Controller
         $dateTo   = $request->input('date_to', now()->toDateString());
 
         $rows = Account::query()
-            ->where('accounts.is_active', true)
             ->leftJoin('journal_lines as jl', 'jl.account_id', '=', 'accounts.id')
             ->leftJoin('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
             ->select([

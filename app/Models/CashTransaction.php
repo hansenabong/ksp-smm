@@ -16,6 +16,7 @@ class CashTransaction extends Model
         'code',
         'reference_code',
         'ref_number',
+        'payment_method',
         'trx_date',
         'type',
         'from_cash_account_id',

@@ -7,7 +7,7 @@
             </div>
             <div class="flex items-center gap-2">
                 {{-- Primary actions (ACTIVE only) --}}
-                @if($loan->status === 'ACTIVE' && auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_COLLECTION']))
+                @if($loan->status === 'ACTIVE' && auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE']))
                 <a href="{{ route('admin.loans.payments.create', $loan) }}"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,7 +290,7 @@
 
                             <div class="md:col-span-3 border-t border-gray-100 pt-5">
                                 <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Komponen Angsuran per Bulan</div>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <div class="bg-gray-50 rounded-lg p-4">
                                         <div class="text-xs text-gray-400 mb-1">Pokok / bln</div>
                                         <div class="font-bold text-gray-800">Rp {{ number_format($loan->principal_monthly, 0, ',', '.') }}</div>
@@ -299,10 +299,6 @@
                                         <div class="text-xs text-blue-400 mb-1">Bunga / bln</div>
                                         <div class="font-bold text-blue-800">Rp {{ number_format($loan->interest_monthly, 0, ',', '.') }}</div>
                                         <div class="text-xs text-blue-300 mt-0.5">{{ $loan->interest_monthly_percent }}%</div>
-                                    </div>
-                                    <div class="bg-amber-50 rounded-lg p-4">
-                                        <div class="text-xs text-amber-400 mb-1">Admin / bln</div>
-                                        <div class="font-bold text-amber-800">Rp {{ number_format($loan->admin_monthly ?? 0, 0, ',', '.') }}</div>
                                     </div>
                                     <div class="bg-purple-50 rounded-lg p-4">
                                         <div class="text-xs text-purple-400 mb-1">Asuransi / bln</div>
@@ -328,6 +324,37 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- Denda Akumulasi --}}
+                            @if($loan->status === 'ACTIVE' && $accPenalty['overdue_count'] > 0)
+                            <div class="md:col-span-3 border-t border-gray-100 pt-5">
+                                <div class="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-3">
+                                    Denda Akumulasi Keterlambatan
+                                    <span class="text-gray-400 font-normal">(dibayar saat pelunasan)</span>
+                                </div>
+                                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div>
+                                            <div class="text-sm text-orange-600">{{ $accPenalty['overdue_count'] }} angsuran tertunggak</div>
+                                        </div>
+                                        <div class="text-lg font-bold text-orange-700">
+                                            Rp {{ number_format($accPenalty['total'], 0, ',', '.') }}
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1 text-xs text-gray-600">
+                                        @foreach($accPenalty['details'] as $d)
+                                        <div class="flex justify-between">
+                                            <span>Angsuran #{{ $d['no'] }} — jatuh tempo {{ $d['due_date']->format('d M Y') }} ({{ $d['days_late'] }} hari telat)</span>
+                                            <span class="font-medium text-orange-600">Rp {{ number_format($d['penalty'], 0, ',', '.') }}</span>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="mt-2 text-xs text-gray-400">
+                                        * Rate denda: {{ number_format(($loan->loanProduct?->penalty_daily_rate_bp ?? 30) / 100, 2) }}%/hari × angsuran per bulan
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
 
                             @if($loan->application)
                             <div class="md:col-span-3 border-t border-gray-100 pt-5 text-xs text-gray-400">

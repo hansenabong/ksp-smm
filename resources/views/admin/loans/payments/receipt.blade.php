@@ -42,13 +42,18 @@
         $loan    = $payment->loan;
         $member  = $loan->member;
         $amount  = (int) $payment->amount;
+        $penaltyAmt = (int) ($payment->penalty_amount ?? 0);
+        $earlyPenalty = (int) ($payment->early_repayment_penalty ?? 0);
+        $isEarlyRepayment = (bool) $payment->is_early_repayment;
+        $totalCash = $amount + $penaltyAmt + $earlyPenalty;
         $tgl     = $payment->trx_date instanceof \Carbon\Carbon
                     ? $payment->trx_date
                     : \Carbon\Carbon::parse($payment->trx_date);
         $noKwt   = 'KWT-' . str_pad($payment->id, 5, '0', STR_PAD_LEFT);
 
-        // terbilang
-        $words = ucwords(terbilang($amount));
+        // terbilang — gunakan total cash jika ada denda
+        $hasPenalty = $penaltyAmt > 0 || $earlyPenalty > 0;
+        $words = ucwords(terbilang($hasPenalty ? $totalCash : $amount));
     @endphp
 
     <div class="space-y-5">
@@ -117,8 +122,8 @@
                             <span class="text-gray-400 shrink-0">:</span>
                             <div class="text-gray-700">
                                 <div>
-                                    Angsuran Pinjaman No. #{{ $loan->id }}
-                                    @if($installmentNo)
+                                    {{ $isEarlyRepayment ? 'Pelunasan' : 'Angsuran' }} Pinjaman No. #{{ $loan->id }}
+                                    @if($installmentNo && !$isEarlyRepayment)
                                         <span class="text-gray-500">— Pembayaran ke-{{ $installmentNo }} dari {{ $totalTenor }}</span>
                                     @endif
                                 </div>
@@ -135,12 +140,37 @@
                     </div>
 
                     {{-- Amount box --}}
+                    @if($hasPenalty)
+                    <div class="border border-gray-200 rounded-lg px-5 py-3 bg-gray-50 space-y-1.5 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{{ $isEarlyRepayment ? 'Pelunasan Pokok + Bunga' : 'Angsuran' }}</span>
+                            <span class="font-medium text-gray-800 tabular-nums">Rp {{ number_format($amount, 0, ',', '.') }}</span>
+                        </div>
+                        @if($penaltyAmt > 0)
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Denda Keterlambatan</span>
+                            <span class="font-medium text-orange-700 tabular-nums">Rp {{ number_format($penaltyAmt, 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        @if($earlyPenalty > 0)
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Denda Pelunasan Dipercepat</span>
+                            <span class="font-medium text-orange-700 tabular-nums">Rp {{ number_format($earlyPenalty, 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                        <div class="flex justify-between border-t-2 border-gray-800 pt-2 mt-2">
+                            <span class="text-gray-800 font-bold">Total Diterima</span>
+                            <span class="text-2xl font-bold text-gray-800 tabular-nums">Rp {{ number_format($totalCash, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+                    @else
                     <div class="border-2 border-gray-800 rounded-lg px-5 py-3 flex items-center justify-between bg-gray-50">
                         <span class="text-sm text-gray-600 font-semibold">Jumlah</span>
                         <span class="text-2xl font-bold text-gray-800 tabular-nums">
                             Rp {{ number_format($amount, 0, ',', '.') }}
                         </span>
                     </div>
+                    @endif
 
                     {{-- Date + Kas --}}
                     <div class="flex items-center gap-6 text-sm text-gray-500">
@@ -180,7 +210,7 @@
             <div class="mt-4 grid grid-cols-3 gap-3 print:hidden">
                 <div class="bg-white rounded-xl border border-gray-200 px-4 py-3 text-center">
                     <div class="text-xs text-gray-500">Dibayar kali ini</div>
-                    <div class="text-base font-bold text-indigo-600 mt-0.5">Rp {{ number_format($amount, 0, ',', '.') }}</div>
+                    <div class="text-base font-bold text-indigo-600 mt-0.5">Rp {{ number_format($hasPenalty ? $totalCash : $amount, 0, ',', '.') }}</div>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-200 px-4 py-3 text-center">
                     <div class="text-xs text-gray-500">Total Sudah Dibayar</div>

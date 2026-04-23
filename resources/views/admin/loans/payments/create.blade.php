@@ -100,10 +100,6 @@
                                 <span class="font-medium text-gray-800">: {{ $pasangan['nama'] ?? '-' }}</span>
                             </div>
                             <div class="flex gap-2">
-                                <span class="w-32 text-gray-500 shrink-0">Biaya Admin</span>
-                                <span class="font-medium text-gray-800">: Rp {{ number_format($loan->admin_monthly ?? 0, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="flex gap-2">
                                 <span class="w-32 text-gray-500 shrink-0">Biaya Cadangan</span>
                                 <span class="font-medium text-gray-800">: Rp {{ number_format($loan->insurance_monthly ?? 0, 0, ',', '.') }}</span>
                             </div>
@@ -135,8 +131,8 @@
                             </thead>
                             <tbody class="divide-y divide-gray-50">
                                 @foreach($schedule as $row)
-                                    @php $isPaid = $row['payment'] !== null; @endphp
-                                    <tr class="{{ $isPaid ? 'bg-green-50/50' : 'hover:bg-gray-50' }} transition-colors">
+                                    @php $isPaid = $row['payment'] !== null; $isLate = $row['is_late']; @endphp
+                                    <tr class="{{ $isPaid ? ($isLate ? 'bg-orange-50/40' : 'bg-green-50/50') : 'hover:bg-gray-50' }} transition-colors">
                                         <td class="text-center px-3 py-2.5 font-semibold text-gray-700">{{ $row['no'] }}</td>
                                         <td class="text-right px-3 py-2.5 font-medium text-gray-800 tabular-nums">
                                             Rp {{ number_format($row['amount'], 0, ',', '.') }}
@@ -164,7 +160,12 @@
                                             @endif
                                         </td>
                                         <td class="text-center px-3 py-2.5">
-                                            @if($isPaid)
+                                            @if($isPaid && $isLate)
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                                                    Terlambat
+                                                </span>
+                                            @elseif($isPaid)
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-200">
                                                     <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
                                                     Lunas
@@ -203,8 +204,28 @@
                 $dueDateStr      = $expectedDueDate->toDateString();
                 $dailyRateBp     = $penaltyDailyRateBp;
                 $earlyRateBp     = $earlyRepaymentRateBp;
-                $installmentAmt  = (int) $loan->monthly_installment;
+                // $installmentAmt already passed from controller (uses outstanding for last slot)
                 $outstandingAmt  = (int) $loan->outstanding;
+                $accPenaltyTotal = (int) $accPenalty['total'];
+                $accOverdue      = (int) $accPenalty['overdue_count'];
+
+                // Build overdue slots for Alpine reactive penalty recalc.
+                // paidDate = null  → unpaid (denda accrues up to trxDate, dynamic)
+                // paidDate = date  → paid late, penalty not yet collected (fixed denda)
+                $overdueSlots = [];
+                foreach ($schedule as $row) {
+                    $slotDue = $row['due'];
+                    $pm      = $row['payment'];
+                    if ($pm) {
+                        if ($pm->is_early_repayment ?? false) break;
+                        $payDate = \Carbon\Carbon::parse($pm->trx_date);
+                        if ($payDate->gt($slotDue) && (int)($pm->penalty_amount ?? 0) === 0) {
+                            $overdueSlots[] = ['no' => $row['no'], 'due' => $slotDue->toDateString(), 'amount' => $row['amount'], 'paidDate' => $payDate->toDateString()];
+                        }
+                    } else {
+                        $overdueSlots[] = ['no' => $row['no'], 'due' => $slotDue->toDateString(), 'amount' => $row['amount'], 'paidDate' => null];
+                    }
+                }
             @endphp
             <div class="xl:col-span-1">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-4"
@@ -212,26 +233,44 @@
                         trxDate:            '{{ now()->toDateString() }}',
                         dueDate:            '{{ $dueDateStr }}',
                         amount:             {{ $installmentAmt }},
-                        penaltyDays:        0,
-                        penaltyAmount:      0,
+                        penaltyAmount:      {{ $accPenaltyTotal }},
+                        accOverdue:         {{ $accOverdue }},
+                        accDetails:         [],
                         isEarlyRepayment:   false,
                         earlyPenalty:       0,
                         outstanding:        {{ $outstandingAmt }},
                         installmentAmt:     {{ $installmentAmt }},
-                        dailyRateBp:        {{ $dailyRateBp }},
                         earlyRateBp:        {{ $earlyRateBp }},
+                        dailyRateBp:        {{ $dailyRateBp }},
+                        overdueSlots:       {{ Js::from($overdueSlots) }},
 
                         get total() {
                             return this.amount + this.penaltyAmount + (this.isEarlyRepayment ? this.earlyPenalty : 0);
                         },
 
-                        recalcPenalty() {
-                            if (!this.trxDate || !this.dueDate) { this.penaltyDays = 0; this.penaltyAmount = 0; return; }
-                            const trx = new Date(this.trxDate);
-                            const due = new Date(this.dueDate);
-                            const diffDays = Math.max(0, Math.floor((trx - due) / 86400000));
-                            this.penaltyDays = diffDays;
-                            this.penaltyAmount = Math.round(this.installmentAmt * diffDays * (this.dailyRateBp / 10000));
+                        recalcAccPenalty() {
+                            if (!this.trxDate) return;
+                            const trxDate = new Date(this.trxDate + 'T00:00:00');
+                            let total = 0, count = 0;
+                            const details = [];
+                            for (const slot of this.overdueSlots) {
+                                const due = new Date(slot.due + 'T00:00:00');
+                                // Unpaid slot not yet due as of trxDate → stop
+                                if (!slot.paidDate && due >= trxDate) break;
+                                // paid-late → fixed pay date; unpaid → use trxDate
+                                const effectiveDate = slot.paidDate
+                                    ? new Date(slot.paidDate + 'T00:00:00')
+                                    : trxDate;
+                                const daysLate = Math.floor((effectiveDate - due) / 86400000);
+                                if (daysLate <= 0) continue;
+                                const penalty = Math.round(slot.amount * daysLate * (this.dailyRateBp / 10000));
+                                total += penalty;
+                                count++;
+                                details.push({ no: slot.no, daysLate, penalty, amount: slot.amount });
+                            }
+                            this.penaltyAmount = total;
+                            this.accOverdue = count;
+                            this.accDetails = details;
                         },
 
                         recalcEarlyPenalty() {
@@ -243,10 +282,8 @@
                                 this.earlyPenalty = 0;
                             }
                         },
-
-                        init() { this.recalcPenalty(); }
                      }"
-                     @change.window="recalcPenalty()">
+                     x-init="recalcAccPenalty()">
 
                     <div class="px-5 py-4 border-b border-gray-100">
                         <div class="text-sm font-semibold text-gray-700">Form Pembayaran Angsuran</div>
@@ -254,7 +291,7 @@
                     </div>
 
                     <div class="px-5 py-4">
-                        <div class="grid grid-cols-2 gap-3 mb-5">
+                        <div class="grid grid-cols-2 gap-3 mb-3">
                             <div class="bg-gray-50 rounded-lg px-3 py-2.5">
                                 <div class="text-xs text-gray-500">Angsuran/bln</div>
                                 <div class="text-sm font-bold text-gray-800 mt-0.5">
@@ -267,11 +304,32 @@
                                     Rp {{ number_format($outstandingAmt, 0, ',', '.') }}
                                 </div>
                             </div>
-                            <div class="col-span-2 bg-blue-50 rounded-lg px-3 py-2">
+                            <div class="bg-blue-50 rounded-lg px-3 py-2">
                                 <div class="text-xs text-blue-500">Jatuh Tempo Angsuran Ini</div>
                                 <div class="text-sm font-bold text-blue-700 mt-0.5">
                                     {{ $expectedDueDate->translatedFormat('d F Y') }}
                                 </div>
+                            </div>
+                            <div class="bg-orange-50 rounded-lg px-3 py-2">
+                                <div class="text-xs text-orange-500">Denda Belum Dibayar</div>
+                                <div class="text-sm font-bold mt-0.5"
+                                     :class="penaltyAmount > 0 ? 'text-orange-700' : 'text-gray-400'"
+                                     x-text="'Rp ' + penaltyAmount.toLocaleString('id-ID')">
+                                </div>
+                                <div class="text-xs mt-0.5"
+                                     :class="accOverdue > 0 ? 'text-orange-400' : 'text-gray-400'"
+                                     x-text="accOverdue > 0 ? accOverdue + ' angsuran tertunggak' : 'Tidak ada tunggakan'">
+                                </div>
+                            </div>
+                        </div>
+                        {{-- Total denda already collected across all payments --}}
+                        <div class="bg-green-50 rounded-lg px-3 py-2 mb-5 flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-green-600 font-medium">Total Denda Sudah Dibayar</div>
+                                <div class="text-xs text-green-500 mt-0.5">Akumulasi dari semua kwitansi</div>
+                            </div>
+                            <div class="text-sm font-bold {{ $totalDendaCollected > 0 ? 'text-green-700' : 'text-gray-400' }}">
+                                Rp {{ number_format($totalDendaCollected, 0, ',', '.') }}
                             </div>
                         </div>
 
@@ -284,7 +342,7 @@
                                 </label>
                                 <input type="date" name="trx_date"
                                        x-model="trxDate"
-                                       @change="recalcPenalty()"
+                                       @change="recalcAccPenalty()"
                                        value="{{ old('trx_date', now()->toDateString()) }}"
                                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
                                 @error('trx_date') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
@@ -333,75 +391,70 @@
                                 @error('amount') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
                             </div>
 
-                            {{-- Penalty Section --}}
-                            <div class="border border-orange-100 bg-orange-50/50 rounded-lg p-3 space-y-3"
-                                 x-show="penaltyDays > 0 || isEarlyRepayment">
-
-                                <div class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Denda</div>
-
-                                <div x-show="penaltyDays > 0" class="space-y-2">
-                                    <div>
-                                        <label class="block text-xs text-gray-600 mb-1">
-                                            Hari Keterlambatan
-                                            <span class="text-gray-400">({{ $dailyRateBp / 100 }}%/hari)</span>
-                                        </label>
-                                        <input type="number" name="penalty_days"
-                                               x-model="penaltyDays"
-                                               @input="penaltyAmount = Math.round(amount * penaltyDays * (dailyRateBp / 10000))"
-                                               min="0"
-                                               class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs text-gray-600 mb-1">Denda Keterlambatan (Rp)</label>
-                                        <input type="text" inputmode="numeric" data-money-alpine name="penalty_amount"
-                                               :value="window.formatRupiah(penaltyAmount)"
-                                               @input="penaltyAmount = parseInt(window.parseRupiah($event.target.value)) || 0"
-                                               placeholder="0"
-                                               class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
-                                        <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
-                                    </div>
+                            {{-- Denda Akumulasi: always collectable when there are overdue installments --}}
+                            <div class="border border-orange-100 bg-orange-50/50 rounded-lg p-3 space-y-2"
+                                 x-show="accOverdue > 0">
+                                <div class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Denda Keterlambatan</div>
+                                {{-- Per-installment breakdown --}}
+                                <div class="space-y-0.5" x-show="accDetails.length > 0">
+                                    <template x-for="d in accDetails" :key="d.no">
+                                        <div class="flex justify-between text-xs text-gray-500">
+                                            <span x-text="'Angsuran #' + d.no + ': ' + d.amount.toLocaleString('id-ID') + ' × ' + d.daysLate + ' hari × {{ $dailyRateBp / 100 }}%'"></span>
+                                            <span class="text-orange-600 font-medium tabular-nums" x-text="'Rp ' + d.penalty.toLocaleString('id-ID')"></span>
+                                        </div>
+                                    </template>
                                 </div>
-                                <input type="hidden" name="penalty_days" x-show="penaltyDays <= 0" x-bind:value="0">
-                                <input type="hidden" name="penalty_amount" x-show="penaltyDays <= 0" x-bind:value="0">
-
-                                <div x-show="isEarlyRepayment" class="space-y-2">
-                                    <div>
-                                        <label class="block text-xs text-gray-600 mb-1">
-                                            Denda Pelunasan Dipercepat (Rp)
-                                            <span class="text-gray-400">({{ $earlyRepaymentRateBp / 100 }}% dari sisa)</span>
-                                        </label>
-                                        <input type="text" inputmode="numeric" data-money-alpine name="early_repayment_penalty"
-                                               :value="window.formatRupiah(earlyPenalty)"
-                                               @input="earlyPenalty = parseInt(window.parseRupiah($event.target.value)) || 0"
-                                               placeholder="0"
-                                               class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
-                                        <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
-                                    </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">
+                                        Total Denda (Rp)
+                                    </label>
+                                    <input type="text" inputmode="numeric" data-money-alpine name="penalty_amount"
+                                           :value="window.formatRupiah(penaltyAmount)"
+                                           @input="penaltyAmount = parseInt(window.parseRupiah($event.target.value)) || 0"
+                                           placeholder="0"
+                                           class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                                    <div class="text-xs text-gray-400 mt-1">Dihitung dari tanggal bayar, dapat diubah manual</div>
                                 </div>
-                                <input type="hidden" name="early_repayment_penalty" x-show="!isEarlyRepayment" x-bind:value="0">
-                                <input type="hidden" name="is_early_repayment" x-bind:value="isEarlyRepayment ? 1 : 0">
-                            </div>
-                            {{-- When no penalty, still send hidden fields --}}
-                            <div x-show="penaltyDays <= 0 && !isEarlyRepayment">
-                                <input type="hidden" name="penalty_days" value="0">
-                                <input type="hidden" name="penalty_amount" value="0">
-                                <input type="hidden" name="early_repayment_penalty" value="0">
-                                <input type="hidden" name="is_early_repayment" value="0">
                             </div>
 
-                            {{-- Total summary --}}
+                            {{-- Denda Pelunasan Dipercepat: only for pelunasan --}}
+                            <div class="border border-orange-100 bg-orange-50/50 rounded-lg p-3 space-y-2"
+                                 x-show="isEarlyRepayment">
+                                <div class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Denda Pelunasan Dipercepat</div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">
+                                        Denda Dipercepat (Rp)
+                                        <span class="text-gray-400">({{ $earlyRepaymentRateBp / 100 }}% dari sisa)</span>
+                                    </label>
+                                    <input type="text" inputmode="numeric" data-money-alpine name="early_repayment_penalty"
+                                           :value="window.formatRupiah(earlyPenalty)"
+                                           @input="earlyPenalty = parseInt(window.parseRupiah($event.target.value)) || 0"
+                                           placeholder="0"
+                                           class="w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                                    <div class="text-xs text-gray-400 mt-1">Dapat diubah manual</div>
+                                </div>
+                            </div>
+
+                            {{-- Hidden fields (single source of truth — no duplicates) --}}
+                            <input type="hidden" name="penalty_days" :value="accOverdue">
+                            <input type="hidden" name="is_early_repayment" :value="isEarlyRepayment ? 1 : 0">
+                            {{-- penalty_amount and early_repayment_penalty submitted via visible inputs above --}}
+                            {{-- When accOverdue=0: penalty_amount input hidden but still in DOM with value 0 --}}
+                            {{-- When !isEarlyRepayment: earlyPenalty=0, input in DOM submits 0 --}}
+
+                            {{-- Total summary: show whenever there's any denda --}}
                             <div class="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm"
-                                 x-show="penaltyDays > 0 || isEarlyRepayment">
+                                 x-show="accOverdue > 0 || isEarlyRepayment">
                                 <div class="flex justify-between">
-                                    <span class="text-gray-500">Angsuran</span>
+                                    <span class="text-gray-500" x-text="isEarlyRepayment ? 'Sisa Tagihan (Pelunasan)' : 'Angsuran'"></span>
                                     <span class="font-medium" x-text="'Rp ' + amount.toLocaleString('id-ID')"></span>
                                 </div>
-                                <div class="flex justify-between" x-show="penaltyDays > 0">
-                                    <span class="text-gray-500">Denda terlambat</span>
+                                <div class="flex justify-between" x-show="accOverdue > 0">
+                                    <span class="text-gray-500">Denda keterlambatan</span>
                                     <span class="font-medium text-orange-600" x-text="'Rp ' + penaltyAmount.toLocaleString('id-ID')"></span>
                                 </div>
                                 <div class="flex justify-between" x-show="isEarlyRepayment">
-                                    <span class="text-gray-500">Denda pelunasan</span>
+                                    <span class="text-gray-500">Denda pelunasan dipercepat</span>
                                     <span class="font-medium text-orange-600" x-text="'Rp ' + earlyPenalty.toLocaleString('id-ID')"></span>
                                 </div>
                                 <div class="flex justify-between font-semibold border-t border-gray-200 pt-1.5">

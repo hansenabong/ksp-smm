@@ -99,6 +99,16 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        Kode Referensi <span class="text-xs text-gray-400 font-normal">(opsional)</span>
+                    </label>
+                    <input type="text" name="reference_code" value="{{ old('reference_code') }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                           maxlength="100" placeholder="No. slip / referensi">
+                    @error('reference_code') <div class="text-red-600 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Uraian <span class="text-xs text-gray-400 font-normal">(opsional)</span>
                     </label>
                     <input type="text" name="description" value="{{ old('description') }}"

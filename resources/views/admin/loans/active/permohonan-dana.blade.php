@@ -124,14 +124,40 @@
                                placeholder="nama pemilik rekening"
                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Hold Angsuran</label>
-                        <input type="text" name="hold_angsuran"
-                               value="{{ old('hold_angsuran', isset($fees['hold_angsuran']) ? number_format($fees['hold_angsuran'], 0, ',', '.') : '') }}"
-                               placeholder="0"
-                               x-data
-                               @input="$el.value = $el.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')"
-                               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    <div x-data="{
+                            ke: {{ old('hold_angsuran_ke', $fees['hold_angsuran_ke'] ?? 0) }},
+                            installment: {{ (int) $loan->monthly_installment }},
+                            get amount() { return this.ke > 0 ? this.ke * this.installment : 0; },
+                            get amountFormatted() {
+                                return this.amount.toLocaleString('id-ID');
+                            }
+                         }" class="col-span-2 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                Hold Angsuran ke-
+                            </label>
+                            <input type="number" name="hold_angsuran_ke"
+                                   x-model.number="ke"
+                                   min="0" :max="loan_tenor"
+                                   placeholder="0"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            <div class="text-xs text-gray-400 mt-1">
+                                Angsuran/bln: Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                Hold Angsuran (Rp)
+                            </label>
+                            <input type="text" readonly
+                                   :value="amountFormatted"
+                                   class="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-right font-mono text-gray-600 cursor-not-allowed">
+                            <div class="text-xs text-gray-400 mt-1" x-show="ke > 0">
+                                <span x-text="ke"></span> × Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}
+                            </div>
+                        </div>
+                        {{-- hidden fallback so form always submits hold_angsuran value --}}
+                        <input type="hidden" name="hold_angsuran" :value="amount">
                     </div>
                 </div>
                 <div class="mt-4 flex justify-end">
@@ -202,8 +228,9 @@
                                     </span>
                                 </div>
                             </div>
-                            {{-- Right: Bank/AC/Atas Nama --}}
+                            {{-- Right: Dana Yang Diminta --}}
                             <div class="flex-1 space-y-1 text-xs">
+                                <div class="font-bold uppercase text-xs mb-1">Dana Yang Diminta</div>
                                 <div class="flex items-center gap-2">
                                     <span class="w-20 shrink-0">Bank</span>
                                     <span>:</span>
@@ -223,7 +250,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-1.5 pt-1 border-t border-gray-300 text-xs text-gray-500 italic">Dana Yang Diminta</div>
                     </div>
                 </div>
             </div>
@@ -232,44 +258,54 @@
             <div class="border-b border-gray-800">
                 <div class="grid grid-cols-2">
                     <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
+                        <span class="w-40 shrink-0 text-xs">Jenis Fasilitas</span>
+                        <span class="mx-1">:</span>
+                        <span class="text-xs">Pembiayaan</span>
+                    </div>
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-l border-gray-400">
                         <span class="w-40 shrink-0 text-xs">Produk</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs">{{ $loan->loanProduct?->name ?? '-' }}</span>
                     </div>
-                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-r border-gray-800">
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
                         <span class="w-40 shrink-0 text-xs">Objek Pembiayaan</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs">{{ $objectFinance }}</span>
                     </div>
-                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-l border-gray-400">
                         <span class="w-40 shrink-0 text-xs">No. Anggota</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs font-mono">{{ $member?->member_no ?? '-' }}</span>
                     </div>
-                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-r border-gray-800">
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
                         <span class="w-40 shrink-0 text-xs">Jangka Waktu</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs font-semibold">{{ $loan->tenor_months }} Bulan</span>
                     </div>
-                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-l border-gray-400">
                         <span class="w-40 shrink-0 text-xs">Angsuran / Bulan</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs font-mono">Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-r border-gray-800">
-                        <span class="w-40 shrink-0 text-xs">Bunga</span>
-                        <span class="mx-1">:</span>
-                        <span class="text-xs font-mono">Rp {{ number_format($totalBunga, 0, ',', '.') }}</span>
                     </div>
                     <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
                         <span class="w-40 shrink-0 text-xs">Suku Bunga</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs">{{ $loan->interest_monthly_percent }}% / bln</span>
                     </div>
-                    <div class="flex items-baseline px-3 py-1 col-span-2">
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-l border-gray-400">
+                        <span class="w-40 shrink-0 text-xs">Bunga (total)</span>
+                        <span class="mx-1">:</span>
+                        <span class="text-xs font-mono">Rp {{ number_format($totalBunga, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300">
                         <span class="w-40 shrink-0 text-xs">Nilai Pembiayaan</span>
                         <span class="mx-1">:</span>
                         <span class="text-xs font-mono font-semibold">Rp {{ number_format($loan->principal, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex items-baseline px-3 py-1 border-b border-gray-300 border-l border-gray-400">
+                        <span class="w-40 shrink-0 text-xs">Pencairan Bersih</span>
+                        <span class="mx-1">:</span>
+                        <span class="text-xs font-mono font-semibold">Rp {{ number_format(max(0, $pencairanBersih), 0, ',', '.') }}</span>
                     </div>
                 </div>
             </div>
@@ -292,7 +328,12 @@
                     <div class="space-y-1">
                         @foreach($rightFeeKeys as $key)
                         <div class="flex items-baseline">
-                            <span class="w-36 shrink-0">{{ $feeLabels[$key] }}</span>
+                            <span class="w-36 shrink-0">
+                                {{ $feeLabels[$key] }}
+                                @if($key === 'hold_angsuran' && !empty($fees['hold_angsuran_ke']))
+                                    <span class="text-gray-400">({{ $fees['hold_angsuran_ke'] }} angsuran)</span>
+                                @endif
+                            </span>
                             <span class="mr-1">: Rp</span>
                             <span class="font-mono flex-1 text-right pr-4">
                                 {{ isset($fees[$key]) ? number_format($fees[$key], 0, ',', '.') : '' }}
@@ -314,10 +355,20 @@
             </div>
 
             {{-- ── Pencairan Bersih ── --}}
-            <div class="flex items-baseline border-b border-gray-800 px-3 py-2">
-                <span class="font-bold text-xs w-36 shrink-0">Pencairan Bersih</span>
-                <span class="text-xs mr-1">: Rp.</span>
-                <span class="font-bold font-mono text-sm">{{ number_format(max(0, $pencairanBersih), 0, ',', '.') }}</span>
+            <div class="border-b border-gray-800 px-3 py-2">
+                <div class="font-bold text-xs mb-1.5">Pencairan Bersih</div>
+                <div class="space-y-1 text-xs pl-4">
+                    <div class="flex items-baseline">
+                        <span class="w-36 shrink-0">Jumlah potongan</span>
+                        <span class="mr-1">: Rp.</span>
+                        <span class="font-mono">{{ number_format($jumlahBiaya, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="w-36 shrink-0">Jumlah di setor</span>
+                        <span class="mr-1">: Rp.</span>
+                        <span class="font-bold font-mono">{{ number_format(max(0, $pencairanBersih), 0, ',', '.') }}</span>
+                    </div>
+                </div>
             </div>
 
             {{-- ── Signature table ── --}}

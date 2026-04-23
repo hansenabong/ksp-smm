@@ -99,7 +99,7 @@
     // Loan calculation snapshot
     $monthlyInterest = $application->principal * ($application->interest_monthly_percent / 100);
     $monthlyPokok    = $application->tenor_months > 0 ? $application->principal / $application->tenor_months : 0;
-    $estAngsuran     = $monthlyPokok + $monthlyInterest + $application->admin_monthly + $application->insurance_monthly;
+    $estAngsuran     = $monthlyPokok + $monthlyInterest + $application->insurance_monthly;
 
     // Pendapatan & pengeluaran totals
     $totalPendapatan = ($fd['penghasilan_pemohon'] ?? 0) + ($fd['penghasilan_pasangan'] ?? 0) + ($fd['penghasilan_lain'] ?? 0);
@@ -150,14 +150,14 @@
         <tr>
             <td class="label">Bunga Flat / bulan</td>
             <td class="value">{{ $application->interest_monthly_percent }}%</td>
-            <td class="label">Biaya Admin / bulan</td>
-            <td class="value">{!! $val($application->admin_monthly, 'rp') !!}</td>
-        </tr>
-        <tr>
             <td class="label">Asuransi / bulan</td>
             <td class="value">{!! $val($application->insurance_monthly, 'rp') !!}</td>
+        </tr>
+        <tr>
             <td class="label">Estimasi Angsuran / bulan</td>
             <td class="value"><strong>{{ 'Rp ' . number_format($estAngsuran, 0, ',', '.') }}</strong></td>
+            <td class="label"></td>
+            <td class="value"></td>
         </tr>
         @if($application->notes)
         <tr>

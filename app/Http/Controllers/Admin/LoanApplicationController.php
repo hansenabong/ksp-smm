@@ -172,7 +172,6 @@ class LoanApplicationController extends Controller
             'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
             // tetap ada (boleh override), tapi defaultnya diisi dari produk
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'admin_monthly' => ['nullable', 'integer', 'min:0'],
             'insurance_monthly' => ['nullable', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:255'],
 
@@ -199,9 +198,6 @@ class LoanApplicationController extends Controller
             ? (float)$data['interest_monthly_percent']
             : (float)$defaultInterestPercent;
 
-        // Biaya admin diinput manual per pengajuan (tidak lagi diambil dari master jenis pinjaman)
-        $adminMonthly = (int)($data['admin_monthly'] ?? 0);
-
         $insuranceMonthly = (int)($data['insurance_monthly'] ?? 0);
 
         $app = LoanApplication::create([
@@ -213,7 +209,6 @@ class LoanApplicationController extends Controller
             'form_data' => $formData,
             // kolom lama yang dipakai LoanService kamu
             'interest_monthly_percent' => $interestPercent,
-            'admin_monthly' => $adminMonthly,
             'insurance_monthly' => $insuranceMonthly,
 
             'notes' => $data['notes'] ?? null,
@@ -400,7 +395,6 @@ class LoanApplicationController extends Controller
             'doc_agunan.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
             'doc_others.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:102400'],
             'interest_monthly_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'admin_monthly'            => ['nullable', 'integer', 'min:0'],
             'insurance_monthly'        => ['nullable', 'integer', 'min:0'],
             'notes'                    => ['nullable', 'string', 'max:255'],
             'notaris_name'        => ['nullable', 'string', 'max:150'],
@@ -423,9 +417,6 @@ class LoanApplicationController extends Controller
             ? (float)$data['interest_monthly_percent']
             : (float)$defaultInterestPercent;
 
-        // Biaya admin diinput manual per pengajuan (tidak lagi diambil dari master jenis pinjaman)
-        $adminMonthly = (int)($data['admin_monthly'] ?? 0);
-
         $insuranceMonthly = (int)($data['insurance_monthly'] ?? 0);
 
         $application->update([
@@ -435,7 +426,6 @@ class LoanApplicationController extends Controller
             'tenor_months'             => (int)$data['tenor_months'],
             'form_data'                => $this->normalizeKtpFlags($request->input('form_data', [])),
             'interest_monthly_percent' => $interestPercent,
-            'admin_monthly'            => $adminMonthly,
             'insurance_monthly'        => $insuranceMonthly,
             'notes'                    => $data['notes'] ?? null,
             'loan_product_id'          => $product->id,
@@ -793,6 +783,10 @@ class LoanApplicationController extends Controller
     {
         abort_unless($application->status === 'APPROVED', 404);
 
+        $olType = in_array(request('type'), ['kendaraan', 'sertipikat'])
+            ? request('type')
+            : 'sertipikat';
+
         $application->load(['member', 'loanProduct', 'approver', 'collaterals']);
 
         $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
@@ -801,11 +795,11 @@ class LoanApplicationController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
             'admin.loans.applications.penawaran-pembiayaan-pdf',
-            compact('application', 'loan', 'nomorSurat')
+            compact('application', 'loan', 'nomorSurat', 'olType')
         );
         $pdf->setPaper('A4', 'portrait');
 
-        $filename = 'penawaran-pembiayaan-' . str_replace('/', '-', $nomorSurat) . '.pdf';
+        $filename = 'OL-' . $olType . '-' . str_replace('/', '-', $nomorSurat) . '.pdf';
 
         return $pdf->download($filename);
     }

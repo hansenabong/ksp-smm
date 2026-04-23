@@ -71,7 +71,6 @@
     $jumlahBiaya     = collect($fees)->sum();
     $pencairanBersih = (int)$loan->principal - $jumlahBiaya;
     $totalBunga      = (int)$loan->interest_monthly * (int)$loan->tenor_months;
-    $appName         = config('app.name', 'KSP-SMM');
 
     $cashName = $loan->disbursedCashAccount?->name ?? '-';
     $cashType = $loan->disbursedCashAccount?->type ?? 'CASH';
@@ -143,6 +142,7 @@
                             </table>
                         </td>
                         <td style="width:50%; vertical-align:top; font-size:9pt;">
+                            <div style="font-weight:bold; text-transform:uppercase; font-size:9pt; margin-bottom:3pt;">Dana Yang Diminta</div>
                             <table style="width:100%; border-collapse:collapse;">
                                 <tr>
                                     <td style="width:35%;">Bank</td>
@@ -162,7 +162,6 @@
                             </table>
                         </td>
                     </tr>
-                    <tr><td colspan="2" style="padding-top:3pt; font-size:8pt; color:#555; font-style:italic;">Dana Yang Diminta</td></tr>
                 </table>
             </td>
         </tr>
@@ -171,23 +170,28 @@
     {{-- Loan detail grid --}}
     <table class="layout" style="border-bottom:1.5pt solid #000; font-size:9pt;">
         <tr style="border-bottom:1pt solid #ccc;">
+            <td style="width:50%;">Jenis Fasilitas : Pembiayaan</td>
             <td style="width:50%;">Produk : {{ $loan->loanProduct?->name ?? '-' }}</td>
-            <td style="width:50%;">Objek Pembiayaan : {{ $objectFinance }}</td>
         </tr>
         <tr style="border-bottom:1pt solid #ccc;">
-            <td>No. Anggota : <span class="mono">{{ $member?->member_no ?? '-' }}</span></td>
+            <td>Objek Pembiayaan : {{ $objectFinance }}</td>
+            <td>No. Anggota : <span class="mono">{{ $loan->member?->member_no ?? '-' }}</span></td>
+        </tr>
+        <tr style="border-bottom:1pt solid #ccc;">
             <td>Jangka Waktu : <strong>{{ $loan->tenor_months }} Bulan</strong></td>
-        </tr>
-        <tr style="border-bottom:1pt solid #ccc;">
             <td>Angsuran / Bulan : <span class="mono">Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}</span></td>
-            <td>Bunga : <span class="mono">Rp {{ number_format($totalBunga, 0, ',', '.') }}</span></td>
         </tr>
         <tr style="border-bottom:1pt solid #ccc;">
             <td>Suku Bunga : {{ $loan->interest_monthly_percent }}% / bln</td>
+            <td>Bunga (total) : <span class="mono">Rp {{ number_format($totalBunga, 0, ',', '.') }}</span></td>
+        </tr>
+        <tr style="border-bottom:1pt solid #ccc;">
+            <td>Nilai Pembiayaan : <strong class="mono">Rp {{ number_format($loan->principal, 0, ',', '.') }}</strong></td>
             <td></td>
         </tr>
         <tr>
-            <td colspan="2">Nilai Pembiayaan : <strong class="mono">Rp {{ number_format($loan->principal, 0, ',', '.') }}</strong></td>
+            <td>Pencairan Bersih : <strong class="mono">Rp {{ number_format(max(0, $pencairanBersih), 0, ',', '.') }}</strong></td>
+            <td></td>
         </tr>
     </table>
 
@@ -211,7 +215,9 @@
                     @foreach($rightFeeKeys as $key)
                     <table class="fee-grid">
                         <tr>
-                            <td class="col-label">{{ $feeLabels[$key] }}</td>
+                            <td class="col-label">
+                                {{ $feeLabels[$key] }}@if($key === 'hold_angsuran' && !empty($fees['hold_angsuran_ke'])) ({{ $fees['hold_angsuran_ke'] }} angsuran)@endif
+                            </td>
                             <td class="col-sep">: Rp</td>
                             <td class="col-val">{{ isset($fees[$key]) ? number_format($fees[$key], 0, ',', '.') : '' }}</td>
                         </tr>
@@ -231,7 +237,19 @@
 
     {{-- Pencairan Bersih --}}
     <div style="border-bottom:1.5pt solid #000; padding:4pt 6pt;">
-        <strong>Pencairan Bersih : Rp. <span class="mono">{{ number_format(max(0, $pencairanBersih), 0, ',', '.') }}</span></strong>
+        <strong>Pencairan Bersih</strong>
+        <table style="width:100%; border-collapse:collapse; font-size:9pt; margin-top:3pt;">
+            <tr>
+                <td style="width:40%;">Jumlah potongan</td>
+                <td style="width:5%;">:</td>
+                <td><span class="mono">Rp {{ number_format($jumlahBiaya, 0, ',', '.') }}</span></td>
+            </tr>
+            <tr>
+                <td>Jumlah di setor</td>
+                <td>:</td>
+                <td><strong class="mono">Rp {{ number_format(max(0, $pencairanBersih), 0, ',', '.') }}</strong></td>
+            </tr>
+        </table>
     </div>
 
     {{-- Signature table --}}

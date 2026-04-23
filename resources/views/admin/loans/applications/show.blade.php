@@ -26,15 +26,25 @@
                         $linkedLoan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
                     @endphp
                     @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY','LEGAL','PENGAWAS']))
-                    <a href="{{ route('admin.loans.applications.penawaran', $application) }}"
+                    <a href="{{ route('admin.loans.applications.penawaran', $application) }}?type=sertipikat"
                        target="_blank"
                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition"
-                       title="Cetak Surat Penawaran Pembiayaan">
+                       title="Cetak OL — Penawaran Pembiayaan Sertipikat">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
-                        Penawaran Pembiayaan
+                        OL Sertipikat
+                    </a>
+                    <a href="{{ route('admin.loans.applications.penawaran', $application) }}?type=kendaraan"
+                       target="_blank"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition"
+                       title="Cetak OL — Penawaran Pembiayaan Kendaraan">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        OL Kendaraan
                     </a>
                     <a href="{{ route('admin.loans.applications.agreement', $application) }}"
                        target="_blank"
@@ -178,7 +188,7 @@
                 };
                 $monthly_interest = $application->principal * ($application->interest_monthly_percent / 100);
                 $monthly_pokok    = $application->tenor_months > 0 ? $application->principal / $application->tenor_months : 0;
-                $est_angsuran     = $monthly_pokok + $monthly_interest + $application->admin_monthly + $application->insurance_monthly;
+                $est_angsuran     = $monthly_pokok + $monthly_interest + $application->insurance_monthly;
             @endphp
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -219,9 +229,6 @@
                         <div class="bg-gray-50 rounded-lg p-3">
                             <div class="text-xs text-gray-400 mb-1">Bunga {{ $application->method ?? 'FLAT' }}</div>
                             <div class="font-bold text-gray-800 text-sm">{{ $application->interest_monthly_percent }}%<span class="text-xs font-normal text-gray-400">/bln</span></div>
-                            @if($application->admin_monthly)
-                                <div class="text-xs text-gray-400 mt-0.5">Admin: Rp {{ number_format($application->admin_monthly, 0, ',', '.') }}<span class="text-gray-300">/bln</span></div>
-                            @endif
                         </div>
                         <div class="bg-indigo-50 rounded-lg p-3">
                             <div class="text-xs text-indigo-400 mb-1">Est. Angsuran/bln</div>

@@ -103,6 +103,7 @@ class CashExpenseController extends Controller
             'description'          => ['nullable', 'string', 'max:255'],
             'reference_code'       => [$refRequired, 'string', 'max:100', 'unique:cash_transactions,reference_code'],
             'ref_number'           => ['nullable', 'string', 'max:150'],
+            'payment_method'       => ['nullable', 'in:TUNAI,TRANSFER,CEK,GIRO'],
         ]);
 
         $cashCategory = CashCategory::findOrFail($validated['cash_category_id']);

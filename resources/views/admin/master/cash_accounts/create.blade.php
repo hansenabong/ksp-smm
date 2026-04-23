@@ -32,10 +32,11 @@
 
             @php
                 $typeDescs = [
-                    'CASH'  => ['label' => 'Kas Tunai',     'hint' => 'Uang tunai · ledger 111x', 'icon' => '💵'],
-                    'BANK'  => ['label' => 'Rekening Bank', 'hint' => 'Simpanan bank · ledger 112x', 'icon' => '🏦'],
-                    'CHECK' => ['label' => 'Cek',           'hint' => 'Cek diterima · ledger 114x · No. Cek wajib saat transaksi', 'icon' => '📄'],
-                    'GIRO'  => ['label' => 'Bilyet / Giro', 'hint' => 'Bilyet Giro · ledger 115x · No. Bilyet wajib saat transaksi', 'icon' => '📋'],
+                    'CASH'     => ['label' => 'Kas Tunai',     'hint' => 'Uang tunai · ledger 111x', 'icon' => '💵'],
+                    'BANK'     => ['label' => 'Rekening Bank', 'hint' => 'Simpanan bank · ledger 112x', 'icon' => '🏦'],
+                    'CHECK'    => ['label' => 'Cek',           'hint' => 'Cek diterima · ledger 114x · No. Cek wajib saat transaksi', 'icon' => '📄'],
+                    'GIRO'     => ['label' => 'Bilyet / Giro', 'hint' => 'Bilyet Giro · ledger 115x · No. Bilyet wajib saat transaksi', 'icon' => '📋'],
+                    'DEPOSITO' => ['label' => 'Deposito',      'hint' => 'Penempatan deposito · ledger 116x · tidak dihitung ke Total Saldo', 'icon' => '🏷️'],
                 ];
             @endphp
 
@@ -59,13 +60,23 @@
                     </label>
                     <div class="grid grid-cols-2 gap-2">
                         @foreach($typeDescs as $val => $info)
+                        @php
+                            $activeClasses = match($val) {
+                                'CASH'     => 'border-amber-400 bg-amber-50',
+                                'BANK'     => 'border-blue-400 bg-blue-50',
+                                'CHECK'    => 'border-purple-400 bg-purple-50',
+                                'GIRO'     => 'border-teal-400 bg-teal-50',
+                                'DEPOSITO' => 'border-orange-400 bg-orange-50',
+                                default    => 'border-gray-400 bg-gray-50',
+                            };
+                        @endphp
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="{{ $val }}"
                                    x-model="type"
                                    class="sr-only">
                             <div class="flex items-start gap-2.5 p-3 border-2 rounded-xl transition"
                                  :class="type === '{{ $val }}'
-                                     ? '{{ $val === 'CASH' ? 'border-amber-400 bg-amber-50' : ($val === 'BANK' ? 'border-blue-400 bg-blue-50' : ($val === 'CHECK' ? 'border-purple-400 bg-purple-50' : 'border-teal-400 bg-teal-50')) }}'
+                                     ? '{{ $activeClasses }}'
                                      : 'border-gray-200 bg-white hover:border-gray-300'">
                                 <span class="text-lg leading-none mt-0.5">{{ $info['icon'] }}</span>
                                 <div>

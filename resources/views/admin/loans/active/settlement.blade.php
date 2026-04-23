@@ -152,7 +152,7 @@
                     {{-- Info note --}}
                     <p class="text-xs text-gray-400 mt-3">
                         * Perhitungan ini bersifat estimasi dan dapat berubah sesuai tanggal pelunasan aktual.
-                        Outstanding = sisa total kewajiban (pokok + bunga + admin + asuransi).
+                        Outstanding = sisa total kewajiban (pokok + bunga + asuransi).
                     </p>
                 </div>
             </div>
