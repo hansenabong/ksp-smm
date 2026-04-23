@@ -88,7 +88,7 @@ class AutoPostingService
         if ($tx->is_voided) return;
         if ($this->alreadyPosted('cash_transactions', $tx->id)) return;
 
-        $systemCats = ['Setoran Simpanan', 'Penarikan Simpanan', 'Pencairan Pinjaman', 'Angsuran Pinjaman'];
+        $systemCats = ['Setoran Simpanan', 'Penarikan Simpanan', 'Pencairan Pinjaman', 'Angsuran Pinjaman', 'Pelunasan Pinjaman'];
         if ($tx->category && in_array($tx->category, $systemCats, true)) {
             return; // diposting dari modul Savings/Loans
         }

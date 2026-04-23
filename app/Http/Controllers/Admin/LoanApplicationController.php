@@ -716,7 +716,7 @@ class LoanApplicationController extends Controller
 
         $audit->record('approve', 'LoanApplication', $application->id,
             "Pengajuan pinjaman #{$application->id} [{$application->member?->member_no}] disetujui & dicairkan",
-            ['amount' => (int) $application->amount, 'note' => $validated['approval_note'] ?? null]
+            ['amount' => (int) $application->principal, 'note' => $validated['approval_note'] ?? null]
         );
 
         return redirect()->route('admin.loans.applications.index')->with('success', 'Pengajuan disetujui & pinjaman dicairkan.');
@@ -732,7 +732,7 @@ class LoanApplicationController extends Controller
 
         $audit->record('reject', 'LoanApplication', $application->id,
             "Pengajuan pinjaman #{$application->id} [{$application->member?->member_no}] ditolak",
-            ['amount' => (int) $application->amount, 'note' => $validated['approval_note']]
+            ['amount' => (int) $application->principal, 'note' => $validated['approval_note']]
         );
 
         return redirect()->route('admin.loans.applications.index')->with('success', 'Pengajuan ditolak.');
