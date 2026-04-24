@@ -22,12 +22,16 @@ class CashCategoryController extends Controller
     {
         $pick = fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name, 'type' => $a->type];
 
+        // INCOME: DR Kas / CR offset — offset can be REVENUE, EQUITY, LIABILITY (e.g. deposit),
+        //   or ASSET reduction (e.g. refund/tolakan).
+        // EXPENSE: DR offset / CR Kas — offset can be EXPENSE, ASSET (purchase/loan disbursement),
+        //   or LIABILITY settlement.
         return [
             'incomeAccounts'  => Account::active()->leaf()
-                ->whereIn('type', ['REVENUE', 'EQUITY'])
+                ->whereIn('type', ['REVENUE', 'EQUITY', 'LIABILITY', 'ASSET'])
                 ->orderBy('code')->get()->map($pick)->values(),
             'expenseAccounts' => Account::active()->leaf()
-                ->where('type', 'EXPENSE')
+                ->whereIn('type', ['EXPENSE', 'ASSET', 'LIABILITY'])
                 ->orderBy('code')->get()->map($pick)->values(),
         ];
     }
@@ -35,8 +39,8 @@ class CashCategoryController extends Controller
     private function validAccountIds(string $type): array
     {
         return match($type) {
-            'INCOME'  => Account::active()->leaf()->whereIn('type', ['REVENUE', 'EQUITY'])->pluck('id')->toArray(),
-            'EXPENSE' => Account::active()->leaf()->where('type', 'EXPENSE')->pluck('id')->toArray(),
+            'INCOME'  => Account::active()->leaf()->whereIn('type', ['REVENUE', 'EQUITY', 'LIABILITY', 'ASSET'])->pluck('id')->toArray(),
+            'EXPENSE' => Account::active()->leaf()->whereIn('type', ['EXPENSE', 'ASSET', 'LIABILITY'])->pluck('id')->toArray(),
             default   => [],
         };
     }

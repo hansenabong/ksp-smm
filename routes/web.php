@@ -196,16 +196,16 @@ Route::middleware(['auth'])->group(function () {
             });
 
             // Active loans index
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active', [LoanController::class,'index'])->name('admin.loans.active.index');
             });
 
             // Active loan show — LEGAL can view
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|PENGAWAS|LEGAL')->group(function () {
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active/{loan}',                 [LoanController::class,'show'])->name('admin.loans.active.show');
             });
             // Schedule/subledger/settlement — LEGAL excluded
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|TREASURY|PENGAWAS')->group(function () {
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|TREASURY|PENGAWAS')->group(function () {
                 Route::get('/loans/active/{loan}/schedule',        [LoanController::class,'schedule'])->name('admin.loans.active.schedule');
                 Route::get('/loans/active/{loan}/schedule/pdf',    [LoanController::class,'schedulePdf'])->name('admin.loans.active.schedule.pdf');
                 Route::get('/loans/active/{loan}/subledger/pdf',   [LoanController::class,'subledgerPdf'])->name('admin.loans.active.subledger.pdf');

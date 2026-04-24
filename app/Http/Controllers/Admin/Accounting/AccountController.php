@@ -16,7 +16,7 @@ class AccountController extends Controller
 
     public function index()
     {
-        $this->authorizeAdmin();
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
 
         $accounts = Account::with('parent')
             ->orderBy('code')
