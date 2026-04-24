@@ -46,16 +46,21 @@
     <div class="section-title">Data Pemilik</div>
     <table class="info">
         <tr>
-            <td class="label">Nama Anggota</td><td class="sep">:</td><td class="value">{{ $deposito->member->name }}</td>
+            <td class="label">{{ $deposito->isNonMember() ? 'Nama Deposan' : 'Nama Anggota' }}</td>
+            <td class="sep">:</td>
+            <td class="value">{{ $deposito->depositorDisplayName() }}</td>
         </tr>
         <tr>
-            <td class="label">No. Anggota</td><td class="sep">:</td><td class="value">{{ $deposito->member->member_no ?? '—' }}</td>
+            <td class="label">No. Anggota</td><td class="sep">:</td>
+            <td class="value">{{ $deposito->member?->member_no ?? '(Non-Anggota)' }}</td>
         </tr>
         <tr>
-            <td class="label">No. KTP</td><td class="sep">:</td><td class="value">{{ $deposito->member->ktp_no ?? '—' }}</td>
+            <td class="label">No. KTP</td><td class="sep">:</td>
+            <td class="value">{{ $deposito->member?->ktp_no ?? $deposito->depositor_ktp ?? '—' }}</td>
         </tr>
         <tr>
-            <td class="label">Alamat</td><td class="sep">:</td><td class="value">{{ $deposito->member->address ?? '—' }}</td>
+            <td class="label">Alamat</td><td class="sep">:</td>
+            <td class="value">{{ $deposito->member?->address ?? '—' }}</td>
         </tr>
     </table>
 
@@ -117,7 +122,7 @@
         <tr>
             <td>
                 Pemilik Deposito<br><br><br><br>
-                <span class="name-line">{{ $deposito->member->name }}</span>
+                <span class="name-line">{{ $deposito->depositorDisplayName() }}</span>
             </td>
             <td>
                 Petugas KSP<br><br><br><br>

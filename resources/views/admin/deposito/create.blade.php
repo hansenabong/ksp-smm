@@ -53,6 +53,7 @@
                   members: @json($membersJs),
                   productId: "{{ old('saving_product_id') }}",
                   memberId: "{{ old('member_id') }}",
+                  isAnggota: {{ old('is_anggota', '1') === '0' ? 'false' : 'true' }},
                   startDate: "{{ old('trx_date', now()->toDateString()) }}",
                   amount: "{{ old('amount') }}",
                   get product() { return this.products.find(p => String(p.id) === String(this.productId)) || null; },
@@ -92,14 +93,29 @@
             {{-- ============================================================ --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100">
-                    <div class="text-sm font-semibold text-gray-700">Data Pribadi</div>
+                    <div class="text-sm font-semibold text-gray-700">Data Deposan</div>
                     <div class="text-xs text-gray-400 mt-0.5"><span class="text-red-500">*</span> Wajib diisi</div>
                 </div>
 
                 <div class="px-5 py-5 space-y-4">
-                    <div>
+
+                    {{-- Anggota / Non-Anggota toggle --}}
+                    <input type="hidden" name="is_anggota" :value="isAnggota ? '1' : '0'">
+                    <div class="flex rounded-lg overflow-hidden border border-gray-200 text-sm font-medium w-fit">
+                        <button type="button" @click="isAnggota = true"
+                            :class="isAnggota ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+                            class="px-4 py-2 transition">Anggota</button>
+                        <button type="button" @click="isAnggota = false"
+                            :class="!isAnggota ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+                            class="px-4 py-2 transition border-l border-gray-200">Non-Anggota</button>
+                    </div>
+
+                    {{-- ANGGOTA path --}}
+                    <div x-show="isAnggota">
                         <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Anggota <span class="text-red-500">*</span></label>
-                        <select name="member_id" x-model="memberId" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
+                        <select name="member_id" x-model="memberId"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                :required="isAnggota">
                             <option value="">— Pilih Anggota —</option>
                             @foreach($members as $m)
                                 <option value="{{ $m->id }}" @selected(old('member_id') == $m->id)>
@@ -107,47 +123,49 @@
                                 </option>
                             @endforeach
                         </select>
-                    </div>
 
-                    {{-- Auto-populated member info preview --}}
-                    <div x-show="member" x-cloak class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Info Anggota</div>
-                        <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Nama Lengkap</span>
-                                <span class="font-medium text-gray-800" x-text="member?.name || '—'"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Jenis Kelamin</span>
-                                <span class="font-medium text-gray-800" x-text="genderLabel(member?.gender)"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">No. KTP</span>
-                                <span class="font-mono font-medium text-gray-800" x-text="member?.ktp_no || '—'"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Tgl. Lahir</span>
-                                <span class="font-medium text-gray-800" x-text="member?.birth_date || '—'"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Berlaku KTP</span>
-                                <span class="font-medium text-gray-800" x-text="member?.ktp_expiry || 'Seumur Hidup'"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Status</span>
-                                <span class="font-medium text-gray-800" x-text="statusLabel(member?.marital_status)"></span>
-                            </div>
-                            <div class="col-span-2 flex justify-between">
-                                <span class="text-gray-500">Alamat</span>
-                                <span class="font-medium text-gray-800 text-right" x-text="member?.address || '—'"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Hp</span>
-                                <span class="font-medium text-gray-800" x-text="member?.phone || '—'"></span>
+                        <div x-show="member" x-cloak class="mt-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Info Anggota</div>
+                            <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                                <div class="flex justify-between"><span class="text-gray-500">Nama</span><span class="font-medium text-gray-800" x-text="member?.name || '—'"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">No. KTP</span><span class="font-mono font-medium text-gray-800" x-text="member?.ktp_no || '—'"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Hp</span><span class="font-medium text-gray-800" x-text="member?.phone || '—'"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Status</span><span class="font-medium text-gray-800" x-text="statusLabel(member?.marital_status)"></span></div>
                             </div>
                         </div>
-                        <p class="text-[10px] text-gray-400 mt-2">Data di atas diambil dari Master Anggota. Perbarui di menu Master Data jika tidak sesuai.</p>
                     </div>
+
+                    {{-- NON-ANGGOTA path --}}
+                    <div x-show="!isAnggota" class="space-y-3">
+                        <div class="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs">
+                            Deposan non-anggota. Laporan keuangan tetap digabung dengan anggota — ini hanya untuk pemisahan operasional.
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Nama Deposan <span class="text-red-500">*</span></label>
+                            <input type="text" name="depositor_name" value="{{ old('depositor_name') }}"
+                                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                   placeholder="Nama lengkap" maxlength="100"
+                                   :required="!isAnggota">
+                            @error('depositor_name')<div class="text-red-600 text-xs mt-1">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">No. KTP</label>
+                                <input type="text" name="depositor_ktp" value="{{ old('depositor_ktp') }}"
+                                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                       placeholder="16 digit NIK" maxlength="20">
+                                @error('depositor_ktp')<div class="text-red-600 text-xs mt-1">{{ $message }}</div>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">No. HP</label>
+                                <input type="text" name="depositor_phone" value="{{ old('depositor_phone') }}"
+                                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                       placeholder="cth: 08123456789" maxlength="20">
+                                @error('depositor_phone')<div class="text-red-600 text-xs mt-1">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 

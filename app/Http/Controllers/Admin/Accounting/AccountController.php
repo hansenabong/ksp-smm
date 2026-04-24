@@ -11,7 +11,9 @@ class AccountController extends Controller
 {
     private function authorizeAdmin(): void
     {
-        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
+        // Finance needs to add/edit accounts (e.g. Advance, new beban accounts).
+        // Toggle (active/inactive) still restricted to SUPER_ADMIN — see toggle().
+        abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
     }
 
     public function index()
@@ -101,7 +103,8 @@ class AccountController extends Controller
 
     public function toggle(Account $account)
     {
-        $this->authorizeAdmin();
+        // Toggle is more sensitive — keep SUPER_ADMIN only.
+        abort_unless(auth()->user()->hasRole('SUPER_ADMIN'), 403);
 
         if ($account->is_active && $account->children()->where('is_active', true)->exists()) {
             return back()->with('error', 'Tidak bisa menonaktifkan akun yang masih memiliki sub-akun aktif.');

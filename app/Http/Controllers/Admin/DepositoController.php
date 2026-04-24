@@ -60,23 +60,33 @@ class DepositoController extends Controller
 
     public function store(Request $request, SavingsService $service)
     {
+        $isAnggota = $request->boolean('is_anggota', true);
+
         $validated = $request->validate([
-            'trx_date' => ['required', 'date'],
-            'member_id' => ['required', Rule::exists('members', 'id')->where(fn ($q) => $q->where('is_active', true))],
+            'trx_date'         => ['required', 'date'],
+            'is_anggota'       => ['boolean'],
+            'member_id'        => $isAnggota
+                ? ['required', Rule::exists('members', 'id')->where(fn ($q) => $q->where('is_active', true))]
+                : ['nullable'],
+            'depositor_name'   => $isAnggota ? ['nullable'] : ['required', 'string', 'max:100'],
+            'depositor_phone'  => ['nullable', 'string', 'max:20'],
+            'depositor_ktp'    => ['nullable', 'string', 'max:20'],
             'saving_product_id' => [
                 'required',
                 Rule::exists('saving_products', 'id')->where(fn ($q) => $q->where('is_deposito', true)->where('is_active', true)),
             ],
-            'cash_account_id' => ['required', 'exists:cash_accounts,id'],
-            'amount' => ['required', 'integer', 'min:1'],
-            'description' => ['nullable', 'string', 'max:255'],
-            'bank_account_name' => ['nullable', 'string', 'max:100'],
-            'bank_account_no' => ['nullable', 'string', 'max:50'],
-            'bank_name' => ['nullable', 'string', 'max:100'],
+            'cash_account_id'  => ['required', 'exists:cash_accounts,id'],
+            'amount'           => ['required', 'integer', 'min:1'],
+            'description'      => ['nullable', 'string', 'max:255'],
+            'bank_account_name'=> ['nullable', 'string', 'max:100'],
+            'bank_account_no'  => ['nullable', 'string', 'max:50'],
+            'bank_name'        => ['nullable', 'string', 'max:100'],
         ]);
 
-        // SavingsService::deposit() spawns the DepositoAccount automatically when
-        // the chosen product is is_deposito=true.
+        if (! $isAnggota) {
+            $validated['member_id'] = null;
+        }
+
         $tx = $service->deposit($validated, auth()->id());
 
         return redirect()

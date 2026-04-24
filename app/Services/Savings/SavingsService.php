@@ -238,7 +238,10 @@ class SavingsService
 
         return DepositoAccount::create([
             'reference_code'    => $this->generateDepositoReference($startDate),
-            'member_id'         => $data['member_id'],
+            'member_id'         => $data['member_id'] ?? null,
+            'depositor_name'    => $data['depositor_name'] ?? null,
+            'depositor_phone'   => $data['depositor_phone'] ?? null,
+            'depositor_ktp'     => $data['depositor_ktp'] ?? null,
             'saving_product_id' => $product->id,
             'principal_amount'  => $data['amount'],
             'interest_rate_pct' => $product->default_interest_rate_pct,

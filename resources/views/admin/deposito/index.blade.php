@@ -98,8 +98,10 @@
                         <tr class="border-t">
                             <td class="p-3 font-mono text-xs">{{ $d->reference_code }}</td>
                             <td class="p-3">
-                                <div class="font-medium">{{ $d->member->name }}</div>
-                                <div class="text-xs text-gray-400">{{ $d->member->member_no }}</div>
+                                <div class="font-medium">{{ $d->depositorDisplayName() }}</div>
+                                <div class="text-xs text-gray-400">
+                                    {{ $d->member?->member_no ?? 'Non-Anggota' }}
+                                </div>
                             </td>
                             <td class="p-3 text-xs">{{ $d->savingProduct->name }}</td>
                             <td class="p-3 text-right tabular-nums">Rp {{ number_format($d->principal_amount, 0, ',', '.') }}</td>

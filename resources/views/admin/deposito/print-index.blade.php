@@ -63,8 +63,8 @@
                     <td class="center">{{ $i + 1 }}</td>
                     <td class="mono">{{ $d->reference_code }}</td>
                     <td>
-                        {{ $d->member->name }}<br>
-                        <span style="color:#888; font-size:7pt">{{ $d->member->member_no }}</span>
+                        {{ $d->depositorDisplayName() }}<br>
+                        <span style="color:#888; font-size:7pt">{{ $d->member?->member_no ?? 'Non-Anggota' }}</span>
                     </td>
                     <td>{{ $d->savingProduct->name }}</td>
                     <td class="right">{{ number_format($d->principal_amount, 0, ',', '.') }}</td>

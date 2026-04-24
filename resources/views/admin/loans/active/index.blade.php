@@ -30,10 +30,39 @@
             </div>
         </div>
 
+        {{-- Search bar --}}
+        <form method="GET" action="{{ route('admin.loans.active.index') }}"
+              class="bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-3">
+            <div class="flex items-center gap-2">
+                <div class="flex-1 relative">
+                    <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" name="q" value="{{ $search ?? '' }}"
+                           placeholder="Cari nama anggota atau nomor anggota…"
+                           class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                </div>
+                <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
+                    Cari
+                </button>
+                @if(!empty($search))
+                    <a href="{{ route('admin.loans.active.index') }}"
+                       class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
+                        Reset
+                    </a>
+                @endif
+            </div>
+        </form>
+
         {{-- Table Card --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-700">Daftar Pinjaman Approved</span>
+                <span class="text-sm font-medium text-gray-700">
+                    Daftar Pinjaman Approved
+                    @if(!empty($search))
+                        <span class="text-xs text-gray-400 font-normal">— pencarian: "{{ $search }}"</span>
+                    @endif
+                </span>
                 <span class="text-xs text-gray-400">{{ $loans->total() }} data</span>
             </div>
 
@@ -84,7 +113,11 @@
                         @empty
                             <tr>
                                 <td colspan="4" class="px-5 py-12 text-center text-gray-400 text-sm">
-                                    Belum ada pinjaman aktif.
+                                    @if(!empty($search))
+                                        Tidak ada pinjaman yang cocok dengan pencarian "{{ $search }}".
+                                    @else
+                                        Belum ada pinjaman aktif.
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse

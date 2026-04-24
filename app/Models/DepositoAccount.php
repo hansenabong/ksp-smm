@@ -14,6 +14,9 @@ class DepositoAccount extends Model
     protected $fillable = [
         'reference_code',
         'member_id',
+        'depositor_name',
+        'depositor_phone',
+        'depositor_ktp',
         'saving_product_id',
         'principal_amount',
         'interest_rate_pct',
@@ -38,6 +41,17 @@ class DepositoAccount extends Model
     public function member()
     {
         return $this->belongsTo(Member::class);
+    }
+
+    /** Display name — member name if anggota, depositor_name if non-anggota. */
+    public function depositorDisplayName(): string
+    {
+        return $this->member?->name ?? $this->depositor_name ?? '(Non-Anggota)';
+    }
+
+    public function isNonMember(): bool
+    {
+        return $this->member_id === null;
     }
 
     public function savingProduct()

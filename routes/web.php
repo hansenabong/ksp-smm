@@ -245,12 +245,14 @@ Route::middleware(['auth'])->group(function () {
             // AKUNTANSI — SUPER_ADMIN + FINANCE
             // ------------------------------------------------------------------
             Route::prefix('accounting/accounts')->middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
-                Route::get('/', [AccountController::class,'index'])->name('admin.accounting.accounts.index');
+                Route::get('/',                  [AccountController::class,'index'])->name('admin.accounting.accounts.index');
+                // Finance may add/edit accounts (e.g. Advance, new beban accounts).
+                Route::get('/create',            [AccountController::class,'create'])->name('admin.accounting.accounts.create');
+                Route::post('/',                 [AccountController::class,'store'])->name('admin.accounting.accounts.store');
+                Route::get('/{account}/edit',    [AccountController::class,'edit'])->name('admin.accounting.accounts.edit');
+                Route::put('/{account}',         [AccountController::class,'update'])->name('admin.accounting.accounts.update');
+                // Toggle active/inactive remains SUPER_ADMIN only.
                 Route::middleware('role:SUPER_ADMIN')->group(function () {
-                    Route::get('/create',            [AccountController::class,'create'])->name('admin.accounting.accounts.create');
-                    Route::post('/',                 [AccountController::class,'store'])->name('admin.accounting.accounts.store');
-                    Route::get('/{account}/edit',    [AccountController::class,'edit'])->name('admin.accounting.accounts.edit');
-                    Route::put('/{account}',         [AccountController::class,'update'])->name('admin.accounting.accounts.update');
                     Route::patch('/{account}/toggle',[AccountController::class,'toggle'])->name('admin.accounting.accounts.toggle');
                 });
             });

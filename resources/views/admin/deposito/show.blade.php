@@ -60,9 +60,9 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div class="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                    <div class="text-xs text-gray-400 uppercase tracking-wide">Anggota</div>
-                    <div class="text-lg font-bold text-gray-800">{{ $member->name }}</div>
-                    <div class="text-xs text-gray-500">{{ $member->member_no }}</div>
+                    <div class="text-xs text-gray-400 uppercase tracking-wide">{{ $deposito->isNonMember() ? 'Non-Anggota' : 'Anggota' }}</div>
+                    <div class="text-lg font-bold text-gray-800">{{ $deposito->depositorDisplayName() }}</div>
+                    <div class="text-xs text-gray-500">{{ $member->member_no ?? '—' }}</div>
                 </div>
                 <div>
                     <div class="text-xs text-gray-400 uppercase tracking-wide">Produk</div>
@@ -79,49 +79,63 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {{-- Data Pribadi --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Data Pribadi</div>
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Data Pribadi</div>
+                    @if($deposito->isNonMember())
+                        <span class="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold uppercase">Non-Anggota</span>
+                    @endif
+                </div>
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <dt class="text-gray-500">Nama Lengkap</dt>
-                        <dd class="font-medium text-gray-800">{{ $member->name }}</dd>
+                        <dd class="font-medium text-gray-800">{{ $deposito->depositorDisplayName() }}</dd>
                     </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">Jenis Kelamin</dt>
-                        <dd class="font-medium text-gray-800">
-                            @if($member->gender === 'L') Laki-laki
-                            @elseif($member->gender === 'P') Perempuan
-                            @else — @endif
-                        </dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">No. KTP</dt>
-                        <dd class="font-mono font-medium text-gray-800">{{ $member->ktp_no ?? '—' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">Tgl. Lahir</dt>
-                        <dd class="font-medium text-gray-800">{{ $member->birth_date?->format('d/m/Y') ?? '—' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">Berlaku KTP</dt>
-                        <dd class="font-medium text-gray-800">{{ $member->ktp_expiry?->format('d/m/Y') ?? 'Seumur Hidup' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">Status</dt>
-                        <dd class="font-medium text-gray-800">
-                            @php
-                                $statusMap = ['BELUM_KAWIN'=>'Belum Kawin','KAWIN'=>'Kawin','CERAI_HIDUP'=>'Cerai Hidup','CERAI_MATI'=>'Cerai Mati'];
-                            @endphp
-                            {{ $statusMap[$member->marital_status] ?? '—' }}
-                        </dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">Alamat</dt>
-                        <dd class="font-medium text-gray-800 text-right max-w-[60%]">{{ $member->address ?? '—' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">Hp</dt>
-                        <dd class="font-medium text-gray-800">{{ $member->phone ?? '—' }}</dd>
-                    </div>
+                    @if($deposito->isNonMember())
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">No. KTP</dt>
+                            <dd class="font-mono font-medium text-gray-800">{{ $deposito->depositor_ktp ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">No. HP</dt>
+                            <dd class="font-medium text-gray-800">{{ $deposito->depositor_phone ?? '—' }}</dd>
+                        </div>
+                    @else
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Jenis Kelamin</dt>
+                            <dd class="font-medium text-gray-800">
+                                @if($member?->gender === 'L') Laki-laki
+                                @elseif($member?->gender === 'P') Perempuan
+                                @else — @endif
+                            </dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">No. KTP</dt>
+                            <dd class="font-mono font-medium text-gray-800">{{ $member?->ktp_no ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Tgl. Lahir</dt>
+                            <dd class="font-medium text-gray-800">{{ $member?->birth_date?->format('d/m/Y') ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Berlaku KTP</dt>
+                            <dd class="font-medium text-gray-800">{{ $member?->ktp_expiry?->format('d/m/Y') ?? 'Seumur Hidup' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Status</dt>
+                            <dd class="font-medium text-gray-800">
+                                @php $statusMap = ['BELUM_KAWIN'=>'Belum Kawin','KAWIN'=>'Kawin','CERAI_HIDUP'=>'Cerai Hidup','CERAI_MATI'=>'Cerai Mati']; @endphp
+                                {{ $statusMap[$member?->marital_status ?? ''] ?? '—' }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Alamat</dt>
+                            <dd class="font-medium text-gray-800 text-right max-w-[60%]">{{ $member?->address ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500">Hp</dt>
+                            <dd class="font-medium text-gray-800">{{ $member?->phone ?? '—' }}</dd>
+                        </div>
+                    @endif
                 </dl>
             </div>
 

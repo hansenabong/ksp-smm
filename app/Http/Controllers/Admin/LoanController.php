@@ -13,19 +13,29 @@ class LoanController extends Controller
 {
     public function __construct(private AutoPostingService $autoPosting) {}
 
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim((string) $request->input('q', ''));
+
         $totalPrincipal = (int) Loan::where('status', 'ACTIVE')->sum('principal');
 
-        $loans = Loan::with(['member', 'loanProduct'])
+        $query = Loan::with(['member', 'loanProduct'])
             ->where('status', 'ACTIVE')
-            ->orderByDesc('disbursed_date')
-            ->paginate(10)
-            ->withQueryString();
+            ->orderByDesc('disbursed_date');
+
+        if ($search !== '') {
+            $query->whereHas('member', function ($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('member_no', 'ilike', "%{$search}%");
+            });
+        }
+
+        $loans = $query->paginate(10)->withQueryString();
 
         return view('admin.loans.active.index', [
             'loans'          => $loans,
             'totalPrincipal' => $totalPrincipal,
+            'search'         => $search,
         ]);
     }
 
