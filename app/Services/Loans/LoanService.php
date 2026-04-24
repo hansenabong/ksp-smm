@@ -158,6 +158,14 @@ class LoanService
                 ]);
             }
 
+            // Pelunasan dipercepat harus menutup seluruh sisa pinjaman.
+            if ($isEarlyRepayment && $amount < (int) $loan->outstanding) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Pelunasan dipercepat harus sama dengan sisa pinjaman: Rp '
+                        . number_format($loan->outstanding, 0, ',', '.'),
+                ]);
+            }
+
             // --- Penalty calculation ---
             // Denda akumulasi keterlambatan dapat dibayar kapan saja (regular atau pelunasan).
             // Denda pelunasan dipercepat hanya saat early repayment.

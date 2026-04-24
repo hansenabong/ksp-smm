@@ -679,7 +679,7 @@ class LoanApplicationController extends Controller
         abort_unless(auth()->user()->hasAnyRole(['SUPER_ADMIN', 'FINANCE']), 403);
 
         $data = $request->validate([
-            'method'                   => ['required', 'in:FLAT,EFEKTIF'],
+            'method'                   => ['required', 'in:FLAT'],
             'interest_monthly_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'finance_note'             => ['nullable', 'string', 'max:255'],
         ]);

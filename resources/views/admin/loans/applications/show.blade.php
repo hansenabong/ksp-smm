@@ -805,7 +805,7 @@
                                 <label class="block text-xs font-medium text-gray-600 mb-1.5">Metode Bunga</label>
                                 <select name="method" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="FLAT" @selected(($application->method ?? 'FLAT') === 'FLAT')>FLAT (tetap)</option>
-                                    <option value="EFEKTIF" @selected(($application->method ?? '') === 'EFEKTIF')>EFEKTIF (menurun)</option>
+                                    <option value="EFEKTIF" disabled>EFEKTIF (belum tersedia)</option>
                                 </select>
                             </div>
                             <div>

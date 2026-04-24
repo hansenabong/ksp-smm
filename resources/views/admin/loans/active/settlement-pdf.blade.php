@@ -227,7 +227,7 @@
             </tr>
             @endforeach
             <tr class="subtotal-row">
-                <td class="text-orange">Total Angsuran Tertunggak</td>
+                <td class="text-orange">Total Angsuran Tertunggak <span style="font-size:9px; font-weight:normal; color:#888;">(informasi — sudah termasuk dalam Outstanding)</span></td>
                 <td class="text-right font-mono text-orange">{{ number_format($calc['tunggakan'], 2, ',', '.') }}</td>
             </tr>
             @endif

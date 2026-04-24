@@ -197,7 +197,7 @@ class CollectionController extends Controller
         $today = Carbon::today();
 
         $loans = Loan::with([
-                'member', 'application', 'collectionRecord',
+                'member', 'application', 'loanProduct', 'collectionRecord',
                 'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1),
             ])
             ->where('status', 'ACTIVE')
@@ -257,7 +257,7 @@ class CollectionController extends Controller
         $today = Carbon::today();
 
         $loans = Loan::with([
-                'member', 'application', 'collectionRecord',
+                'member', 'application', 'loanProduct', 'collectionRecord',
                 'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1),
             ])
             ->where('status', 'ACTIVE')

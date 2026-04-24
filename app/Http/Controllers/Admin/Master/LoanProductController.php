@@ -10,7 +10,9 @@ use Illuminate\Validation\Rule;
 
 class LoanProductController extends Controller
 {
-    private array $methods = ['FLAT', 'EFEKTIF'];
+    // EFEKTIF temporarily disabled — schedule, settlement, and postLoanPayment still
+    // use FLAT interest decomposition. Re-enable here once per-installment math is wired.
+    private array $methods = ['FLAT'];
 
     public function index(Request $request)
     {

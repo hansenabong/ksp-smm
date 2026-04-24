@@ -85,7 +85,8 @@ class LoanController extends Controller
 
         // Merge hold_angsuran into existing fees (other fees preserved)
         $fees = $loan->disbursement_fees ?? [];
-        $haKe = max(0, (int) $request->input('hold_angsuran_ke', 0));
+        $haKe = (int) $request->input('hold_angsuran_ke', 0);
+        $haKe = max(0, min($haKe, (int) $loan->tenor_months));
         $ha   = $haKe > 0
             ? $haKe * (int) $loan->monthly_installment
             : (int) preg_replace('/[^0-9]/', '', (string) $request->input('hold_angsuran', ''));
@@ -161,7 +162,17 @@ class LoanController extends Controller
                 $fees[$field] = $val;
             }
         }
+
+        $feesChanged = $fees !== ($existing ?? []);
+
         $loan->update(['disbursement_fees' => $fees ?: null]);
+
+        // If fees changed and a journal entry already exists, void it so the new
+        // fee amounts can be re-posted (prevents ledger drift on fee edits).
+        if ($feesChanged) {
+            $this->autoPosting->voidBySource('loan_disbursement_fees', $loan->id,
+                'Biaya pencairan diubah — jurnal di-void untuk re-post.');
+        }
 
         // Post supplementary GL entry for fees (idempotent — skips if already posted)
         if ($fees) {
@@ -240,19 +251,17 @@ class LoanController extends Controller
         $paidCount  = $payments->count();
         $remaining  = $tenor - $paidCount;
 
-        // Sisa pokok hutang (outstanding principal only)
-        // For flat rate: we reduce principal equally each period
-        $sisaPokok = $principal - ($principalMonthly * min($paidCount, $tenor - 1));
-        if ($paidCount >= $tenor - 1) {
-            // last period: residual
-            $sisaPokok = max(0, $principal - ($principalMonthly * $paidCount));
-        }
+        // Sisa pokok hutang (outstanding principal only, for early-repayment fee basis)
+        $sisaPokok = ($paidCount >= $tenor - 1)
+            ? max(0, $principal - ($principalMonthly * $paidCount))
+            : $principal - ($principalMonthly * min($paidCount, $tenor - 1));
 
         // Expected due date for next installment
         $nextInstallmentNo  = $paidCount + 1;
         $expectedDueDate    = $disbursedDate->copy()->addMonths($nextInstallmentNo);
 
-        // Overdue installments = installments whose due date has passed but unpaid
+        // Overdue installments = installments whose due date has passed but unpaid.
+        // Tunggakan is informational only — its components are already included in `outstanding`.
         $overdueCount = 0;
         $tunggakan    = 0;
         for ($i = 1; $i <= $tenor; $i++) {
@@ -289,31 +298,14 @@ class LoanController extends Controller
         }
 
         // Early repayment penalty (biaya pelunasan dipercepat)
-        $isEarlyRepayment      = $remaining > 0;
-        $biayaPelunasanDipercepat = 0;
-        if ($isEarlyRepayment) {
-            $biayaPelunasanDipercepat = (int) round($sisaPokok * ($earlyRepaymentRateBp / 10000.0));
-        }
+        $isEarlyRepayment         = $remaining > 0;
+        $biayaPelunasanDipercepat = $isEarlyRepayment
+            ? (int) round($sisaPokok * ($earlyRepaymentRateBp / 10000.0))
+            : 0;
 
-        // Remaining interest (bunga tersisa for flat rate)
-        $bungaTersisa    = $interestMonthly * $remaining;
-        $asuransiTersisa = $insuranceMonthly * $remaining;
-
-        // Current month installment (bulan berjalan angsuran)
-        $angsuranBulanBerjalan = ($paidCount < $tenor) ? $monthlyInstallment : 0;
-
-        // TOTAL PELUNASAN
-        $totalPelunasan = $sisaPokok
-            + $bungaTersisa
-            + $asuransiTersisa
-            + $tunggakan        // overdue principal component already in sisa pokok, but denda tambahan
-            + $dendaKeterlambatan
-            + $biayaPelunasanDipercepat;
-
-        // Subtract what's included in sisa pokok to avoid double-counting tunggakan principal
-        // Actually tunggakan is the full overdue installment amounts already (principal+interest+admin)
-        // For flat rate settlement, the standard is: remaining total_payable + penalties
-        $totalPelunasanStandard = max(0, (int)$loan->outstanding)
+        // TOTAL PELUNASAN = sisa kewajiban + denda + biaya pelunasan
+        // (tunggakan is already inside outstanding — not added again).
+        $totalPelunasan = max(0, (int) $loan->outstanding)
             + $dendaKeterlambatan
             + $biayaPelunasanDipercepat;
 
@@ -321,8 +313,6 @@ class LoanController extends Controller
             'settlement_date'           => $settlementDate,
             'paid_count'                => $paidCount,
             'remaining_periods'         => $remaining,
-            'sisa_pokok'                => $sisaPokok,
-            'angsuran_bulan_berjalan'   => $angsuranBulanBerjalan,
             'expected_due_date'         => $expectedDueDate,
             'overdue_count'             => $overdueCount,
             'tunggakan'                 => $tunggakan,
@@ -332,10 +322,8 @@ class LoanController extends Controller
             'is_early_repayment'        => $isEarlyRepayment,
             'biaya_pelunasan_dipercepat'=> $biayaPelunasanDipercepat,
             'early_repayment_rate_bp'   => $earlyRepaymentRateBp,
-            'bunga_tersisa'             => $bungaTersisa,
-            'asuransi_tersisa'          => $asuransiTersisa,
             'outstanding'               => (int) $loan->outstanding,
-            'total_pelunasan'           => $totalPelunasanStandard,
+            'total_pelunasan'           => $totalPelunasan,
         ];
     }
 

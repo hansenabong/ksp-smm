@@ -87,9 +87,9 @@
                         </tr>
                     </table>
 
-                    {{-- Tunggakan --}}
+                    {{-- Tunggakan (informational — already included in Outstanding above) --}}
                     @if($calc['overdue_count'] > 0)
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tunggakan ({{ $calc['overdue_count'] }} angsuran)</div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tunggakan ({{ $calc['overdue_count'] }} angsuran) <span class="text-[10px] font-normal text-gray-400 normal-case">&mdash; sudah termasuk dalam Outstanding</span></div>
                     <table class="w-full text-sm mb-4">
                         <tr class="border-b border-gray-100">
                             <td class="py-1.5 text-gray-600 pl-3">Angsuran Tertunggak</td>

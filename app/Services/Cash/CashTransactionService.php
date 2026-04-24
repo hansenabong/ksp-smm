@@ -2,6 +2,7 @@
 
 namespace App\Services\Cash;
 
+use App\Models\CashAccount;
 use App\Models\CashTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,7 +58,10 @@ class CashTransactionService
     {
         return DB::transaction(function () use ($data, $userId) {
 
-            // OPTIONAL (recommended): cegah saldo minus
+            // Lock the cash account row so concurrent expenses serialize on the balance check.
+            CashAccount::lockForUpdate()->findOrFail($data['from_cash_account_id']);
+
+            // cegah saldo minus
             $balance = $this->getBalance($data['from_cash_account_id']);
             if ($balance < $data['amount']) {
                 throw ValidationException::withMessages([
@@ -161,7 +165,10 @@ class CashTransactionService
                 ]);
             }
 
-            // OPTIONAL (recommended): cegah saldo minus
+            // Lock source cash account row to serialize concurrent outflows.
+            CashAccount::lockForUpdate()->findOrFail($data['from_cash_account_id']);
+
+            // cegah saldo minus
             $balance = $this->getBalance($data['from_cash_account_id']);
             if ($balance < $data['amount']) {
                 throw \Illuminate\Validation\ValidationException::withMessages([

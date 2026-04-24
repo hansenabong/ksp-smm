@@ -34,14 +34,18 @@ class LoanPaymentVoidController extends Controller
             ]
         );
 
-        $returnUrl = $request->input('return');
-        if ($returnUrl && !str_starts_with($returnUrl, url('/'))) {
-            $returnUrl = null;
-        }
+        // Accept only same-host URLs or relative paths — never a bare external URL.
+        $returnUrl = (string) $request->input('return', '');
+        $appHost   = parse_url((string) config('app.url'), PHP_URL_HOST);
+        $inputHost = parse_url($returnUrl, PHP_URL_HOST);
+        $isSafe = $returnUrl !== '' && (
+            $inputHost === null && str_starts_with($returnUrl, '/')
+            || ($appHost && $inputHost === $appHost)
+        );
 
         $fallback = route('admin.loans.active.show', $payment->loan_id);
 
-        return redirect($returnUrl ?: $fallback)
+        return redirect($isSafe ? $returnUrl : $fallback)
             ->with('success', 'Pembayaran berhasil di-VOID.');
     }
 }

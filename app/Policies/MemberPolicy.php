@@ -9,7 +9,7 @@ class MemberPolicy
 {
     /**
      * Who can view sensitive personal data (KTP, NIK, full address, etc.)
-     * BENDAHARA only sees financial data — not personal identity fields.
+     * Must stay in sync with Gate::define('view-sensitive-member-data') in AppServiceProvider.
      */
     public function viewSensitive(User $user, Member $member): bool
     {
