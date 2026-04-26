@@ -482,6 +482,21 @@
             </div>
 
             <div class="space-y-2">
+                <a href="{{ route('admin.loans.active.index') }}" class="{{ $submenuLink }}">
+                    <div class="{{ $submenuIcon }} bg-purple-100">
+                        <svg class="w-4.5 h-4.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h3m-3-4V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h6m4-16h4a2 2 0 012 2v10m-6-6l4 4m0 0l-4 4m4-4H9"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Pinjaman Aktif</div>
+                        <div class="text-xs text-gray-500">Kwitansi angsuran, jadwal, pelunasan</div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+
                 <a href="{{ route('admin.loans.applications.index') }}" class="{{ $submenuLink }}">
                     <div class="{{ $submenuIcon }} bg-purple-100">
                         <svg class="w-4.5 h-4.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,8 +504,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Cetak Dokumen</div>
-                        <div class="text-xs text-gray-500">PK, Penawaran, Kwitansi, Permohonan Dana, Jadwal Angsuran</div>
+                        <div class="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Cetak Dokumen Pengajuan</div>
+                        <div class="text-xs text-gray-500">PK, Penawaran, Permohonan Dana, OL</div>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

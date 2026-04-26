@@ -68,7 +68,8 @@
     $leftFeeKeys  = ['biaya_administrasi','biaya_provisi','biaya_notaris','asuransi','pengecekan','ploting','roya','pnpb','hold_imb','hold_pbb'];
     $rightFeeKeys = ['hold_angsuran','bphtb','pph'];
 
-    $jumlahBiaya     = collect($fees)->sum();
+    // Exclude hold_angsuran_ke (count, not rupiah) from the total to prevent 2-rupiah discrepancy.
+    $jumlahBiaya     = collect($fees)->except(['hold_angsuran_ke'])->sum();
     $pencairanBersih = (int)$loan->principal - $jumlahBiaya;
     $totalBunga      = (int)$loan->interest_monthly * (int)$loan->tenor_months;
 
@@ -85,8 +86,14 @@
 <div class="outer-border">
 
     {{-- Title --}}
+    @php
+        $__logo    = public_path('images/logo-ksp.jpeg');
+        $__logoSrc = file_exists($__logo) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__logo)) : '';
+    @endphp
     <div class="title-bar" style="display:flex; align-items:center; gap:10pt;">
-        <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:40pt; height:40pt; object-fit:contain;">
+        @if($__logoSrc)
+        <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:44pt; height:44pt; object-fit:contain;">
+        @endif
         <div>
             <div class="app">KSP SARANA MITRA MANDIRI</div>
             <div class="doc">Permohonan Dana</div>

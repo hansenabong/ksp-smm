@@ -137,16 +137,26 @@
             . ', yang dikeluarkan oleh pihak berwajib di ' . $penerbit;
     @endphp
 
+    @php
+        $__logo    = public_path('images/logo-ksp.jpeg');
+        $__logoSrc = file_exists($__logo) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__logo)) : '';
+    @endphp
+
     {{-- ===== KOP SURAT ===== --}}
     <div class="kop">
         <table class="kop-table kop-logo"><tr>
-            <td style="width:60pt; padding-right:10pt;">
-                <img src="{{ public_path('images/logo-ksp.jpeg') }}" alt="KSP SMM" style="width:54pt; height:54pt; object-fit:contain;">
+            <td style="width:70pt; padding-right:10pt; vertical-align:middle;">
+                @if($__logoSrc)
+                <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:60pt; height:60pt; object-fit:contain;">
+                @endif
             </td>
-            <td>
-                <div class="kop-name">KOPERASI SIMPAN PINJAM SARANA MITRA MANDIRI</div>
-                <div class="kop-sub">Komplek Dutamas Fatmawati Blok B1 No. 16, Cipete Utara, Jakarta Selatan</div>
+            <td style="vertical-align:middle; text-align:center;">
+                <div class="kop-name">KSP SARANA MITRA MANDIRI</div>
+                <div class="kop-sub">Jalan RS Fatmawati Komplek Duta Mas Blok B1 No.16, Kel. Cipete Utara</div>
+                <div class="kop-sub">Kec. Kebayoran Baru, Kota Jakarta Selatan 12150</div>
+                <div class="kop-sub">No. Telepon : 0812 1635 217</div>
             </td>
+            <td style="width:70pt;"></td>
         </tr></table>
     </div>
 

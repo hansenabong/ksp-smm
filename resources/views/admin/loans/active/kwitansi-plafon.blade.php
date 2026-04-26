@@ -61,14 +61,14 @@
                 <div class="flex min-h-[320px]">
 
                     {{-- Left company strip --}}
-                    <div class="w-28 bg-gray-900 flex flex-col items-center justify-center py-6 px-3 shrink-0">
+                    <div class="w-36 bg-gray-900 flex flex-col items-center justify-center py-6 px-3 shrink-0">
                         {{-- Vertical company name --}}
-                        <div class="text-white font-bold text-xs tracking-widest uppercase whitespace-nowrap"
+                        <div class="text-white font-bold text-sm tracking-widest uppercase whitespace-nowrap"
                              style="writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.15em;">
                             {{ $appName }}
                         </div>
-                        <div class="mt-4 w-14 h-14 flex items-center justify-center">
-                            <img src="{{ asset('images/logo-ksp.jpeg') }}" alt="KSP SMM" class="w-14 h-14 object-contain rounded-full border-2 border-white/40">
+                        <div class="mt-4 w-20 h-20 flex items-center justify-center">
+                            <img src="{{ asset('images/logo-ksp.jpeg') }}" alt="KSP SMM" class="w-20 h-20 object-contain rounded-full border-2 border-white/40">
                         </div>
                         <div class="mt-3 text-white/60 text-xs text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 9px; letter-spacing: 0.1em;">
                             Koperasi Simpan Pinjam

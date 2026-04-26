@@ -244,14 +244,22 @@
                                             <td class="px-5 py-3.5 text-gray-500">{{ $p->note ?? '-' }}</td>
                                             <td class="px-5 py-3.5 text-gray-500 text-xs">{{ $p->creator?->name ?? $p->creator?->email ?? '-' }}</td>
                                             <td class="px-5 py-3.5 text-right">
-                                                @if ($p->is_voided)
-                                                    <span class="inline-flex items-center px-2 py-1 text-xs rounded-md bg-red-100 text-red-700 font-medium">VOID</span>
-                                                @else
-                                                    <a href="{{ route('admin.loans.payments.void.create', $p) }}"
-                                                        class="inline-flex items-center px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition">
-                                                        VOID
+                                                <div class="flex items-center justify-end gap-1.5">
+                                                    @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE','TREASURY']))
+                                                    <a href="{{ route('admin.loans.payments.receipt', $p) }}"
+                                                        class="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition">
+                                                        Kwitansi
                                                     </a>
-                                                @endif
+                                                    @endif
+                                                    @if ($p->is_voided)
+                                                        <span class="inline-flex items-center px-2 py-1 text-xs rounded-md bg-red-100 text-red-700 font-medium">VOID</span>
+                                                    @elseif(auth()->user()->hasRole('SUPER_ADMIN'))
+                                                        <a href="{{ route('admin.loans.payments.void.create', $p) }}"
+                                                            class="inline-flex items-center px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition">
+                                                            VOID
+                                                        </a>
+                                                    @endif
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty

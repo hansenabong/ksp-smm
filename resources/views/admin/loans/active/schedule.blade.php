@@ -3,9 +3,9 @@
         <div class="flex items-center justify-between">
             @php $isCollection = request()->routeIs('admin.collection.*'); @endphp
             <div>
-                <div class="text-xs text-gray-400 mb-0.5">{{ $isCollection ? 'Penagihan / Amortisasi' : 'Pinjaman / Aktif / Amortisasi' }}</div>
+                <div class="text-xs text-gray-400 mb-0.5">{{ $isCollection ? 'Penagihan / Jadwal Angsuran' : 'Pinjaman / Aktif / Jadwal Angsuran' }}</div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Amortisasi — #{{ $loan->id }}
+                    Jadwal Angsuran — #{{ $loan->id }}
                 </h2>
             </div>
             <div class="flex gap-2">

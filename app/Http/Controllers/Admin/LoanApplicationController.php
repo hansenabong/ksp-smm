@@ -845,13 +845,16 @@ class LoanApplicationController extends Controller
         abort_unless($application->status === 'APPROVED', 404);
 
         $application->load(['member', 'loanProduct', 'approver']);
-        $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
+        $loan    = \App\Models\Loan::where('loan_application_id', $application->id)->first();
         $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
-
-        $html = view('admin.loans.applications.agreement-pdf', compact('application', 'loan', 'nomorPk'))->render();
         $filename = 'perjanjian-' . str_replace('/', '-', $nomorPk) . '.docx';
 
-        return $this->buildWordFromHtml($html, $filename);
+        $service = new \App\Services\Document\PkWordService();
+        $tempPath = $service->buildSertipikat($application, $loan, $nomorPk);
+
+        return response()->download($tempPath, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
     }
 
     public function agreementVehicleWord(LoanApplication $application)
@@ -859,13 +862,16 @@ class LoanApplicationController extends Controller
         abort_unless($application->status === 'APPROVED', 404);
 
         $application->load(['member', 'loanProduct', 'approver']);
-        $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
+        $loan    = \App\Models\Loan::where('loan_application_id', $application->id)->first();
         $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
-
-        $html = view('admin.loans.applications.agreement-vehicle-pdf', compact('application', 'loan', 'nomorPk'))->render();
         $filename = 'perjanjian-kendaraan-' . str_replace('/', '-', $nomorPk) . '.docx';
 
-        return $this->buildWordFromHtml($html, $filename);
+        $service = new \App\Services\Document\PkWordService();
+        $tempPath = $service->buildKendaraan($application, $loan, $nomorPk);
+
+        return response()->download($tempPath, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
     }
 
     /**

@@ -107,6 +107,30 @@
         $atasNama     = $fd['atas_nama_agunan']    ?? '....................................................';
     @endphp
 
+    @php
+        $__logo    = public_path('images/logo-ksp.jpeg');
+        $__logoSrc = file_exists($__logo) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__logo)) : '';
+    @endphp
+
+    {{-- ===== KOP SURAT ===== --}}
+    <table style="width:100%; border-collapse:collapse; margin-bottom:0;">
+        <tr>
+            <td style="width:70pt; vertical-align:middle; text-align:left; padding-right:8pt;">
+                @if($__logoSrc)
+                <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:62pt; height:62pt; object-fit:contain;">
+                @endif
+            </td>
+            <td style="vertical-align:middle; text-align:center;">
+                <div style="font-size:15pt; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">KSP SARANA MITRA MANDIRI</div>
+                <div style="font-size:9pt; margin-top:3pt;">Jalan RS Fatmawati Komplek Duta Mas Blok B1 No.16, Kel. Cipete Utara</div>
+                <div style="font-size:9pt;">Kec. Kebayoran Baru, Kota Jakarta Selatan 12150</div>
+                <div style="font-size:9pt;">No. Telepon : 0812 1635 217</div>
+            </td>
+            <td style="width:70pt;"></td>
+        </tr>
+    </table>
+    <div style="border-top:2pt solid #000; border-bottom:1pt solid #000; height:3pt; margin:6pt 0 12pt 0;"></div>
+
     {{-- ===== HEADER ===== --}}
     <div class="header">
         <h1>PERJANJIAN KREDIT</h1>

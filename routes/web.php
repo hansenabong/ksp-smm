@@ -195,13 +195,13 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/loans/applications/{application}/reject', [LoanApplicationController::class,'reject'])->name('admin.loans.applications.reject');
             });
 
-            // Active loans index
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|PENGAWAS|LEGAL')->group(function () {
+            // Active loans index — TREASURY needs to browse loans to reach kwitansi angsuran
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|TREASURY|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active', [LoanController::class,'index'])->name('admin.loans.active.index');
             });
 
-            // Active loan show — LEGAL can view
-            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|PENGAWAS|LEGAL')->group(function () {
+            // Active loan show — TREASURY read-only to access payment kwitansi
+            Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|TREASURY|PENGAWAS|LEGAL')->group(function () {
                 Route::get('/loans/active/{loan}',                 [LoanController::class,'show'])->name('admin.loans.active.show');
             });
             // Schedule/subledger/settlement — LEGAL excluded
@@ -232,6 +232,9 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
                 Route::get('/loans/active/{loan}/payments/create',[LoanPaymentController::class,'create'])->name('admin.loans.payments.create');
                 Route::post('/loans/active/{loan}/payments',      [LoanPaymentController::class,'store'])->name('admin.loans.payments.store');
+            });
+            // Payment receipt — FINANCE + TREASURY (read-only kwitansi angsuran)
+            Route::middleware('role:SUPER_ADMIN|FINANCE|TREASURY')->group(function () {
                 Route::get('/loans/payments/{payment}/receipt',   [LoanPaymentController::class,'receipt'])->name('admin.loans.payments.receipt');
             });
 

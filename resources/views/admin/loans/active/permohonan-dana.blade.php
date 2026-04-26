@@ -71,7 +71,7 @@
         $leftFeeKeys  = ['biaya_administrasi','biaya_provisi','biaya_notaris','asuransi','pengecekan','ploting','roya','pnpb','hold_imb','hold_pbb'];
         $rightFeeKeys = ['hold_angsuran','bphtb','pph'];
 
-        $jumlahBiaya  = collect($fees)->sum();
+        $jumlahBiaya  = collect($fees)->except(['hold_angsuran_ke'])->sum();
         $pencairanBersih = (int)$loan->principal - $jumlahBiaya;
 
         $totalBunga   = (int)$loan->interest_monthly * (int)$loan->tenor_months;
@@ -174,9 +174,19 @@
     <div id="form-area" class="max-w-3xl mx-auto">
         <div class="bg-white border border-gray-800 text-sm" style="font-family: Arial, sans-serif;">
 
-            {{-- ── Title ── --}}
-            <div class="border-b border-gray-800 py-2 text-center">
-                <div class="font-bold text-base uppercase tracking-wide">{{ strtoupper($appName) }}</div>
+            {{-- ── Kop Surat ── --}}
+            <div class="border-b-2 border-gray-800 py-3 px-3 flex items-center gap-3">
+                <img src="{{ asset('images/logo-ksp.jpeg') }}" alt="KSP SMM" class="w-16 h-16 object-contain shrink-0">
+                <div class="flex-1 text-center">
+                    <div class="font-bold text-lg uppercase tracking-wide leading-tight">KSP SARANA MITRA MANDIRI</div>
+                    <div class="text-xs mt-0.5">Jalan RS Fatmawati Komplek Duta Mas Blok B1 No.16, Kel. Cipete Utara</div>
+                    <div class="text-xs">Kec. Kebayoran Baru, Kota Jakarta Selatan 12150</div>
+                    <div class="text-xs">No. Telepon : 0812 1635 217</div>
+                </div>
+                <div class="w-16 shrink-0"></div>
+            </div>
+            {{-- ── Sub-title ── --}}
+            <div class="border-b border-gray-800 py-1.5 text-center">
                 <div class="font-bold text-sm uppercase tracking-wider">Permohonan Dana</div>
             </div>
 
