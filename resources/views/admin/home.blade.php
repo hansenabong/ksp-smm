@@ -140,7 +140,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <h4 class="text-base font-bold text-gray-800 group-hover:text-amber-700 transition-colors">Admin Collection</h4>
-                            <p class="text-xs text-gray-500 mt-1 leading-relaxed">Penagihan, DHIA, laporan collection, angsuran</p>
+                            <p class="text-xs text-gray-500 mt-1 leading-relaxed">Penagihan, Master Data, laporan collection, angsuran</p>
                         </div>
                         <svg class="w-5 h-5 text-gray-300 group-hover:text-amber-400 shrink-0 mt-0.5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -378,8 +378,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-800 group-hover:text-blue-700">Data Master DHIA</div>
-                        <div class="text-xs text-gray-500">Database Harian Informasi Agunan</div>
+                        <div class="text-sm font-semibold text-gray-800 group-hover:text-blue-700">Master Data</div>
+                        <div class="text-xs text-gray-500">Data Master (Admin Data)</div>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -433,8 +433,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-800 group-hover:text-amber-700">Data Master DHIA</div>
-                        <div class="text-xs text-gray-500">Database Harian Informasi Agunan</div>
+                        <div class="text-sm font-semibold text-gray-800 group-hover:text-amber-700">Master Data</div>
+                        <div class="text-xs text-gray-500">Data Master (Admin Data)</div>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -519,8 +519,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Data Master DHIA</div>
-                        <div class="text-xs text-gray-500">Lihat Database Harian Informasi Agunan</div>
+                        <div class="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Master Data</div>
+                        <div class="text-xs text-gray-500">Data Master (Admin Data)</div>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -589,8 +589,8 @@
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-gray-800 group-hover:text-slate-700">Data Master DHIA</div>
-                        <div class="text-xs text-gray-500">Database Harian Informasi Agunan</div>
+                        <div class="text-sm font-semibold text-gray-800 group-hover:text-slate-700">Master Data</div>
+                        <div class="text-xs text-gray-500">Data Master (Admin Data)</div>
                     </div>
                     <svg class="w-4 h-4 text-gray-300 group-hover:text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

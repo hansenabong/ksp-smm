@@ -338,9 +338,10 @@ class CollectionController extends Controller
      */
     public function masterDhia(Request $request)
     {
-        $search  = $request->input('q');
-        $wilayah = $request->input('wilayah');
-        $sortBy  = $request->input('sort_by');
+        $search      = $request->input('q');
+        $wilayah     = $request->input('wilayah');
+        $wilayahFrom = $request->input('wilayah_from'); // ktp|jaminan|tinggal|'' (manual)
+        $sortBy      = $request->input('sort_by');
 
         $query = Loan::with(['member', 'application', 'collectionRecord', 'loanProduct',
                 'payments' => fn($q) => $q->where('is_voided', false)->orderByDesc('trx_date')->limit(1)])
@@ -368,7 +369,7 @@ class CollectionController extends Controller
         $wilayahList = CollectionRecord::whereNotNull('wilayah')
             ->distinct()->pluck('wilayah')->sort()->values();
 
-        return view('admin.collection.master-dhia', compact('loans', 'search', 'wilayah', 'wilayahList', 'today', 'sortBy'));
+        return view('admin.collection.master-dhia', compact('loans', 'search', 'wilayah', 'wilayahFrom', 'wilayahList', 'today', 'sortBy'));
     }
 
     /**
@@ -397,18 +398,18 @@ class CollectionController extends Controller
         $loans->transform(fn($l) => $this->enrichLoan($l, $today));
         $loans = $this->applySort($loans, $sortBy)->values();
 
-        $filename = 'master-dhia-' . $today->format('Ymd') . '.csv';
+        $wilayahFrom = $request->input('wilayah_from');
+        $filename = 'master-data-' . $today->format('Ymd') . '.csv';
 
-        return response()->streamDownload(function () use ($loans) {
+        return response()->streamDownload(function () use ($loans, $wilayahFrom) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
 
             fputcsv($out, [
                 'No', 'Tgl Pencairan', 'Nama Nasabah', 'Nomor Kontrak', 'Plafond (Rp)',
-                'Tenor', 'Angsuran Ke', 'NJOP', 'LT (m²)', 'LB (m²)',
-                'Sisa Pokok Hutang (Rp)', 'Angsuran Berjalan (Rp)', 'Tunggakan (Rp)',
-                'Denda Keterlambatan (Rp)', 'Hari Keterlambatan',
-                'Alamat KTP', 'Alamat Jaminan', 'Alamat Tinggal', 'Wilayah', 'No Telepon', 'Keterangan',
+                'Tenor', 'Ang Ke', 'NJOP', 'LT (m²)', 'LB (m²)',
+                'Alamat KTP', 'Alamat Jaminan', 'Alamat Tinggal Sekarang',
+                'Wilayah (KOTA)', 'No Telepon', 'Keterangan',
             ], ';');
 
             foreach ($loans as $i => $loan) {
@@ -416,7 +417,19 @@ class CollectionController extends Controller
                 $noPk  = $loan->application?->notaris_deed_number
                       ?: ('PK-KSP/' . str_pad($loan->id, 5, '0', STR_PAD_LEFT) . '/' . date('Y', strtotime($loan->disbursed_date)));
 
+                $alamatKtp     = $loan->member->address ?? '';
+                $alamatJaminan = $loan->_alamat_jaminan ?? '';
                 $alamatTinggal = $rec?->alamat_tinggal ?: ($loan->_alamat_tinggal ?? $loan->member->address ?? '');
+
+                if ($wilayahFrom === 'ktp') {
+                    $wilayahVal = trim((string) last(explode(',', $alamatKtp)));
+                } elseif ($wilayahFrom === 'jaminan') {
+                    $wilayahVal = trim((string) last(explode(',', $alamatJaminan)));
+                } elseif ($wilayahFrom === 'tinggal') {
+                    $wilayahVal = trim((string) last(explode(',', $alamatTinggal)));
+                } else {
+                    $wilayahVal = $rec?->wilayah ?? '';
+                }
 
                 fputcsv($out, [
                     $i + 1,
@@ -429,15 +442,10 @@ class CollectionController extends Controller
                     $loan->_dhia_njop ?? '',
                     $loan->_dhia_lt   ?? '',
                     $loan->_dhia_lb   ?? '',
-                    $loan->outstanding,
-                    $loan->monthly_installment,
-                    $loan->_tunggakan < 0 ? abs($loan->_tunggakan) : '',
-                    $loan->_denda > 0 ? $loan->_denda : '',
-                    $loan->_days_overdue > 0 ? $loan->_days_overdue : '',
-                    $loan->member->address ?? '',
-                    $loan->_alamat_jaminan,
+                    $alamatKtp,
+                    $alamatJaminan,
                     $alamatTinggal,
-                    $rec?->wilayah ?? '',
+                    $wilayahVal,
                     $loan->member->phone ?? '',
                     $rec?->notes ?? '',
                 ], ';');

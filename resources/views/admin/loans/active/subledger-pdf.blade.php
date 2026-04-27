@@ -185,11 +185,12 @@
             <tr>
                 <th rowspan="2" style="width:18pt">No</th>
                 <th rowspan="2" style="width:16pt">Flag</th>
-                <th rowspan="2" style="width:50pt">Tanggal</th>
+                <th rowspan="2" style="width:50pt">Tgl Jatuh<br>Tempo</th>
                 <th rowspan="2" style="width:62pt">No. Dokumen</th>
                 <th rowspan="2" style="width:26pt">Term</th>
                 <th rowspan="2" style="width:64pt">Jumlah Angsuran</th>
                 <th colspan="2" style="width:80pt; text-align:center;">Denda</th>
+                <th rowspan="2" style="width:50pt">Tgl Bayar</th>
                 <th rowspan="2" style="width:64pt">Pembayaran</th>
                 <th rowspan="2" style="width:64pt">Saldo Piutang</th>
             </tr>
@@ -210,8 +211,24 @@
                     }
                 @endphp
                 @php
-                    $dendaHari   = !$row['is_disburse'] && isset($row['payment_obj']) ? (int)($row['payment_obj']?->penalty_days ?? 0) : 0;
-                    $dendaAmount = !$row['is_disburse'] && isset($row['payment_obj']) ? ((int)($row['payment_obj']?->penalty_amount ?? 0) + (int)($row['payment_obj']?->early_repayment_penalty ?? 0)) : 0;
+                    // Recalculate both Hari and Jumlah from actual dates × rate
+                    // (stored penalty_days was a slot count, stored penalty_amount was full accumulated total on each row)
+                    if (!$row['is_disburse'] && isset($row['payment_obj']) && $row['payment_obj']) {
+                        $payObj      = $row['payment_obj'];
+                        $payDate     = \Carbon\Carbon::parse($payObj->trx_date);
+                        $dueDate     = $row['doc_date'];
+                        $dendaHari   = $payDate->gt($dueDate) ? (int) $dueDate->diffInDays($payDate) : 0;
+                        $dendaRateBp = $loan->loanProduct?->penalty_daily_rate_bp ?? 30;
+                        $dendaBase   = (int) $loan->monthly_installment;
+                        $dendaAmount = $dendaHari > 0
+                            ? (int) round($dendaBase * $dendaHari * $dendaRateBp / 10000)
+                            : 0;
+                        // Early repayment penalty is separate and stored correctly
+                        $dendaAmount += (int)($payObj->early_repayment_penalty ?? 0);
+                    } else {
+                        $dendaHari   = 0;
+                        $dendaAmount = 0;
+                    }
                 @endphp
                 <tr class="{{ $trClass }}">
                     <td class="text-center">{{ $row['no'] }}</td>
@@ -244,6 +261,13 @@
                             —
                         @endif
                     </td>
+                    <td class="text-center font-mono" style="font-size:6.5pt;">
+                        @if(!$row['is_disburse'] && isset($row['payment_obj']) && $row['payment_obj'])
+                            {{ \Carbon\Carbon::parse($row['payment_obj']->trx_date)->format('d/m/Y') }}
+                        @else
+                            —
+                        @endif
+                    </td>
                     <td class="text-right font-mono">
                         @if($row['is_disburse'])
                             {{ number_format($row['amount'], 2, ',', '.') }}
@@ -265,8 +289,9 @@
                 <td class="text-right font-mono">{{ number_format($totalAmount, 2, ',', '.') }}</td>
                 <td class="text-center">—</td>
                 <td class="text-right font-mono">{{ number_format($totalPenalty, 2, ',', '.') }}</td>
+                <td class="text-center">—</td>
                 <td class="text-right font-mono">{{ number_format($totalPayment, 2, ',', '.') }}</td>
-                <td class="text-right font-mono">{{ number_format(max(0, $totalAmount - $totalPayment), 2, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ number_format(max(0, $loan->outstanding), 2, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>

@@ -436,7 +436,8 @@
                             </div>
 
                             {{-- Hidden fields (single source of truth — no duplicates) --}}
-                            <input type="hidden" name="penalty_days" :value="accOverdue">
+                            {{-- penalty_days = total hari keterlambatan dari semua slot overdue (bukan jumlah slot) --}}
+                            <input type="hidden" name="penalty_days" :value="accDetails.reduce((s, d) => s + d.daysLate, 0)">
                             <input type="hidden" name="is_early_repayment" :value="isEarlyRepayment ? 1 : 0">
                             {{-- penalty_amount and early_repayment_penalty submitted via visible inputs above --}}
                             {{-- When accOverdue=0: penalty_amount input hidden but still in DOM with value 0 --}}

@@ -46,7 +46,7 @@ class PkWordService
     {
         [$phpWord, $section, $vars] = $this->bootstrap($app, $loan, $nomorPk);
 
-        $fd = $app->form_data ?? [];
+        $fd = array_merge($app->form_data ?? [], $app->doc_overrides ?? []);
         $agunan = [
             'no_hak'    => $fd['no_hak']          ?? 'XXXX',
             'kelurahan' => $fd['kelurahan_agunan'] ?? 'Kelurahan',
@@ -73,7 +73,7 @@ class PkWordService
     {
         [$phpWord, $section, $vars] = $this->bootstrap($app, $loan, $nomorPk);
 
-        $fd = $app->form_data ?? [];
+        $fd = array_merge($app->form_data ?? [], $app->doc_overrides ?? []);
         $kendaraan = [
             'merk'     => trim(($fd['merk_kendaraan'] ?? '') . ' ' . ($fd['type_kendaraan'] ?? '')) ?: '___',
             'tahun'    => $fd['tahun_kendaraan']  ?? '____',
@@ -104,7 +104,7 @@ class PkWordService
         $phpWord->setDefaultFontSize(11);
         $section = $phpWord->addSection($this->sectionStyle);
 
-        $fd = $app->form_data ?? [];
+        $fd = array_merge($app->form_data ?? [], $app->doc_overrides ?? []);
         $member = $app->member;
         $disbDate = $loan?->disbursed_date ?? Carbon::parse($app->trx_date);
         if (!($disbDate instanceof Carbon)) $disbDate = Carbon::parse($disbDate);

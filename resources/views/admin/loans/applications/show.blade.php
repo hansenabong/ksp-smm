@@ -26,63 +26,41 @@
                         $linkedLoan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
                     @endphp
                     @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','TREASURY','LEGAL','PENGAWAS']))
-                    <a href="{{ route('admin.loans.applications.penawaran', $application) }}?type=sertipikat"
-                       target="_blank"
+                    <a href="{{ route('admin.loans.applications.doc_review', $application) }}?doc=ol-sertipikat"
                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition"
-                       title="Cetak OL — Penawaran Pembiayaan Sertipikat">
+                       title="Edit & Cetak OL — Penawaran Pembiayaan Sertipikat">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                         OL Sertipikat
                     </a>
-                    <a href="{{ route('admin.loans.applications.penawaran', $application) }}?type=kendaraan"
-                       target="_blank"
+                    <a href="{{ route('admin.loans.applications.doc_review', $application) }}?doc=ol-kendaraan"
                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition"
-                       title="Cetak OL — Penawaran Pembiayaan Kendaraan">
+                       title="Edit & Cetak OL — Penawaran Pembiayaan Kendaraan">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                         OL Kendaraan
                     </a>
-                    <a href="{{ route('admin.loans.applications.agreement', $application) }}"
-                       target="_blank"
+                    <a href="{{ route('admin.loans.applications.doc_review', $application) }}?doc=pk-sertipikat"
                        class="inline-flex items-center gap-1.5 px-4 py-2 {{ $showPkA ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white text-sm font-medium rounded-lg transition"
-                       title="Cetak PK A — Perjanjian Pembiayaan dengan Jaminan Sertipikat">
+                       title="Edit & Cetak PK A — Perjanjian Pembiayaan dengan Jaminan Sertipikat">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                         PK A (Sertipikat)
                     </a>
-                    <a href="{{ route('admin.loans.applications.agreement.vehicle', $application) }}"
-                       target="_blank"
+                    <a href="{{ route('admin.loans.applications.doc_review', $application) }}?doc=pk-kendaraan"
                        class="inline-flex items-center gap-1.5 px-4 py-2 {{ $showPkB ? 'bg-teal-600 hover:bg-teal-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white text-sm font-medium rounded-lg transition"
-                       title="Cetak PK B — Perjanjian Pembiayaan dengan Jaminan BPKB Kendaraan">
+                       title="Edit & Cetak PK B — Perjanjian Pembiayaan dengan Jaminan BPKB Kendaraan">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                         PK B (Kendaraan)
-                    </a>
-                    <a href="{{ route('admin.loans.applications.agreement.word', $application) }}"
-                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
-                       title="Download PK A sebagai Word (.docx)">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        PK A Word
-                    </a>
-                    <a href="{{ route('admin.loans.applications.agreement.vehicle.word', $application) }}"
-                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
-                       title="Download PK B sebagai Word (.docx)">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        PK B Word
                     </a>
                     @if($linkedLoan)
                     <div class="w-px h-6 bg-gray-300"></div>

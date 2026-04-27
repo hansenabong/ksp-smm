@@ -58,7 +58,7 @@
 <div class="page">
 
     @php
-        $fd      = $application->form_data ?? [];
+        $fd      = array_merge($application->form_data ?? [], $application->doc_overrides ?? []);
         $member  = $application->member;
 
         $principal  = $application->principal;
@@ -147,7 +147,7 @@
         <table class="kop-table kop-logo"><tr>
             <td style="width:70pt; padding-right:10pt; vertical-align:middle;">
                 @if($__logoSrc)
-                <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:60pt; height:60pt; object-fit:contain;">
+                <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:60pt; height:60pt;">
                 @endif
             </td>
             <td style="vertical-align:middle; text-align:center;">
@@ -311,25 +311,25 @@
     <div class="signature-wrap">
         <table class="signature-table">
             <tr>
-                <td style="text-align:left; vertical-align:top;">
+                <td style="text-align:left; vertical-align:top; width:33.33%;">
                     <div>Hormat kami,</div>
-                    <div style="margin-top:2pt; font-weight:bold;">KSP. Sarana Mitra Mandiri</div>
-                    <div class="signature-box">
+                    <div style="font-weight:bold;">KSP. Sarana Mitra Mandiri</div>
+                    <div style="margin-top:56pt; border-top:1px solid #000; padding-top:4pt;">
                         ( Go Tji Seng / Ricky )<br>
                         <span style="font-size:9pt;">Ketua KSP SMM</span>
                     </div>
                 </td>
-                <td style="text-align:center; vertical-align:top;">
+                <td style="text-align:center; vertical-align:top; width:33.33%;">
                     <div>Menyetujui</div>
-                    <div style="margin-top:2pt; font-size:9pt; border:1px solid #000; display:inline-block; padding:2pt 8pt;">Materai 10.000</div>
-                    <div class="signature-box">
+                    <div style="font-size:9pt; border:1px solid #000; padding:2pt 8pt; margin-top:2pt;">Materai 10.000</div>
+                    <div style="margin-top:16pt; border-top:1px solid #000; padding-top:4pt;">
                         ( ..................................... )<br>
                         <span style="font-size:9pt;">Debitur</span>
                     </div>
                 </td>
-                <td style="text-align:center; vertical-align:top;">
+                <td style="text-align:center; vertical-align:top; width:33.33%;">
                     <div>&nbsp;</div>
-                    <div class="signature-box">
+                    <div style="margin-top:56pt; border-top:1px solid #000; padding-top:4pt;">
                         ( ..................................... )<br>
                         <span style="font-size:9pt;">Suami/Istri</span>
                     </div>

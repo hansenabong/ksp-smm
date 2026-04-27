@@ -9,6 +9,7 @@ class LoanApplication extends Model
     protected $casts = [
         'trx_date'         => 'date',
         'form_data'        => 'array',
+        'doc_overrides'    => 'array',
         'notaris_deed_date' => 'date',
     ];
     protected $fillable = [
@@ -16,7 +17,7 @@ class LoanApplication extends Model
         'insurance_monthly','status','notes','approval_note',
         'approved_by','approved_at','approved_cash_account_id','created_by',
         'loan_product_id', 'method', 'interest_rate_monthly_bp',
-        'form_data',
+        'form_data', 'doc_overrides',
         'notaris_name', 'notaris_deed_number', 'notaris_deed_date', 'notaris_city',
     ];
     public function files() { return $this->hasMany(\App\Models\LoanApplicationFile::class); }

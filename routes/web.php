@@ -173,6 +173,8 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/loans/applications/{application}/agreement-vehicle',[LoanApplicationController::class,'agreementVehicle'])->name('admin.loans.applications.agreement.vehicle');
                 Route::get('/loans/applications/{application}/agreement-word',[LoanApplicationController::class,'agreementWord'])->name('admin.loans.applications.agreement.word');
                 Route::get('/loans/applications/{application}/agreement-vehicle-word',[LoanApplicationController::class,'agreementVehicleWord'])->name('admin.loans.applications.agreement.vehicle.word');
+                Route::get('/loans/applications/{application}/doc-review',[LoanApplicationController::class,'docReview'])->name('admin.loans.applications.doc_review');
+                Route::post('/loans/applications/{application}/doc-review',[LoanApplicationController::class,'saveDocReview'])->name('admin.loans.applications.doc_review.save');
             });
 
             // Loan applications — write: ADMIN_DATA only
@@ -208,6 +210,7 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware('role:SUPER_ADMIN|ADMIN_DATA|ADMIN_COLLECTION|FINANCE|TREASURY|PENGAWAS')->group(function () {
                 Route::get('/loans/active/{loan}/schedule',        [LoanController::class,'schedule'])->name('admin.loans.active.schedule');
                 Route::get('/loans/active/{loan}/schedule/pdf',    [LoanController::class,'schedulePdf'])->name('admin.loans.active.schedule.pdf');
+                Route::get('/loans/active/{loan}/amortisasi/pdf',  [LoanController::class,'amortisasiPdf'])->name('admin.loans.active.amortisasi.pdf');
                 Route::get('/loans/active/{loan}/subledger/pdf',   [LoanController::class,'subledgerPdf'])->name('admin.loans.active.subledger.pdf');
                 Route::get('/loans/active/{loan}/settlement',      [LoanController::class,'settlement'])->name('admin.loans.active.settlement');
                 Route::get('/loans/active/{loan}/settlement/pdf',  [LoanController::class,'settlementPdf'])->name('admin.loans.active.settlement.pdf');
@@ -228,8 +231,8 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/loans/active/{loan}/permohonan-dana',   [LoanController::class,'savePermohonanDana'])->name('admin.loans.active.permohonan.dana.save');
             });
 
-            // Loan payments — FINANCE
-            Route::middleware('role:SUPER_ADMIN|FINANCE')->group(function () {
+            // Loan payments — FINANCE + ADMIN_COLLECTION
+            Route::middleware('role:SUPER_ADMIN|FINANCE|ADMIN_COLLECTION')->group(function () {
                 Route::get('/loans/active/{loan}/payments/create',[LoanPaymentController::class,'create'])->name('admin.loans.payments.create');
                 Route::post('/loans/active/{loan}/payments',      [LoanPaymentController::class,'store'])->name('admin.loans.payments.store');
             });
@@ -413,6 +416,7 @@ Route::middleware(['auth'])->group(function () {
                     // Collection-context routes for schedule, subledger, settlement
                     Route::get('/{loan}/schedule',        [LoanController::class,'schedule'])->name('admin.collection.schedule');
                     Route::get('/{loan}/schedule/pdf',    [LoanController::class,'schedulePdf'])->name('admin.collection.schedule.pdf');
+                    Route::get('/{loan}/amortisasi/pdf',  [LoanController::class,'amortisasiPdf'])->name('admin.collection.amortisasi.pdf');
                     Route::get('/{loan}/subledger/pdf',   [LoanController::class,'subledgerPdf'])->name('admin.collection.subledger.pdf');
                     Route::get('/{loan}/settlement',      [LoanController::class,'settlement'])->name('admin.collection.settlement');
                     Route::get('/{loan}/settlement/pdf',  [LoanController::class,'settlementPdf'])->name('admin.collection.settlement.pdf');

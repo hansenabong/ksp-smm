@@ -25,6 +25,14 @@ class CollectionLetterController extends Controller
             'notes'         => 'nullable|string|max:1000',
         ]);
 
+        // Guard: only allow SP/SOMASI/CESSIE when customer has actual arrears
+        $disbursed     = \Carbon\Carbon::parse($loan->disbursed_date);
+        $monthsElapsed = min((int) $disbursed->diffInMonths(\Carbon\Carbon::today()), $loan->tenor_months);
+        $arrears       = max(0, ($monthsElapsed * $loan->monthly_installment) - $loan->total_paid);
+        if ($arrears <= 0) {
+            return back()->withErrors(['letter_type' => 'Surat tidak dapat dibuat: nasabah tidak memiliki tunggakan (pembayaran on time).'])->withInput();
+        }
+
         $letterNumber = filled($data['letter_number'] ?? null)
             ? $data['letter_number']
             : $this->generateNumber($data['letter_type'], $loan, $data['letter_date']);

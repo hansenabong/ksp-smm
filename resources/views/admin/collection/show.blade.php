@@ -10,14 +10,19 @@
             <div class="flex items-center gap-2">
                 @if($loan->status === 'ACTIVE')
                 @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','ADMIN_COLLECTION']))
-                <a href="{{ route('admin.collection.settlement', $loan) }}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                <a href="{{ route('admin.loans.payments.create', $loan) }}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/>
                     </svg>
-                    Pelunasan
+                    Bayar / Pelunasan
                 </a>
                 @endif
+                <a href="{{ route('admin.collection.schedule.pdf', $loan) }}" target="_blank"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Jadwal Angsuran
+                </a>
                 <a href="{{ route('admin.collection.schedule', $loan) }}"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition">
                     <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -236,7 +241,18 @@
                 <div class="px-5 py-4 border-b border-gray-100">
                     <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Buat Surat</div>
                 </div>
-                <form method="POST" action="{{ route('admin.collection.letters.store', $loan) }}" target="_blank" class="px-5 py-4 space-y-4"
+                @if($arrears <= 0)
+                <div class="px-5 py-4 bg-green-50 border-b border-green-100 text-green-800 text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Nasabah tidak memiliki tunggakan — surat peringatan tidak dapat diterbitkan.
+                </div>
+                @endif
+                @error('letter_type')
+                <div class="px-5 py-3 bg-red-50 border-b border-red-100 text-red-700 text-sm">{{ $message }}</div>
+                @enderror
+                <form method="POST" action="{{ route('admin.collection.letters.store', $loan) }}" target="_blank" class="px-5 py-4 space-y-4 {{ $arrears <= 0 ? 'opacity-50 pointer-events-none select-none' : '' }}"
                     x-data="{
                         letterType: '{{ collect(\App\Models\CollectionLetter::TYPE_LEVEL)->filter(fn($l) => $l == $currentLevel + 1)->keys()->first() ?? 'SP1' }}',
                         nextNumbers: @json($nextNumbers),

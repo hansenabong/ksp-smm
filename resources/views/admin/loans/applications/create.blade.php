@@ -91,6 +91,13 @@
                         <input type="text" name="notes" value="{{ old('notes') }}"
                             class="w-full border rounded px-3 py-2" maxlength="255">
                     </div>
+                    <div>
+                        <label class="text-sm">Tujuan Pinjaman</label>
+                        <input type="text" name="form_data[tujuan_pembiayaan]"
+                            value="{{ old('form_data.tujuan_pembiayaan') }}"
+                            class="w-full border rounded px-3 py-2" maxlength="255"
+                            placeholder="cth: pembelian rumah / renovasi / modal usaha">
+                    </div>
                 </div>
 
                 {{-- ===== DATA PRIBADI PEMOHON ===== --}}
@@ -623,6 +630,18 @@
                                 <label class="text-sm">No. IMB</label>
                                 <input type="text" name="form_data[no_imb]"
                                     value="{{ old('form_data.no_imb') }}"
+                                    class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="text-sm">NOP <span class="text-gray-400 font-normal">(Nomor Objek Pajak)</span></label>
+                                <input type="text" name="form_data[nop_agunan]"
+                                    value="{{ old('form_data.nop_agunan') }}"
+                                    class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="text-sm">NIB <span class="text-gray-400 font-normal">(Nomor Induk Bangunan)</span></label>
+                                <input type="text" name="form_data[nib_agunan]"
+                                    value="{{ old('form_data.nib_agunan') }}"
                                     class="w-full border rounded px-3 py-2">
                             </div>
                         </div>

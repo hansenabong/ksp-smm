@@ -50,7 +50,7 @@
 <div class="page">
 
     @php
-        $fd       = $application->form_data ?? [];
+        $fd       = array_merge($application->form_data ?? [], $application->doc_overrides ?? []);
         $member   = $application->member;
         $disbDate = $loan?->disbursed_date ?? $application->trx_date;
 

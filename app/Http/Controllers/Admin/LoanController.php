@@ -71,6 +71,15 @@ class LoanController extends Controller
         return $pdf->download('jadwal-angsuran-' . $loan->id . '.pdf');
     }
 
+    public function amortisasiPdf(Loan $loan)
+    {
+        $loan->load(['member', 'loanProduct', 'application']);
+        [$schedule, $paidMap] = $this->buildSchedule($loan);
+        $pdf = Pdf::loadView('admin.loans.active.amortisasi-pdf', compact('loan', 'schedule', 'paidMap'))
+            ->setPaper('a4', 'landscape');
+        return $pdf->download('amortisasi-' . $loan->id . '.pdf');
+    }
+
     // ─────────────────────────────────────────────────────────────
     //  PERMOHONAN DANA
     // ─────────────────────────────────────────────────────────────
@@ -247,9 +256,10 @@ class LoanController extends Controller
         $disbursedDate    = Carbon::parse($loan->disbursed_date);
         $principal        = (int) $loan->principal;
         $tenor            = (int) $loan->tenor_months;
-        $principalMonthly    = (int) $loan->principal_monthly;
-        $monthlyInstallment  = (int) $loan->monthly_installment;
-        $nonPrincipalMonthly = $monthlyInstallment - $principalMonthly;
+        $principalMonthly   = (int) $loan->principal_monthly;
+        $interestMonthly    = (int) $loan->interest_monthly;
+        $insuranceMonthly   = (int) $loan->insurance_monthly;
+        $monthlyInstallment = $principalMonthly + $interestMonthly + $insuranceMonthly;
 
         $product              = $loan->loanProduct;
         $penaltyDailyRateBp   = $product?->penalty_daily_rate_bp ?? 30;   // default 0.30%/day
@@ -278,7 +288,7 @@ class LoanController extends Controller
             if ($due->lte($settlementDate) && $i > $paidCount) {
                 $overdueCount++;
                 $installmentAmount = ($i === $tenor)
-                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $nonPrincipalMonthly
+                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
                     : $monthlyInstallment;
                 $tunggakan += $installmentAmount;
             }
@@ -292,7 +302,7 @@ class LoanController extends Controller
             $daysLate = max(0, $due->diffInDays($settlementDate, false));
             if ($daysLate > 0) {
                 $installmentAmount = ($i === $tenor)
-                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $nonPrincipalMonthly
+                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
                     : $monthlyInstallment;
                 $penalty = (int) round($installmentAmount * ($penaltyDailyRateBp / 10000.0) * $daysLate);
                 $dendaKeterlambatan += $penalty;
@@ -349,12 +359,12 @@ class LoanController extends Controller
                 ->orderBy('trx_date')->orderBy('id'),
         ]);
 
-        $principal           = (int) $loan->principal;
-        $tenor               = (int) $loan->tenor_months;
-        $principalMonthly    = (int) $loan->principal_monthly;
-        $interestMonthly     = (int) $loan->interest_monthly;
-        $disbursedDate       = Carbon::parse($loan->disbursed_date);
-        $nonPrincipalMonthly = (int) $loan->monthly_installment - $principalMonthly;
+        $principal        = (int) $loan->principal;
+        $tenor            = (int) $loan->tenor_months;
+        $principalMonthly = (int) $loan->principal_monthly;
+        $interestMonthly  = (int) $loan->interest_monthly;
+        $insuranceMonthly = (int) $loan->insurance_monthly;
+        $disbursedDate    = Carbon::parse($loan->disbursed_date);
 
         $payments = $loan->payments->values();
 
@@ -383,7 +393,7 @@ class LoanController extends Controller
             $recovery    = $isLast
                 ? ($principal - ($principalMonthly * ($tenor - 1)))
                 : $principalMonthly;
-            $installment = $recovery + $nonPrincipalMonthly;
+            $installment = $recovery + $interestMonthly + $insuranceMonthly;
             $dueDate     = $disbursedDate->copy()->addMonths($n);
 
             $actualPayment = ($n <= $payments->count()) ? $payments[$n - 1] : null;
@@ -412,9 +422,18 @@ class LoanController extends Controller
 
         $totalAmount  = collect($rows)->skip(1)->sum('amount');
         $totalPayment = collect($rows)->skip(1)->sum('payment');
-        $totalPenalty = collect($rows)->skip(1)->sum(function ($row) {
+
+        // Recalculate total penalty from actual dates × rate (same logic as blade)
+        $dendaRateBp = $loan->loanProduct?->penalty_daily_rate_bp ?? 30;
+        $installmentBase = (int) $loan->monthly_installment;
+        $totalPenalty = collect($rows)->skip(1)->sum(function ($row) use ($dendaRateBp, $installmentBase) {
             $p = $row['payment_obj'] ?? null;
-            return $p ? ((int)($p->penalty_amount ?? 0) + (int)($p->early_repayment_penalty ?? 0)) : 0;
+            if (!$p) return 0;
+            $payDate = Carbon::parse($p->trx_date);
+            $dueDate = $row['doc_date'];
+            $daysLate = $payDate->gt($dueDate) ? (int) $dueDate->diffInDays($payDate) : 0;
+            $denda = $daysLate > 0 ? (int) round($installmentBase * $daysLate * $dendaRateBp / 10000) : 0;
+            return $denda + (int)($p->early_repayment_penalty ?? 0);
         });
 
         $pdf = Pdf::loadView('admin.loans.active.subledger-pdf', compact(
@@ -426,12 +445,12 @@ class LoanController extends Controller
 
     private function buildSchedule(Loan $loan): array
     {
-        $principal           = (int) $loan->principal;
-        $tenor               = (int) $loan->tenor_months;
-        $principalMonthly    = (int) $loan->principal_monthly;
-        $interestMonthly     = (int) $loan->interest_monthly;
-        $disbursedDate       = Carbon::parse($loan->disbursed_date);
-        $nonPrincipalMonthly = (int) $loan->monthly_installment - $principalMonthly;
+        $principal        = (int) $loan->principal;
+        $tenor            = (int) $loan->tenor_months;
+        $principalMonthly = (int) $loan->principal_monthly;
+        $interestMonthly  = (int) $loan->interest_monthly;
+        $insuranceMonthly = (int) $loan->insurance_monthly;
+        $disbursedDate    = Carbon::parse($loan->disbursed_date);
 
         $initialUnearned    = $interestMonthly * $tenor;
         $initialReceivable  = $principal + $initialUnearned;
@@ -461,7 +480,7 @@ class LoanController extends Controller
                 ? ($principal - $principalMonthly * ($tenor - 1))
                 : $principalMonthly;
 
-            $loanPayment = $recovery + $nonPrincipalMonthly;
+            $loanPayment = $recovery + $interestMonthly + $insuranceMonthly;
 
             $outstandingPrincipal -= $recovery;
             $unearnedIncome       -= $interestMonthly;

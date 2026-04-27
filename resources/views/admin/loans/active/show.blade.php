@@ -7,7 +7,7 @@
             </div>
             <div class="flex items-center gap-2">
                 {{-- Primary actions (ACTIVE only) --}}
-                @if($loan->status === 'ACTIVE' && auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE']))
+                @if($loan->status === 'ACTIVE' && auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE','ADMIN_COLLECTION']))
                 <a href="{{ route('admin.loans.payments.create', $loan) }}"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +150,7 @@
                         </div>
                         <div class="bg-gray-50 rounded-lg p-3">
                             <div class="text-xs text-gray-400 mb-1">Angsuran/bln</div>
-                            <div class="font-bold text-gray-800 text-sm">Rp {{ number_format($loan->monthly_installment, 0, ',', '.') }}</div>
+                            <div class="font-bold text-gray-800 text-sm">Rp {{ number_format($loan->principal_monthly + $loan->interest_monthly + $loan->insurance_monthly, 0, ',', '.') }}</div>
                             <div class="text-xs text-gray-400 mt-0.5">{{ $loan->interest_monthly_percent }}%/bln</div>
                         </div>
                         <div class="bg-gray-50 rounded-lg p-3">

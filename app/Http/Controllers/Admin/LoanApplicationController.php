@@ -130,6 +130,8 @@ class LoanApplicationController extends Controller
             'form_data.luas_tanah'                   => ['nullable', 'string', 'max:20'],
             'form_data.luas_bangunan'                => ['nullable', 'string', 'max:20'],
             'form_data.no_imb'                       => ['nullable', 'string', 'max:50'],
+            'form_data.nop_agunan'                   => ['nullable', 'string', 'max:50'],
+            'form_data.nib_agunan'                   => ['nullable', 'string', 'max:50'],
             // Agunan - Alamat Objek Pembiayaan (Pasal 3 PK)
             'form_data.komplek_agunan'               => ['nullable', 'string', 'max:100'],
             'form_data.jalan_agunan'                 => ['nullable', 'string', 'max:100'],
@@ -370,6 +372,8 @@ class LoanApplicationController extends Controller
             'form_data.luas_tanah'                   => ['nullable', 'string', 'max:20'],
             'form_data.luas_bangunan'                => ['nullable', 'string', 'max:20'],
             'form_data.no_imb'                       => ['nullable', 'string', 'max:50'],
+            'form_data.nop_agunan'                   => ['nullable', 'string', 'max:50'],
+            'form_data.nib_agunan'                   => ['nullable', 'string', 'max:50'],
             'form_data.jenis_kendaraan'              => ['nullable', 'string', 'max:100'],
             'form_data.tahun_kendaraan'              => ['nullable', 'integer', 'min:1970', 'max:' . (date('Y') + 1)],
             'form_data.warna_kendaraan'              => ['nullable', 'string', 'max:50'],
@@ -598,6 +602,8 @@ class LoanApplicationController extends Controller
             'form_data.luas_tanah'                   => ['nullable', 'string', 'max:20'],
             'form_data.luas_bangunan'                => ['nullable', 'string', 'max:20'],
             'form_data.no_imb'                       => ['nullable', 'string', 'max:50'],
+            'form_data.nop_agunan'                   => ['nullable', 'string', 'max:50'],
+            'form_data.nib_agunan'                   => ['nullable', 'string', 'max:50'],
             'form_data.jenis_kendaraan'              => ['nullable', 'string', 'max:100'],
             'form_data.tahun_kendaraan'              => ['nullable', 'integer', 'min:1970', 'max:' . (date('Y') + 1)],
             'form_data.warna_kendaraan'              => ['nullable', 'string', 'max:50'],
@@ -791,7 +797,8 @@ class LoanApplicationController extends Controller
 
         $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
 
-        $nomorSurat = 'SPP-' . now()->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+        $nomorSurat = $application->doc_overrides['nomor_surat_ol']
+            ?? ('SPP-' . now()->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT));
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
             'admin.loans.applications.penawaran-pembiayaan-pdf',
@@ -804,6 +811,30 @@ class LoanApplicationController extends Controller
         return $pdf->download($filename);
     }
 
+    public function docReview(LoanApplication $application, \Illuminate\Http\Request $request)
+    {
+        abort_unless($application->status === 'APPROVED', 404);
+
+        $docType = $request->query('doc', 'ol-sertipikat');
+        abort_unless(in_array($docType, ['ol-sertipikat','ol-kendaraan','pk-sertipikat','pk-kendaraan']), 404);
+
+        $application->load(['member', 'loanProduct']);
+        $fd = array_merge($application->form_data ?? [], $application->doc_overrides ?? []);
+
+        return view('admin.loans.applications.doc-review', compact('application', 'docType', 'fd'));
+    }
+
+    public function saveDocReview(LoanApplication $application, \Illuminate\Http\Request $request)
+    {
+        abort_unless($application->status === 'APPROVED', 404);
+
+        $overrides = $request->except(['_token', '_method']);
+        $application->doc_overrides = array_merge($application->doc_overrides ?? [], array_filter($overrides, fn($v) => $v !== null && $v !== ''));
+        $application->save();
+
+        return back()->with('success', 'Data draft berhasil disimpan.');
+    }
+
     public function agreement(LoanApplication $application)
     {
         abort_unless($application->status === 'APPROVED', 404);
@@ -812,7 +843,8 @@ class LoanApplicationController extends Controller
 
         $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
 
-        $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+        $nomorPk = $application->doc_overrides['nomor_pk']
+            ?? ('PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT));
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.loans.applications.agreement-pdf', compact('application', 'loan', 'nomorPk'));
         $pdf->setPaper('A4', 'portrait');
@@ -830,7 +862,8 @@ class LoanApplicationController extends Controller
 
         $loan = \App\Models\Loan::where('loan_application_id', $application->id)->first();
 
-        $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+        $nomorPk = $application->doc_overrides['nomor_pk']
+            ?? ('PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT));
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.loans.applications.agreement-vehicle-pdf', compact('application', 'loan', 'nomorPk'));
         $pdf->setPaper('A4', 'portrait');
@@ -846,7 +879,8 @@ class LoanApplicationController extends Controller
 
         $application->load(['member', 'loanProduct', 'approver']);
         $loan    = \App\Models\Loan::where('loan_application_id', $application->id)->first();
-        $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+        $nomorPk = $application->doc_overrides['nomor_pk']
+            ?? ('PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT));
         $filename = 'perjanjian-' . str_replace('/', '-', $nomorPk) . '.docx';
 
         $service = new \App\Services\Document\PkWordService();
@@ -863,7 +897,8 @@ class LoanApplicationController extends Controller
 
         $application->load(['member', 'loanProduct', 'approver']);
         $loan    = \App\Models\Loan::where('loan_application_id', $application->id)->first();
-        $nomorPk = 'PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT);
+        $nomorPk = $application->doc_overrides['nomor_pk']
+            ?? ('PK-' . $application->trx_date->format('Y') . '/' . str_pad($application->id, 4, '0', STR_PAD_LEFT));
         $filename = 'perjanjian-kendaraan-' . str_replace('/', '-', $nomorPk) . '.docx';
 
         $service = new \App\Services\Document\PkWordService();
