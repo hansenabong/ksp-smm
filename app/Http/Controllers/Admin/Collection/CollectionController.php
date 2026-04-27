@@ -470,6 +470,24 @@ class CollectionController extends Controller
         $arrears    = $this->computeArrears($loan, $today);
         $monthsLate = $this->computeMonthsLate($loan, $today);
 
+        // Days overdue — same logic as enrichLoan
+        if ($arrears > 0 && $loan->monthly_installment > 0) {
+            $disbursed       = Carbon::parse($loan->disbursed_date);
+            $monthsPaid      = (int) floor($loan->total_paid / $loan->monthly_installment);
+            $firstUnpaidDate = $disbursed->copy()->addMonths($monthsPaid + 1);
+            $daysOverdue     = max(0, (int) $firstUnpaidDate->diffInDays($today));
+        } else {
+            $daysOverdue = 0;
+        }
+
+        $allowedTypes = match(true) {
+            $daysOverdue === 0  => [],
+            $daysOverdue <= 30  => ['SP1'],
+            $daysOverdue <= 60  => ['SP1', 'SP2'],
+            $daysOverdue <= 90  => ['SP1', 'SP2', 'SP3'],
+            default             => ['SP1', 'SP2', 'SP3', 'SOMASI', 'CESSIE'],
+        };
+
         // DHIA defaults pulled from loan application's collateral data
         $fd = $loan->application?->form_data ?? [];
         $dhiaDefaults = [
@@ -489,7 +507,8 @@ class CollectionController extends Controller
         }
 
         return view('admin.collection.show', compact(
-            'loan', 'record', 'letters', 'arrears', 'monthsLate', 'petugasList', 'nextNumbers', 'dhiaDefaults'
+            'loan', 'record', 'letters', 'arrears', 'monthsLate', 'daysOverdue', 'allowedTypes',
+            'petugasList', 'nextNumbers', 'dhiaDefaults'
         ));
     }
 

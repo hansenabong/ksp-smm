@@ -267,10 +267,19 @@
                         <select name="letter_type" required x-model="letterType"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300">
                             @foreach(\App\Models\CollectionLetter::TYPES as $type => $label)
+                            @if(in_array($type, $allowedTypes))
                             <option value="{{ $type }}">{{ $label }}</option>
+                            @else
+                            <option value="{{ $type }}" disabled class="text-gray-400">{{ $label }} (belum tersedia)</option>
+                            @endif
                             @endforeach
                         </select>
-                        <p class="text-xs text-gray-400 mt-1">Eskalasi saat ini: <strong>{{ $levelLabels[$currentLevel] }}</strong></p>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Eskalasi saat ini: <strong>{{ $levelLabels[$currentLevel] }}</strong>
+                            @if($daysOverdue > 0)
+                            · Telat <strong>{{ $daysOverdue }} hari</strong>
+                            @endif
+                        </p>
                     </div>
 
                     <div>
