@@ -530,6 +530,18 @@
                                 <div class="text-xs text-gray-400 mb-0.5">No. IMB</div>
                                 <div class="font-semibold text-gray-800">{{ $fd['no_imb'] ?? '-' }}</div>
                             </div>
+                            @if(!empty($fd['nop_agunan'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">NOP (Nomor Objek Pajak)</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['nop_agunan'] }}</div>
+                            </div>
+                            @endif
+                            @if(!empty($fd['nib_agunan'] ?? null))
+                            <div>
+                                <div class="text-xs text-gray-400 mb-0.5">NIB (Nomor Induk Bangunan)</div>
+                                <div class="font-semibold text-gray-800">{{ $fd['nib_agunan'] }}</div>
+                            </div>
+                            @endif
                         </div>
 
                         @php

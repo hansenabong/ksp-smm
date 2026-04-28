@@ -74,8 +74,10 @@
 
         $tujuan   = $fd['tujuan_pembiayaan'] ?? $application->notes ?? '';
 
-        // Provisi from product
-        $provisiPct = $application->loanProduct?->provision_rate_percent ?? 7;
+        // Provisi: per-application override first, then product default
+        $provisiPct = filled($fd['provisi_pct'] ?? null)
+            ? (float) $fd['provisi_pct']
+            : ($application->loanProduct?->provision_rate_percent ?? 7);
         $provisiAmt = round($principal * $provisiPct / 100);
 
         // Debitur data
@@ -105,8 +107,18 @@
     @endphp
 
     @php
-        $__logo    = public_path('images/logo-ksp.jpeg');
-        $__logoSrc = file_exists($__logo) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__logo)) : '';
+        $__logoSrc = '';
+        foreach ([public_path('images/logo-ksp.png'), base_path('ksp.png'), public_path('images/logo-ksp.jpeg')] as $__f) {
+            if (!file_exists($__f)) continue;
+            if (str_ends_with($__f, '.png')) {
+                $__logoSrc = 'data:image/png;base64,' . base64_encode(file_get_contents($__f));
+            } else {
+                $__gd = @imagecreatefromjpeg($__f);
+                if ($__gd) { ob_start(); imagepng($__gd); $__p = ob_get_clean(); imagedestroy($__gd); $__logoSrc = 'data:image/png;base64,' . base64_encode($__p); }
+                else { $__logoSrc = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__f)); }
+            }
+            break;
+        }
     @endphp
 
     {{-- ===== KOP SURAT ===== --}}
@@ -114,7 +126,7 @@
         <tr>
             <td style="width:70pt; vertical-align:middle; text-align:left; padding-right:8pt;">
                 @if($__logoSrc)
-                <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:62pt; height:62pt; object-fit:contain;">
+                <img src="{{ $__logoSrc }}" alt="KSP SMM" style="width:62pt; height:62pt;">
                 @endif
             </td>
             <td style="vertical-align:middle; text-align:center;">

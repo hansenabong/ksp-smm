@@ -80,7 +80,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="text-sm">Bunga Flat / bulan (%)</label>
                     <input id="interest_monthly_percent" type="number" step="0.01"
@@ -88,6 +88,14 @@
                         value="{{ old('interest_monthly_percent', $application->interest_monthly_percent) }}"
                         class="w-full border rounded px-3 py-2" min="0">
                     <div class="text-xs text-gray-500 mt-1">Auto dari produk, masih bisa diubah</div>
+                </div>
+                <div>
+                    <label class="text-sm">Biaya Provisi (%)</label>
+                    <input type="number" step="0.01" name="form_data[provisi_pct]"
+                        value="{{ old('form_data.provisi_pct', $fd['provisi_pct'] ?? '') }}"
+                        class="w-full border rounded px-3 py-2" min="0"
+                        placeholder="dari produk">
+                    <div class="text-xs text-gray-500 mt-1">Kosongkan = pakai default produk</div>
                 </div>
                 <div>
                     <label class="text-sm">Asuransi / bulan (Rp)</label>
@@ -102,6 +110,13 @@
                 <input type="text" name="notes"
                     value="{{ old('notes', $application->notes) }}"
                     class="w-full border rounded px-3 py-2" maxlength="255">
+            </div>
+            <div>
+                <label class="text-sm">Tujuan Pinjaman</label>
+                <input type="text" name="form_data[tujuan_pembiayaan]"
+                    value="{{ old('form_data.tujuan_pembiayaan', $fd['tujuan_pembiayaan'] ?? '') }}"
+                    class="w-full border rounded px-3 py-2" maxlength="255"
+                    placeholder="cth: pembelian rumah / renovasi / modal usaha">
             </div>
         </div>
 
@@ -653,6 +668,18 @@
                         <label class="text-sm">No. IMB</label>
                         <input type="text" name="form_data[no_imb]"
                             value="{{ old('form_data.no_imb', $fd['no_imb'] ?? '') }}"
+                            class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="text-sm">NOP <span class="text-gray-400 font-normal">(Nomor Objek Pajak)</span></label>
+                        <input type="text" name="form_data[nop_agunan]"
+                            value="{{ old('form_data.nop_agunan', $fd['nop_agunan'] ?? '') }}"
+                            class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="text-sm">NIB <span class="text-gray-400 font-normal">(Nomor Induk Bangunan)</span></label>
+                        <input type="text" name="form_data[nib_agunan]"
+                            value="{{ old('form_data.nib_agunan', $fd['nib_agunan'] ?? '') }}"
                             class="w-full border rounded px-3 py-2">
                     </div>
                 </div>

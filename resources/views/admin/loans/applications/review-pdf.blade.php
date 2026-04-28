@@ -376,6 +376,12 @@
             <td class="label">No. IMB</td>
             <td class="value" colspan="3">{!! $val($fd['no_imb'] ?? null) !!}</td>
         </tr>
+        <tr>
+            <td class="label">NOP (SPPT PBB)</td>
+            <td class="value">{!! $val($fd['nop_agunan'] ?? null) !!}</td>
+            <td class="label">NIB (Identifikasi Bidang)</td>
+            <td class="value">{!! $val($fd['nib_agunan'] ?? null) !!}</td>
+        </tr>
     </table>
     @endif
     @if(!empty($fd['jenis_kendaraan']) || !empty($fd['no_bpkb']))

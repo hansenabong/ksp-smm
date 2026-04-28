@@ -150,7 +150,9 @@ class PkWordService
             'angsuran'   => $angsuran,
             'angsuranText' => ucwords(terbilang($angsuran)),
             'tujuan'     => $fd['tujuan_pembiayaan'] ?? $app->notes ?? '___________________________',
-            'provisiPct' => $app->loanProduct?->provision_rate_percent ?? 7,
+            'provisiPct' => filled($fd['provisi_pct'] ?? null)
+                ? (float) $fd['provisi_pct']
+                : ($app->loanProduct?->provision_rate_percent ?? 7),
         ];
 
         return [$phpWord, $section, $vars];
@@ -398,17 +400,19 @@ class PkWordService
             'yang telah disetujui oleh Pihak Pertama (Koperasi).', $this->fNormal);
 
         $this->listItem($section, 'e',
-            'Setiap waktu Pihak Pertama (Koperasi) dan/atau Pihak Ketiga yang ditunjuk berhak memeriksa ' .
-            'penggunaan kredit dalam rangka pengawasan dan pengamanan kredit tersebut, dan Pihak Kedua ' .
-            '(Debitur) wajib membayar seluruh pinjaman beserta bunga dan ongkos-ongkos lain yang timbul ' .
-            'karena perjanjian ini.');
+            'Setiap waktu Pihak Pertama (Koperasi) dan/atau Pihak Ketiga yang ditunjuk oleh Pihak Pertama (Koperasi) berhak memeriksa ' .
+            'penggunaan kredit yang dimaksud, satu dan lain dalam rangka pengawasan dan pengamanan kredit tersebut, dan Pihak Kedua ' .
+            '(Debitur) wajib membayar seluruh pinjaman beserta bunga dan ongkos-ongkos lain yang timbul karena perjanjian ini, ' .
+            'pada seketika itu juga dengan syarat, apabila Pihak Kedua (Debitur) tidak membayarnya maka Pihak Pertama (Koperasi) ' .
+            'berkuasa untuk menjual barang atau benda yang dijadikan jaminan atau agunan dalam perjanjian ini baik di hadapan umum ' .
+            'maupun di bawah tangan.');
     }
 
     private function addPasal2(object $section, array $v): void
     {
         $this->pasalHeader($section, '2', 'Bunga, Administrasi, dan Penalty');
         $section->addText(
-            'Terhadap Fasilitas Kredit yang diberikan dibebankan :',
+            'Terhadap Fasilitas Kredit yang diberikan oleh Pihak Pertama (Koperasi) tersebut kepada Pihak Kedua (Debitur) dibebankan :',
             $this->fNormal, $this->pJustify
         );
 
@@ -416,28 +420,32 @@ class PkWordService
             'indentation' => ['left' => 360, 'hanging' => 360]]);
         $run->addText('a.   ', $this->fNormal);
         $run->addText('Bunga', $this->fBold);
-        $run->addText(' : untuk Fasilitas Kredit kepada Pihak Kedua (Debitur) dibebankan suku bunga pinjaman sebesar ', $this->fNormal);
+        $run->addText(' : untuk Fasilitas Kredit kepada Pihak kedua (Debitur) dibebankan suku bunga pinjaman sebesar ', $this->fNormal);
         $run->addText($v['bungaTahunan'] . '% (' . ucwords(terbilang((int)$v['bungaTahunan'])) . ' persen)', $this->fBold);
-        $run->addText(' pertahun flat atas seluruh jumlah Fasilitas Kredit yang diberikan.', $this->fNormal);
+        $run->addText(' pertahun flat untuk masa 60 (enam puluh) bulan atas seluruh jumlah Fasilitas Kredit yang diberikan.', $this->fNormal);
 
         $run2 = $section->addTextRun(['alignment' => 'both', 'spaceAfter' => 80, 'lineHeight' => 1.5,
             'indentation' => ['left' => 360, 'hanging' => 360]]);
         $run2->addText('b.   ', $this->fNormal);
         $run2->addText('Biaya Administrasi', $this->fBold);
-        $run2->addText(' : untuk Fasilitas Kredit dikenakan biaya Rp 20.000.000,- (Dua Puluh Juta Rupiah) perakad.', $this->fNormal);
+        $run2->addText(' : untuk Fasilitas Kredit dikenakan biaya sebesar Rp 20.000.000,- (Dua Puluh Juta Rupiah) perakad ' .
+            'untuk setiap masa 60 (enam puluh) bulan atas seluruh jumlah Fasilitas Kredit yang diberikan ' .
+            'dan dipungut terlebih dahulu untuk setiap masa tersebut.', $this->fNormal);
 
         $run3 = $section->addTextRun(['alignment' => 'both', 'spaceAfter' => 80, 'lineHeight' => 1.5,
             'indentation' => ['left' => 360, 'hanging' => 360]]);
         $run3->addText('c.   ', $this->fNormal);
         $run3->addText('Biaya Provisi', $this->fBold);
-        $run3->addText(' : untuk Fasilitas Kredit dikenakan biaya provisi sebesar ', $this->fNormal);
-        $run3->addText($v['provisiPct'] . '%', $this->fBold);
-        $run3->addText(' perakad atas seluruh jumlah Fasilitas Kredit yang diberikan.', $this->fNormal);
+        $run3->addText(' : untuk Fasilitas Kredit kepada Pihak Kedua (Debitur) dikenakan biaya provisi sebesar ', $this->fNormal);
+        $run3->addText(number_format($v['provisiPct'], 0) . '%', $this->fBold);
+        $run3->addText(' perakad untuk setiap masa 60 (enam puluh) bulan atas seluruh jumlah Fasilitas Kredit ' .
+            'yang diberikan dan dipungut terlebih dahulu untuk setiap masa tersebut.', $this->fNormal);
 
         $this->listItem($section, 'd',
-            'Pihak Kedua (Debitur) menyatakan persetujuannya, apabila dalam batas waktu berlakunya kredit ini ' .
-            'belum melunasi seluruh jumlah kredit beserta bunganya maka Pihak Pertama (Koperasi) berhak ' .
-            'memperhitungkan denda (Penalty overdue) terhadap Pihak Kedua (Debitur) sebagaimana tercantum pada pasal 3.');
+            'Pihak Kedua (Debitur) dengan ini menyatakan persetujuannya, apabila dalam batas waktu berlakunya kredit ini ' .
+            'belum melunasi secara seksama dan sepatutnya seluruh jumlah kredit yang dipergunakan berdasarkan Perjanjian ini ' .
+            'beserta bunganya maka Pihak Pertama (Koperasi) berhak memperhitungkan denda (Penalty overdue) terhadap Pihak Kedua ' .
+            '(Debitur) yang besarnya akan ditentukan oleh Pihak Pertama (Koperasi) sebagaimana yang tercantum pada pasal 3.');
     }
 
     private function addPasal3(object $section, array $v): void
@@ -448,7 +456,9 @@ class PkWordService
         $rp = 'Rp ' . number_format($v['angsuran'], 0, ',', '.');
         $run = $section->addTextRun(['alignment' => 'both', 'spaceAfter' => 80, 'lineHeight' => 1.5,
             'indentation' => ['left' => 360, 'hanging' => 360]]);
-        $run->addText('a.   Pembayaran Angsuran Pokok Pinjaman dan Bunga akan dilakukan setiap tanggal ', $this->fNormal);
+        $run->addText('a.   Pembayaran Angsuran Pokok Pinjaman dan Bunga Pinjaman akan dilakukan dengan pendebetan ' .
+            'langsung oleh Pihak Pertama (Koperasi) dari rekening tabungan (' . strtoupper($v['nama']) . '), ' .
+            'pada Koperasi Simpan Pinjam Sarana Mitra Mandiri, setiap tanggal ', $this->fNormal);
         $run->addText((string)$v['dueDay'], $this->fBold);
         $run->addText(', tiap-tiap bulannya sebesar ', $this->fNormal);
         $run->addText($rp . ',- (' . $v['angsuranText'] . ')', $this->fBold);

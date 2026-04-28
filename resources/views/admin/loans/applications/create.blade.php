@@ -71,13 +71,21 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="text-sm">Bunga / bulan (%)</label>
                             <input id="interest_monthly_percent" type="number" step="0.01"
                                 name="interest_monthly_percent" value="{{ old('interest_monthly_percent') }}"
                                 class="w-full border rounded px-3 py-2" min="0" onclick="this.select()">
                             <div class="text-xs text-gray-500 mt-1" id="interest_method_hint">Auto dari produk, masih bisa diubah</div>
+                        </div>
+                        <div>
+                            <label class="text-sm">Biaya Provisi (%)</label>
+                            <input type="number" step="0.01" name="form_data[provisi_pct]"
+                                value="{{ old('form_data.provisi_pct') }}"
+                                class="w-full border rounded px-3 py-2" min="0" onclick="this.select()"
+                                placeholder="dari produk">
+                            <div class="text-xs text-gray-500 mt-1">Kosongkan = pakai default produk</div>
                         </div>
                         <div>
                             <label class="text-sm">Asuransi / bulan (Rp)</label>

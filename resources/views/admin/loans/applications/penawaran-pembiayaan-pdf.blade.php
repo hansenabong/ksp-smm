@@ -138,8 +138,18 @@
     @endphp
 
     @php
-        $__logo    = public_path('images/logo-ksp.jpeg');
-        $__logoSrc = file_exists($__logo) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__logo)) : '';
+        $__logoSrc = '';
+        foreach ([public_path('images/logo-ksp.png'), base_path('ksp.png'), public_path('images/logo-ksp.jpeg')] as $__f) {
+            if (!file_exists($__f)) continue;
+            if (str_ends_with($__f, '.png')) {
+                $__logoSrc = 'data:image/png;base64,' . base64_encode(file_get_contents($__f));
+            } else {
+                $__gd = @imagecreatefromjpeg($__f);
+                if ($__gd) { ob_start(); imagepng($__gd); $__p = ob_get_clean(); imagedestroy($__gd); $__logoSrc = 'data:image/png;base64,' . base64_encode($__p); }
+                else { $__logoSrc = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($__f)); }
+            }
+            break;
+        }
     @endphp
 
     {{-- ===== KOP SURAT ===== --}}
