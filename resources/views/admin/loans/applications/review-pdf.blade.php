@@ -159,6 +159,12 @@
             <td class="label"></td>
             <td class="value"></td>
         </tr>
+        @if(!empty($fd['tujuan_pembiayaan'] ?? null))
+        <tr>
+            <td class="label">Tujuan Pembiayaan</td>
+            <td class="value" colspan="3">{!! $val($fd['tujuan_pembiayaan']) !!}</td>
+        </tr>
+        @endif
         @if($application->notes)
         <tr>
             <td class="label">Catatan</td>
@@ -439,10 +445,8 @@
             <td class="value">{!! $val($fd['angsuran_lain'] ?? null, 'rp') !!}</td>
         </tr>
         <tr>
-            <td class="label">Tujuan Pembiayaan</td>
-            <td class="value">{!! $val($fd['tujuan_pembiayaan'] ?? null) !!}</td>
             <td class="label">Biaya Lain-lain</td>
-            <td class="value">{!! $val($fd['biaya_lain'] ?? null, 'rp') !!}</td>
+            <td class="value" colspan="3">{!! $val($fd['biaya_lain'] ?? null, 'rp') !!}</td>
         </tr>
         <tr>
             <td class="label">Total Pendapatan</td>
