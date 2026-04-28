@@ -652,6 +652,13 @@
                                     value="{{ old('form_data.nib_agunan') }}"
                                     class="w-full border rounded px-3 py-2">
                             </div>
+                            <div>
+                                <label class="text-sm">Provinsi</label>
+                                <input type="text" name="form_data[provinsi_agunan]"
+                                    value="{{ old('form_data.provinsi_agunan') }}"
+                                    class="w-full border rounded px-3 py-2"
+                                    placeholder="cth: DKI Jakarta">
+                            </div>
                         </div>
                     </div>
 
