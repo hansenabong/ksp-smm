@@ -78,6 +78,7 @@ KSP-SMM is a web-based financial management system for a savings & loan cooperat
 | 68 | **Non-Anggota Depositor** — `deposito_accounts.member_id` made nullable; new `depositor_name`, `depositor_phone`, `depositor_ktp` columns; `saving_transactions.member_id` also nullable to allow flow-through; create form has Anggota/Non-Anggota toggle (Alpine.js); show + index + print views handle null member with `depositorDisplayName()` helper; same ledger account 2113 used (reports stay combined per client requirement — this is operational tracking only, not separate accounting) | ✅ Done |
 | 69 | **Active Loan Search + Advance Account + Petugas Rename** — search bar on Pinjaman Aktif index (filter by member name or member_no via `ilike`); new account 2124 "Advance — Angsuran Tidak Teridentifikasi" (LIABILITY) for unidentified payments + matching cash category; users `dilla@ksp.local` and `nadia@ksp.local` renamed to "Dilla / Nadiah" so kwitansi shows team name regardless of which kasir logged in | ✅ Done |
 | 70 | **Treasury Role Document Fixes** — (1) PK Word export replaced with native PhpWord builder (`PkWordService`) — full 13-pasal legal document built programmatically, no more HTML→PhpWord fragile conversion; (2) KSP kop surat (logo via base64) added to PK A, PK B, Permohonan Dana PDF; OL black-box logo fixed (JPEG base64 instead of `public_path`); (3) Kwitansi kop surat enlarged across all 4 kwitansi (logo `w-14→w-20`, title `text-xl→text-2xl`, address line added); (4) Biaya 2-rupiah selisih fixed — `hold_angsuran_ke` integer count was being summed with rupiah amounts; excluded via `collect()->except()` in both web view and PDF; (5) Treasury can now see kwitansi angsuran — added `TREASURY` to `admin.loans.active.index` + `show` routes + added "Pinjaman Aktif" entry to Treasury home submenu + "Kwitansi" button per payment row visible to FINANCE+TREASURY; (6) Jadwal Angsuran PDF redesigned from amortisasi table to simple client-requested format: kop surat + header info (No. Anggota, Nama, Alamat, No. Rekening, Jangka Waktu, Plafond, Realisasi, Jatuh Tempo) + simple table (Angsuran ke / Tanggal / Jumlah) + signature block; (7) Permohonan Dana web view kop surat added (logo + full address) | ✅ Done |
+| 71 | **Admin Collection Corrections** — (1) `CollectionOverdueSeeder`: new seeder to simulate varying overdue (1–6 bulan tunggak) on active loans for demo/testing without touching loan_payments history; (2) SP letter suggestion now auto-selects type based on `$monthsLate` (not manual escalation_level): 1 bln→SP1, 2–3 bln→SP2, 4 bln→SP3, 5–6 bln→Somasi, 7+ bln→Cessie; (3) Collection show page expanded: full payment history (all rows, not just 10), Kwitansi + Void action buttons per row, + new Rincian Pinjaman card (komponen angsuran, rekapitulasi, tunggakan); (4) Separate **Bayar Angsuran** (indigo) and **Perhitungan Pelunasan** (amber) buttons in collection show header; (5) **Settlement fix** — `totalPelunasan` for early repayment now uses `sisaPokok + bungaTertunggak` (past-due interest only) instead of `outstanding` (which incorrectly included all future interest); `sisa_pokok` now matches `outstanding_principal` column in amortization schedule exactly; future interest is explicitly shown as waived in both web view and PDF | ✅ Done |
 
 ---
 
@@ -560,15 +561,74 @@ php artisan db:seed
 Or run individual seeders (must follow this order):
 
 ```bash
-php artisan db:seed --class=RolesSeeder           # 1. Create Spatie roles
-php artisan db:seed --class=UsersSeeder           # 2. Create 10 team accounts
-php artisan db:seed --class=DemoMasterSeeder      # 3. Members, cash accounts, products
-php artisan db:seed --class=AccountingSeeder      # 4. Full COA + ledger auto-linking
-php artisan db:seed --class=CashCategorySeeder    # 5. Cash categories with GL accounts
-php artisan db:seed --class=DemoTransactionSeeder # 6. 6 months of demo transactions (optional)
+php artisan db:seed --class=RolesSeeder              # 1. Create Spatie roles
+php artisan db:seed --class=UsersSeeder              # 2. Create 10 team accounts
+php artisan db:seed --class=DemoMasterSeeder         # 3. Members, cash accounts, products
+php artisan db:seed --class=AccountingSeeder         # 4. Full COA + ledger auto-linking
+php artisan db:seed --class=CashCategorySeeder       # 5. Cash categories with GL accounts
+php artisan db:seed --class=DemoTransactionSeeder    # 6. 6 months of demo transactions (optional)
+php artisan db:seed --class=CollectionOverdueSeeder  # 7. Simulate overdue loans for collection demo (optional)
 ```
 
 > All seeders are idempotent — safe to re-run without creating duplicates.
+
+### Testing Collection Overdue Buckets
+
+After the full demo seed, run the **CollectionOverdueSeeder** to create overdue scenarios:
+
+```bash
+php artisan db:seed --class=CollectionOverdueSeeder
+```
+
+This reduces `total_paid` on the 6 oldest active loans to simulate 1–6 months of arrears. The Kolektabilitas table will then show loans distributed across the 1–30, 31–60, and 61+ hari buckets.
+
+---
+
+To manually control which bucket a specific loan falls into, use `php artisan tinker`:
+
+```php
+# --- PASTE INTO: php artisan tinker ---
+
+use App\Models\Loan;
+use Carbon\Carbon;
+
+$today = Carbon::today();
+
+// Get active loans (adjust ID as needed)
+$loans = Loan::where('status', 'ACTIVE')->orderBy('disbursed_date')->get();
+
+// Scenario map: [loan_index => months_to_backdate]
+// Backdate disbursed_date so monthsElapsed > total paid months → overdue
+$scenarios = [
+    0 => 1,   // → 1–30 hari bucket
+    1 => 2,   // → 1–30 or 31–60 hari (depending on day of month)
+    2 => 3,   // → 31–60 hari
+    3 => 4,   // → 61+ hari
+    4 => 5,   // → 61+ hari
+    5 => 6,   // → 61+ hari
+];
+
+foreach ($scenarios as $idx => $monthsBack) {
+    $loan = $loans->get($idx);
+    if (!$loan) continue;
+
+    // Push disbursed_date back by $monthsBack extra months beyond what was paid
+    $paidMonths = (int) floor($loan->total_paid / $loan->monthly_installment);
+    $newDate    = $today->copy()->subMonths($paidMonths + $monthsBack + 1)->toDateString();
+
+    \DB::table('loans')->where('id', $loan->id)->update([
+        'disbursed_date' => $newDate,
+    ]);
+
+    echo "Loan #{$loan->id} ({$loan->member->name}): disbursed_date → {$newDate} ({$monthsBack} bln telat)\n";
+}
+
+echo "\nDone. Refresh Kolektabilitas page.\n";
+```
+
+**How it works:** the system computes overdue on-the-fly from `disbursed_date` + `total_paid` every page load — no stored "overdue flag". Pushing `disbursed_date` back increases `monthsElapsed`, making `expected > total_paid`, which populates the overdue buckets.
+
+**To reset** (restore original disbursed dates), re-run `php artisan migrate:fresh --seed` or manually update `disbursed_date` back to the correct values via tinker.
 
 ### Production Deployment
 
