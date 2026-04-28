@@ -142,6 +142,7 @@ class LoanApplicationController extends Controller
             'form_data.kelurahan_agunan'             => ['nullable', 'string', 'max:100'],
             'form_data.kecamatan_agunan'             => ['nullable', 'string', 'max:100'],
             'form_data.kota_agunan'                  => ['nullable', 'string', 'max:100'],
+            'form_data.provinsi_agunan'              => ['nullable', 'string', 'max:100'],
             'form_data.penerbit_sertifikat'          => ['nullable', 'string', 'max:100'],
             'form_data.tgl_sertifikat'               => ['nullable', 'date'],
             // Agunan - Kendaraan & BPKB
