@@ -78,24 +78,42 @@
             <div class="p-6">
                 <div class="max-w-lg">
 
-                    {{-- Sisa kewajiban --}}
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sisa Kewajiban Pokok</div>
+                    {{-- Sisa Pokok Hutang (matches amortization outstanding_principal) --}}
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sisa Pokok Hutang</div>
                     <table class="w-full text-sm mb-4">
                         <tr class="border-b border-gray-100">
-                            <td class="py-1.5 text-gray-600">Sisa Tagihan (Outstanding)</td>
-                            <td class="py-1.5 text-right font-mono font-medium text-gray-800">Rp {{ number_format($calc['outstanding'], 0, ',', '.') }}</td>
+                            <td class="py-1.5 text-gray-600">
+                                Sisa Pokok
+                                <span class="text-xs text-gray-400 ml-1">(sesuai amortisasi)</span>
+                            </td>
+                            <td class="py-1.5 text-right font-mono font-medium text-gray-800">Rp {{ number_format($calc['sisa_pokok'], 0, ',', '.') }}</td>
                         </tr>
                     </table>
 
-                    {{-- Tunggakan (informational — already included in Outstanding above) --}}
+                    {{-- Bunga Tertunggak (hanya untuk periode yang sudah jatuh tempo) --}}
                     @if($calc['overdue_count'] > 0)
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tunggakan ({{ $calc['overdue_count'] }} angsuran) <span class="text-[10px] font-normal text-gray-400 normal-case">&mdash; sudah termasuk dalam Outstanding</span></div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Bunga &amp; Asuransi Tertunggak
+                        <span class="text-[10px] font-normal text-gray-400 normal-case">({{ $calc['overdue_count'] }} angsuran jatuh tempo)</span>
+                    </div>
                     <table class="w-full text-sm mb-4">
                         <tr class="border-b border-gray-100">
-                            <td class="py-1.5 text-gray-600 pl-3">Angsuran Tertunggak</td>
-                            <td class="py-1.5 text-right font-mono text-red-700">Rp {{ number_format($calc['tunggakan'], 0, ',', '.') }}</td>
+                            <td class="py-1.5 text-gray-600 pl-3">Bunga + Asuransi Tertunggak</td>
+                            <td class="py-1.5 text-right font-mono text-orange-700">Rp {{ number_format($calc['bunga_tertunggak'], 0, ',', '.') }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-50">
+                            <td class="py-1 text-gray-400 pl-3 text-xs italic">Pokok tertunggak sudah termasuk dalam Sisa Pokok di atas</td>
+                            <td></td>
                         </tr>
                     </table>
+                    @endif
+
+                    {{-- Info: bunga masa depan dibebaskan --}}
+                    @if($calc['is_early_repayment'])
+                    <div class="bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-4 text-xs text-green-700">
+                        ✓ Bunga masa depan ({{ $calc['remaining_periods'] - $calc['overdue_count'] }} periode)
+                        dibebaskan karena pelunasan dipercepat.
+                    </div>
                     @endif
 
                     {{-- Denda keterlambatan --}}
@@ -152,7 +170,7 @@
                     {{-- Info note --}}
                     <p class="text-xs text-gray-400 mt-3">
                         * Perhitungan ini bersifat estimasi dan dapat berubah sesuai tanggal pelunasan aktual.
-                        Outstanding = sisa total kewajiban (pokok + bunga + asuransi).
+                        Sisa Pokok Hutang sesuai dengan kolom <em>Outstanding Principal</em> di jadwal amortisasi.
                     </p>
                 </div>
             </div>

@@ -252,9 +252,19 @@
                 @error('letter_type')
                 <div class="px-5 py-3 bg-red-50 border-b border-red-100 text-red-700 text-sm">{{ $message }}</div>
                 @enderror
+                @php
+                    // Auto-suggest SP type based on months overdue (not manual escalation_level)
+                    $suggestedType = match(true) {
+                        $monthsLate >= 7 => 'CESSIE',
+                        $monthsLate >= 5 => 'SOMASI',
+                        $monthsLate >= 4 => 'SP3',
+                        $monthsLate >= 2 => 'SP2',
+                        default          => 'SP1',
+                    };
+                @endphp
                 <form method="POST" action="{{ route('admin.collection.letters.store', $loan) }}" target="_blank" class="px-5 py-4 space-y-4 {{ $arrears <= 0 ? 'opacity-50 pointer-events-none select-none' : '' }}"
                     x-data="{
-                        letterType: '{{ collect(\App\Models\CollectionLetter::TYPE_LEVEL)->filter(fn($l) => $l == $currentLevel + 1)->keys()->first() ?? 'SP1' }}',
+                        letterType: '{{ $suggestedType }}',
                         nextNumbers: @json($nextNumbers),
                         get suggestedNumber() { return this.nextNumbers[this.letterType] ?? '' }
                     }">
@@ -270,15 +280,16 @@
                             @if(in_array($type, $allowedTypes))
                             <option value="{{ $type }}">{{ $label }}</option>
                             @else
-                            <option value="{{ $type }}" disabled class="text-gray-400">{{ $label }} (belum tersedia)</option>
+                            <option value="{{ $type }}" disabled class="text-gray-400">{{ $label }} (belum dapat dipilih)</option>
                             @endif
                             @endforeach
                         </select>
                         <p class="text-xs text-gray-400 mt-1">
-                            Eskalasi saat ini: <strong>{{ $levelLabels[$currentLevel] }}</strong>
+                            Berdasarkan tunggakan: <strong>{{ $monthsLate }} bulan</strong>
                             @if($daysOverdue > 0)
-                            · Telat <strong>{{ $daysOverdue }} hari</strong>
+                            ({{ $daysOverdue }} hari)
                             @endif
+                            · Saran: <strong>{{ \App\Models\CollectionLetter::TYPES[$suggestedType] }}</strong>
                         </p>
                     </div>
 
@@ -373,42 +384,143 @@
             @endif
         </div>
 
-        {{-- Recent Payments --}}
-        @if($loan->payments->isNotEmpty())
+        {{-- Riwayat Pembayaran --}}
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100">
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Riwayat Angsuran Terakhir</div>
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                    Riwayat Pembayaran
+                    <span class="ml-1 text-gray-300 font-normal">({{ $loan->payments->count() }})</span>
+                </div>
+                @if(auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE','ADMIN_COLLECTION']))
+                <a href="{{ route('admin.loans.payments.create', $loan) }}"
+                   class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">
+                    + Bayar Angsuran
+                </a>
+                @endif
             </div>
+            @if($loan->payments->isEmpty())
+            <div class="px-5 py-8 text-center text-gray-400 text-sm">Belum ada pembayaran.</div>
+            @else
+            <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
                         <th class="px-4 py-2 text-left">Tanggal</th>
                         <th class="px-4 py-2 text-right">Jumlah</th>
                         <th class="px-4 py-2 text-right">Denda</th>
+                        <th class="px-4 py-2 text-left">Catatan</th>
                         <th class="px-4 py-2 text-left">Status</th>
+                        <th class="px-4 py-2 text-center"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @foreach($loan->payments->take(10) as $pay)
-                    <tr class="{{ $pay->is_voided ? 'opacity-50' : 'hover:bg-gray-50' }}">
+                    @foreach($loan->payments as $pay)
+                    <tr class="{{ $pay->is_voided ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50' }}">
                         <td class="px-4 py-2 text-gray-600">{{ \Carbon\Carbon::parse($pay->trx_date)->format('d/m/Y') }}</td>
-                        <td class="px-4 py-2 text-right font-mono text-gray-700">{{ number_format($pay->amount) }}</td>
-                        <td class="px-4 py-2 text-right font-mono text-xs {{ $pay->penalty_amount > 0 ? 'text-red-600' : 'text-gray-400' }}">
-                            {{ $pay->penalty_amount > 0 ? number_format($pay->penalty_amount) : '-' }}
+                        <td class="px-4 py-2 text-right font-mono text-gray-700 {{ $pay->is_voided ? 'line-through' : '' }}">
+                            Rp {{ number_format($pay->amount) }}
                         </td>
+                        <td class="px-4 py-2 text-right font-mono text-xs {{ $pay->penalty_amount > 0 ? 'text-red-600' : 'text-gray-400' }}">
+                            {{ $pay->penalty_amount > 0 ? 'Rp '.number_format($pay->penalty_amount) : '-' }}
+                        </td>
+                        <td class="px-4 py-2 text-xs text-gray-400">{{ $pay->note ?? '-' }}</td>
                         <td class="px-4 py-2">
                             @if($pay->is_voided)
-                            <span class="text-xs text-gray-400 line-through">Dibatalkan</span>
+                            <span class="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-red-100 text-red-700 font-semibold">VOID</span>
                             @else
-                            <span class="text-xs text-green-600">Sah</span>
+                            <span class="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-green-100 text-green-700 font-semibold">Sah</span>
                             @endif
+                        </td>
+                        <td class="px-4 py-2 text-center">
+                            <div class="flex items-center justify-end gap-1">
+                                @if(!$pay->is_voided && auth()->user()->hasAnyRole(['SUPER_ADMIN','FINANCE','TREASURY']))
+                                <a href="{{ route('admin.loans.payments.receipt', $pay) }}" target="_blank"
+                                   class="inline-flex items-center px-2 py-1 text-[10px] bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 font-medium">
+                                    Kwitansi
+                                </a>
+                                @endif
+                                @if(!$pay->is_voided && auth()->user()->hasRole('SUPER_ADMIN'))
+                                <a href="{{ route('admin.loans.payments.void.create', $pay) }}"
+                                   class="inline-flex items-center px-2 py-1 text-[10px] bg-red-50 text-red-700 rounded hover:bg-red-100 font-medium">
+                                    Void
+                                </a>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @endforeach
                 </tbody>
             </table>
+            </div>
+            @endif
         </div>
-        @endif
+
+        {{-- Rincian Pinjaman --}}
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">Rincian Pinjaman</div>
+                <a href="{{ route('admin.loans.active.show', $loan) }}"
+                   class="text-xs text-indigo-600 hover:underline">Lihat Detail Lengkap →</a>
+            </div>
+            <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <div class="text-xs text-gray-400 mb-0.5">Produk Pinjaman</div>
+                    <div class="font-semibold text-gray-800">{{ $loan->loanProduct?->name ?? '-' }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">{{ $loan->loanProduct?->method ?? '' }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 mb-0.5">Tanggal Cair</div>
+                    <div class="font-semibold text-gray-800">{{ $loan->disbursed_date?->format('d M Y') }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 mb-0.5">Tenor</div>
+                    <div class="font-semibold text-gray-800">{{ $loan->tenor_months }} bulan</div>
+                </div>
+
+                <div class="md:col-span-3 border-t border-gray-100 pt-4">
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Komponen Angsuran per Bulan</div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <div class="text-xs text-gray-400 mb-1">Pokok / bln</div>
+                            <div class="font-bold text-gray-800 text-sm">Rp {{ number_format($loan->principal_monthly, 0, ',', '.') }}</div>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-3">
+                            <div class="text-xs text-blue-400 mb-1">Bunga / bln</div>
+                            <div class="font-bold text-blue-800 text-sm">Rp {{ number_format($loan->interest_monthly, 0, ',', '.') }}</div>
+                            <div class="text-xs text-blue-300">{{ $loan->interest_monthly_percent }}%</div>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-3">
+                            <div class="text-xs text-purple-400 mb-1">Asuransi / bln</div>
+                            <div class="font-bold text-purple-800 text-sm">Rp {{ number_format($loan->insurance_monthly ?? 0, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-3 border-t border-gray-100 pt-4">
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Rekapitulasi</div>
+                    <div class="space-y-2 max-w-xs">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Total Tagihan</span>
+                            <span class="font-medium text-gray-800">Rp {{ number_format($loan->total_payable, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Sudah Dibayar</span>
+                            <span class="font-medium text-green-700">Rp {{ number_format($loan->total_paid, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-semibold border-t border-gray-100 pt-2">
+                            <span class="text-gray-700">Sisa Tagihan (Outstanding)</span>
+                            <span class="text-indigo-700">Rp {{ number_format($loan->outstanding, 0, ',', '.') }}</span>
+                        </div>
+                        @if($arrears > 0)
+                        <div class="flex justify-between text-sm border-t border-red-100 pt-2">
+                            <span class="text-red-600 font-medium">Tunggakan ({{ $monthsLate }} bln)</span>
+                            <span class="font-bold text-red-700">Rp {{ number_format($arrears, 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 </x-admin-layout>

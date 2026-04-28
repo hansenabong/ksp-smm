@@ -199,36 +199,36 @@
         </thead>
         <tbody>
 
-            {{-- Outstanding --}}
+            {{-- Sisa Pokok Hutang --}}
             <tr class="section-header">
-                <td colspan="2">Sisa Kewajiban Pokok</td>
+                <td colspan="2">Sisa Pokok Hutang</td>
             </tr>
             <tr>
-                <td>Sisa Tagihan (Outstanding Principal + Bunga + Admin + Asuransi)</td>
-                <td class="text-right font-mono">{{ number_format($calc['outstanding'], 2, ',', '.') }}</td>
+                <td>Sisa Pokok Hutang <span style="font-size:8pt; color:#666;">(sesuai amortisasi)</span></td>
+                <td class="text-right font-mono">{{ number_format($calc['sisa_pokok'], 2, ',', '.') }}</td>
             </tr>
 
             @if($calc['overdue_count'] > 0)
-            {{-- Angsuran tertunggak breakdown --}}
+            {{-- Bunga tertunggak --}}
             <tr class="section-header">
                 <td colspan="2" class="text-orange">
-                    Angsuran Tertunggak
-                    ({{ $calc['overdue_count'] }} angsuran belum dibayar,
-                    termasuk dalam sisa tagihan di atas)
+                    Bunga &amp; Asuransi Tertunggak
+                    ({{ $calc['overdue_count'] }} angsuran jatuh tempo)
                 </td>
             </tr>
-            @foreach($calc['denda_details'] as $dd)
+            <tr>
+                <td class="text-orange">Bunga + Asuransi Tertunggak</td>
+                <td class="text-right font-mono text-orange">{{ number_format($calc['bunga_tertunggak'], 2, ',', '.') }}</td>
+            </tr>
+            @endif
+
+            @if($calc['is_early_repayment'] && ($calc['remaining_periods'] - $calc['overdue_count']) > 0)
             <tr class="detail-row">
-                <td>
-                    Angsuran #{{ $dd['installment_no'] }} — jatuh tempo {{ $dd['due_date']->format('d M Y') }}
-                    — sudah {{ $dd['days_late'] }} hari terlambat
+                <td style="color:#166534;">
+                    Bunga masa depan dibebaskan
+                    ({{ $calc['remaining_periods'] - $calc['overdue_count'] }} periode)
                 </td>
-                <td class="text-right font-mono text-orange">{{ number_format($dd['base_amount'], 2, ',', '.') }}</td>
-            </tr>
-            @endforeach
-            <tr class="subtotal-row">
-                <td class="text-orange">Total Angsuran Tertunggak <span style="font-size:9px; font-weight:normal; color:#888;">(informasi — sudah termasuk dalam Outstanding)</span></td>
-                <td class="text-right font-mono text-orange">{{ number_format($calc['tunggakan'], 2, ',', '.') }}</td>
+                <td class="text-right font-mono" style="color:#166534;">—</td>
             </tr>
             @endif
 

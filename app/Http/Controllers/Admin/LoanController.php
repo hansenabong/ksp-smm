@@ -270,17 +270,17 @@ class LoanController extends Controller
         $paidCount  = $payments->count();
         $remaining  = $tenor - $paidCount;
 
-        // Sisa pokok hutang (outstanding principal only, for early-repayment fee basis)
-        $sisaPokok = ($paidCount >= $tenor - 1)
-            ? max(0, $principal - ($principalMonthly * $paidCount))
-            : $principal - ($principalMonthly * min($paidCount, $tenor - 1));
+        // Sisa pokok hutang — remaining principal only (matches amortization outstanding_principal)
+        $sisaPokok = max(0, $principal - ($principalMonthly * min($paidCount, $tenor - 1)));
+        if ($paidCount >= $tenor) {
+            $sisaPokok = 0;
+        }
 
         // Expected due date for next installment
         $nextInstallmentNo  = $paidCount + 1;
         $expectedDueDate    = $disbursedDate->copy()->addMonths($nextInstallmentNo);
 
-        // Overdue installments = installments whose due date has passed but unpaid.
-        // Tunggakan is informational only — its components are already included in `outstanding`.
+        // Overdue installments — due dates that have passed but are unpaid
         $overdueCount = 0;
         $tunggakan    = 0;
         for ($i = 1; $i <= $tenor; $i++) {
@@ -322,11 +322,21 @@ class LoanController extends Controller
             ? (int) round($sisaPokok * ($earlyRepaymentRateBp / 10000.0))
             : 0;
 
-        // TOTAL PELUNASAN = sisa kewajiban + denda + biaya pelunasan
-        // (tunggakan is already inside outstanding — not added again).
-        $totalPelunasan = max(0, (int) $loan->outstanding)
-            + $dendaKeterlambatan
-            + $biayaPelunasanDipercepat;
+        // Bunga & asuransi hanya untuk angsuran yang sudah JATUH TEMPO (tertunggak).
+        // Bunga untuk periode yang belum jatuh tempo DIBEBASKAN pada pelunasan dipercepat.
+        $bungaTertunggak = $overdueCount * ($interestMonthly + $insuranceMonthly);
+
+        // TOTAL PELUNASAN:
+        //   Sisa Pokok Hutang  (= amortization outstanding_principal)
+        // + Bunga Tertunggak   (hanya periode overdue — bukan bunga masa depan)
+        // + Denda Keterlambatan
+        // + Biaya Pelunasan Dipercepat
+        if ($isEarlyRepayment) {
+            $totalPelunasan = $sisaPokok + $bungaTertunggak + $dendaKeterlambatan + $biayaPelunasanDipercepat;
+        } else {
+            // Angsuran terakhir: bayar outstanding saja (sudah akurat ke-sen-nya)
+            $totalPelunasan = max(0, (int) $loan->outstanding) + $dendaKeterlambatan;
+        }
 
         return [
             'settlement_date'           => $settlementDate,
@@ -341,6 +351,8 @@ class LoanController extends Controller
             'is_early_repayment'        => $isEarlyRepayment,
             'biaya_pelunasan_dipercepat'=> $biayaPelunasanDipercepat,
             'early_repayment_rate_bp'   => $earlyRepaymentRateBp,
+            'sisa_pokok'                => $sisaPokok,
+            'bunga_tertunggak'          => $bungaTertunggak,
             'outstanding'               => (int) $loan->outstanding,
             'total_pelunasan'           => $totalPelunasan,
         ];
