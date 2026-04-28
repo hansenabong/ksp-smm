@@ -595,6 +595,13 @@
                                 value="{{ old('form_data.kota_agunan', $fd['kota_agunan'] ?? '') }}"
                                 class="w-full border rounded px-3 py-2">
                         </div>
+                        <div>
+                            <label class="text-sm">Provinsi</label>
+                            <input type="text" name="form_data[provinsi_agunan]"
+                                value="{{ old('form_data.provinsi_agunan', $fd['provinsi_agunan'] ?? '') }}"
+                                class="w-full border rounded px-3 py-2"
+                                placeholder="cth: DKI Jakarta">
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                         <div>

@@ -587,6 +587,12 @@
                                     <div class="font-semibold text-gray-800">{{ $fd['kota_agunan'] }}</div>
                                 </div>
                                 @endif
+                                @if(!empty($fd['provinsi_agunan'] ?? null))
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-0.5">Provinsi</div>
+                                    <div class="font-semibold text-gray-800">{{ $fd['provinsi_agunan'] }}</div>
+                                </div>
+                                @endif
                                 @if(!empty($fd['penerbit_sertifikat'] ?? null))
                                 <div>
                                     <div class="text-xs text-gray-400 mb-0.5">Diterbitkan Oleh</div>
