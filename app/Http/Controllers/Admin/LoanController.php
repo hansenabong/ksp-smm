@@ -294,24 +294,30 @@ class LoanController extends Controller
             }
         }
 
-        // Late penalty: per overdue installment, days late from its due date
+        // Late penalty — cumulative multiplier:
+        // Denda tunggakan ke-N = N × angsuran × rate × hari terlambat
+        // (ke-1 = 1×, ke-2 = 2×, ke-3 = 3×, dst.)
         $dendaKeterlambatan = 0;
         $dendaDetails       = [];
+        $overdueSeq         = 0; // 1-based sequence of overdue installments
         for ($i = $paidCount + 1; $i <= $paidCount + $overdueCount; $i++) {
+            $overdueSeq++;
             $due      = $disbursedDate->copy()->addMonths($i);
             $daysLate = max(0, $due->diffInDays($settlementDate, false));
             if ($daysLate > 0) {
                 $installmentAmount = ($i === $tenor)
                     ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
                     : $monthlyInstallment;
-                $penalty = (int) round($installmentAmount * ($penaltyDailyRateBp / 10000.0) * $daysLate);
+                // Multiplier = urutan tunggakan (1, 2, 3, ...)
+                $penalty = (int) round(($overdueSeq * $installmentAmount) * ($penaltyDailyRateBp / 10000.0) * $daysLate);
                 $dendaKeterlambatan += $penalty;
                 $dendaDetails[] = [
-                    'installment_no' => $i,
-                    'due_date'       => $due,
-                    'days_late'      => $daysLate,
-                    'base_amount'    => $installmentAmount,
-                    'penalty'        => $penalty,
+                    'installment_no'  => $i,
+                    'overdue_seq'     => $overdueSeq,
+                    'due_date'        => $due,
+                    'days_late'       => $daysLate,
+                    'base_amount'     => $installmentAmount,
+                    'penalty'         => $penalty,
                 ];
             }
         }

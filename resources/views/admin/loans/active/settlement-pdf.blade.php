@@ -237,14 +237,15 @@
             <tr class="section-header">
                 <td colspan="2">
                     Denda Keterlambatan
-                    ({{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}%/hari)
+                    ({{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}%/hari × jumlah tunggakan ke-N)
                 </td>
             </tr>
             @foreach($calc['denda_details'] as $dd)
             <tr class="detail-row">
                 <td>
                     Angsuran #{{ $dd['installment_no'] }} — jatuh tempo {{ $dd['due_date']->format('d M Y') }}
-                    — {{ $dd['days_late'] }} hari terlambat
+                    — {{ $dd['days_late'] }} hari
+                    ({{ $dd['overdue_seq'] }}× angsuran × {{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}% × {{ $dd['days_late'] }} hari)
                 </td>
                 <td class="text-right font-mono text-red">{{ number_format($dd['penalty'], 2, ',', '.') }}</td>
             </tr>
