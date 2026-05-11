@@ -243,9 +243,8 @@
             @foreach($calc['denda_details'] as $dd)
             <tr class="detail-row">
                 <td>
-                    Angsuran #{{ $dd['installment_no'] }} — jatuh tempo {{ $dd['due_date']->format('d M Y') }}
-                    — {{ $dd['days_late'] }} hari
-                    ({{ $dd['overdue_seq'] }}× angsuran × {{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}% × {{ $dd['days_late'] }} hari)
+                    Angsuran #{{ $dd['installment_no'] }} — {{ $dd['due_date']->format('d M Y') }}
+                    ({{ $dd['days_in_period'] }} hari × {{ $dd['overdue_seq'] }}× angsuran × {{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}%/hari)
                 </td>
                 <td class="text-right font-mono text-red">{{ number_format($dd['penalty'], 2, ',', '.') }}</td>
             </tr>

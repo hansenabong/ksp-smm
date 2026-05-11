@@ -200,6 +200,13 @@
             </tr>
         </thead>
         <tbody>
+            @php
+                // Running tunggakan for denda calculation (reference table formula):
+                // Denda per periode = outstanding_tunggakan_awal × rate × hari_di_bulan_itu
+                $dendaRateBp       = $loan->loanProduct?->penalty_daily_rate_bp ?? 30;
+                $runningTunggakan  = 0;
+                $prevDueDate       = \Carbon\Carbon::parse($loan->disbursed_date);
+            @endphp
             @foreach($rows as $row)
                 @php
                     if ($row['is_disburse']) {
@@ -211,23 +218,36 @@
                     }
                 @endphp
                 @php
-                    // Recalculate both Hari and Jumlah from actual dates × rate
-                    // (stored penalty_days was a slot count, stored penalty_amount was full accumulated total on each row)
-                    if (!$row['is_disburse'] && isset($row['payment_obj']) && $row['payment_obj']) {
-                        $payObj      = $row['payment_obj'];
-                        $payDate     = \Carbon\Carbon::parse($payObj->trx_date);
-                        $dueDate     = $row['doc_date'];
-                        $dendaHari   = $payDate->gt($dueDate) ? (int) $dueDate->diffInDays($payDate) : 0;
-                        $dendaRateBp = $loan->loanProduct?->penalty_daily_rate_bp ?? 30;
-                        $dendaBase   = (int) $loan->monthly_installment;
-                        $dendaAmount = $dendaHari > 0
-                            ? (int) round($dendaBase * $dendaHari * $dendaRateBp / 10000)
-                            : 0;
-                        // Early repayment penalty is separate and stored correctly
-                        $dendaAmount += (int)($payObj->early_repayment_penalty ?? 0);
-                    } else {
+                    if ($row['is_disburse']) {
                         $dendaHari   = 0;
                         $dendaAmount = 0;
+                    } else {
+                        $currentDue  = $row['doc_date'];
+
+                        // Days = calendar days of this billing month (patokan maks 28–31 hari)
+                        $dendaHari = (int) $prevDueDate->diffInDays($currentDue);
+
+                        // Denda = outstanding tunggakan di awal periode × rate × hari
+                        $dendaAmount = $runningTunggakan > 0
+                            ? (int) round($runningTunggakan * $dendaRateBp / 10000 * $dendaHari)
+                            : 0;
+
+                        // Early repayment penalty stored separately
+                        $payObj = $row['payment_obj'] ?? null;
+                        if ($payObj) {
+                            $dendaAmount += (int)($payObj->early_repayment_penalty ?? 0);
+                        }
+
+                        // Update running tunggakan: tambah angsuran, kurangi pembayaran
+                        $runningTunggakan += (int)$row['amount'] - (int)$row['payment'];
+
+                        // Advance pointer to current due date
+                        $prevDueDate = $currentDue->copy();
+
+                        // Only show hari if there was actual outstanding
+                        if ($dendaAmount === 0 && ($payObj->early_repayment_penalty ?? 0) === 0) {
+                            $dendaHari = 0;
+                        }
                     }
                 @endphp
                 <tr class="{{ $trClass }}">

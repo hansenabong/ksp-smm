@@ -294,32 +294,34 @@ class LoanController extends Controller
             }
         }
 
-        // Late penalty — cumulative multiplier:
-        // Denda tunggakan ke-N = N × angsuran × rate × hari terlambat
-        // (ke-1 = 1×, ke-2 = 2×, ke-3 = 3×, dst.)
+        // Late penalty — cumulative multiplier, days capped to calendar days of the billing month:
+        // Denda tunggakan ke-N = N × angsuran × rate × hari_di_bulan_itu (maks 28–31 hari)
         $dendaKeterlambatan = 0;
         $dendaDetails       = [];
-        $overdueSeq         = 0; // 1-based sequence of overdue installments
+        $overdueSeq         = 0;
         for ($i = $paidCount + 1; $i <= $paidCount + $overdueCount; $i++) {
             $overdueSeq++;
-            $due      = $disbursedDate->copy()->addMonths($i);
-            $daysLate = max(0, $due->diffInDays($settlementDate, false));
-            if ($daysLate > 0) {
-                $installmentAmount = ($i === $tenor)
-                    ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
-                    : $monthlyInstallment;
-                // Multiplier = urutan tunggakan (1, 2, 3, ...)
-                $penalty = (int) round(($overdueSeq * $installmentAmount) * ($penaltyDailyRateBp / 10000.0) * $daysLate);
-                $dendaKeterlambatan += $penalty;
-                $dendaDetails[] = [
-                    'installment_no'  => $i,
-                    'overdue_seq'     => $overdueSeq,
-                    'due_date'        => $due,
-                    'days_late'       => $daysLate,
-                    'base_amount'     => $installmentAmount,
-                    'penalty'         => $penalty,
-                ];
-            }
+            $due     = $disbursedDate->copy()->addMonths($i);
+            $prevDue = $disbursedDate->copy()->addMonths($i - 1);
+
+            // Days = calendar days of this billing month (prev due → current due)
+            // Cannot exceed days-in-month regardless of settlement date.
+            $daysInPeriod = (int) $prevDue->diffInDays($due); // 28–31
+
+            $installmentAmount = ($i === $tenor)
+                ? ($principal - ($principalMonthly * ($tenor - 1))) + $interestMonthly + $insuranceMonthly
+                : $monthlyInstallment;
+
+            $penalty = (int) round(($overdueSeq * $installmentAmount) * ($penaltyDailyRateBp / 10000.0) * $daysInPeriod);
+            $dendaKeterlambatan += $penalty;
+            $dendaDetails[] = [
+                'installment_no'  => $i,
+                'overdue_seq'     => $overdueSeq,
+                'due_date'        => $due,
+                'days_in_period'  => $daysInPeriod,
+                'base_amount'     => $installmentAmount,
+                'penalty'         => $penalty,
+            ];
         }
 
         // Early repayment penalty (biaya pelunasan dipercepat)

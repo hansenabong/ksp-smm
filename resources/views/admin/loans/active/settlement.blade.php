@@ -126,9 +126,8 @@
                         <tr class="border-b border-gray-50">
                             <td class="py-1 text-gray-500 pl-3 text-xs">
                                 Angsuran #{{ $dd['installment_no'] }} — {{ $dd['due_date']->format('d M Y') }}
-                                ({{ $dd['days_late'] }} hari)
-                                <span class="text-orange-500 font-medium">× {{ $dd['overdue_seq'] }}×</span>
-                                <span class="text-gray-400">= {{ $dd['overdue_seq'] }} × angsuran × {{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}% × {{ $dd['days_late'] }} hari</span>
+                                <span class="text-orange-500 font-medium">({{ $dd['days_in_period'] }} hari bulan ini)</span>
+                                <span class="text-gray-400">= {{ $dd['overdue_seq'] }}× angsuran × {{ number_format($calc['penalty_daily_rate_bp'] / 100, 2) }}% × {{ $dd['days_in_period'] }} hari</span>
                             </td>
                             <td class="py-1 text-right font-mono text-xs text-red-600">Rp {{ number_format($dd['penalty'], 0, ',', '.') }}</td>
                         </tr>
